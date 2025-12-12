@@ -26,7 +26,7 @@ FlowBus支持：Sticky、切换线程、多个订阅、延迟发送、生命周�
     ```
 
 2. 在Module的 **build.gradle** 中添加依赖项
-   [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/FlowBus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/FlowBus)
+   [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowBus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowBus)
 
     ```gradle
    implementation 'io.github.logan0817:FlowBus:1.0.0' // 替换为上方徽章显示的最新版本
@@ -66,8 +66,7 @@ val job = coroutineScope.subscribeEvent<GlobalEvent> {
 }
 job.cancel()
 
-/** 订阅全局事件 GlobalEvent
- *  在 LifecycleOwner 中，例如Activity 和 Fragment
+/** 订阅 GlobalEvent
  */
 subscribeEvent<GlobalEvent> {
     
@@ -77,10 +76,9 @@ subscribeEvent<GlobalEvent> {
 subscribeEvent<ActivityEvent>(scope = activity) {
     
 }
-/** subscribe FragmentScopeEvent
- *  在 Fragment中订阅 FragmentEvent
+/** 订阅 FragmentEvent
  */
-subscribeEvent<ActivityEvent>(scope = fragment) {
+subscribeEvent<FragmentEvent>(scope = fragment) {
 
 }
 

@@ -70,18 +70,16 @@ val job = coroutineScope.subscribeEvent<GlobalEvent> {
 job.cancel()
 
 /** subscribe GlobalScopeEvent
- *  In Activity And Fragment
  */
 subscribeEvent<GlobalEvent> {
 
 }
-/** subscribe ActivityScopeEvent
+/** subscribe ActivityEvent
  */
 subscribeEvent<ActivityEvent>(scope = activity) {
 
 }
-/** subscribe FragmentScopeEvent
- *  In Fragment
+/** subscribe FragmentEvent
  */
 subscribeEvent<FragmentEvent>(scope = fragment) {
 
