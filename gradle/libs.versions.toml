@@ -34,7 +34,7 @@ lifecycle_runtime = { module = "androidx.lifecycle:lifecycle-runtime-ktx", versi
 lifecycle_viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycle_version" }
 lifecycle_livedata = { module = "androidx.lifecycle:lifecycle-livedata-ktx", version.ref = "lifecycle_version" }
 androidx_constraint_layout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraint_layout_version" }
-flowbus = { module = "io.github.logan0817:FlowBus", version.ref = "flowbus-version" }
+flowbus = { module = "io.github.logan0817:flowbus", version.ref = "flowbus-version" }
 
 [plugins]
 vanniktech-maven-publish = { id = "com.vanniktech.maven.publish", version.ref = "vanniktech-maven-publish" }
