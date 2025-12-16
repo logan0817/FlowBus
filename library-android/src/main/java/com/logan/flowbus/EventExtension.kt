@@ -9,7 +9,7 @@ import androidx.lifecycle.ViewModelStoreOwner
  * 从全局总线中永久移除事件类型 T 的粘性事件 Flow 及其重放缓存。
  */
 inline fun <reified T> removeStickyEvent() {
-    ApplicationScopeViewModelProvider.get(FlowEventBus::class.java).removeStickEvent(T::class.java.name)
+    GlobalViewModelStore.get(FlowEventBus::class.java).removeStickEvent(T::class.java.name)
 }
 
 /**
@@ -29,7 +29,7 @@ inline fun <reified T> removeStickyEvent(scope: ViewModelStoreOwner) {
  * 清除全局粘性事件类型 T 的重放缓存，但保留 Flow 实例。
  */
 inline fun <reified T> clearStickyEvent() {
-    ApplicationScopeViewModelProvider.get(FlowEventBus::class.java).clearStickEvent(T::class.java.name)
+    GlobalViewModelStore.get(FlowEventBus::class.java).clearStickEvent(T::class.java.name)
 }
 
 /**

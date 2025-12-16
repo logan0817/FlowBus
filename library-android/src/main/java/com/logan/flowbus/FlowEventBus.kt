@@ -78,7 +78,7 @@ class FlowEventBus : ViewModel() {
      * @param onReceived The event reception callback, generic T is the type of data carried by the event. 事件接收回调。
      * @return Returns the Job instance, which can be used to manually cancel the subscription. 返回 Job 实例，可用于手动取消订阅。
      */
-    fun <T : Any> subscribe(
+    fun <T : Any> subscribeEvent(
         lifecycleOwner: LifecycleOwner,
         eventName: String,
         startState: Lifecycle.State = Lifecycle.State.STARTED,
@@ -115,7 +115,7 @@ class FlowEventBus : ViewModel() {
      * @param isSticky Whether to subscribe to the sticky event. 是否订阅粘性事件。
      * @param onReceived The event reception callback, generic T is the type of data carried by the event. 事件接收回调。
      */
-    suspend fun <T : Any> subscribeInScope(
+    suspend fun <T : Any> subscribeEvent(
         eventName: String,
         isSticky: Boolean,
         onReceived: (T) -> Unit
@@ -126,6 +126,7 @@ class FlowEventBus : ViewModel() {
             handleReceivedEvent(value, onReceived)
         }
     }
+
     /**
      * Internal handler for received events to execute the callback.
      * 内部处理接收到的事件并执行回调。
@@ -146,6 +147,7 @@ class FlowEventBus : ViewModel() {
             Log.w(TAG, "handleReceivedEvent Exception:$e")
         }
     }
+
     /**
      * Posts an event.
      * 发布事件。
@@ -179,6 +181,7 @@ class FlowEventBus : ViewModel() {
             }
         }
     }
+
     /**
      * Removes the specified sticky event flow.
      * 移除指定的粘性事件流。
@@ -192,6 +195,7 @@ class FlowEventBus : ViewModel() {
     fun removeStickEvent(eventName: String) {
         stickyEventFlows.remove(eventName)
     }
+
     /**
      * Clears the replay cache of the specified sticky event.
      * 清除指定粘性事件的重放缓存。

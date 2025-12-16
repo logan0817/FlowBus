@@ -96,19 +96,15 @@ class MainActivity : AppCompatActivity() {
             Log.d(TAG, "onReceived1:${it.name}")
             binding.tvActivityEvent1.text = "${getCurrentTime()}-onReceived1:${it.name}"
         }
-        //Control Thread
-        subscribeEvent<ActivityEvent>(scope = this, dispatcher = Dispatchers.Main) {
-            Log.d(TAG, "onReceived2:${it.name} ${Thread.currentThread().name}")
-            binding.tvActivityEvent2.text = "${getCurrentTime()}-onReceived2:${it.name} ${Thread.currentThread().name}"
-        }
-        //Specify lifecycleState
-        subscribeEvent<ActivityEvent>(scope = this, minLifecycleState = Lifecycle.State.STARTED) {
-            Log.d(TAG, "onReceived3:${it.name}  STARTED")
-            binding.tvActivityEvent3.text = "${getCurrentTime()}-onReceived3:${it.name} STARTED time"
-        }
         //Control Thread + Specify lifecycleState
-        subscribeEvent<ActivityEvent>(scope = this, dispatcher = Dispatchers.IO, minLifecycleState = Lifecycle.State.RESUMED) {
-            Log.d(TAG, "onReceived4:${it.name} ${Thread.currentThread().name} RESUMED ${Thread.currentThread().name} ")
+        subscribeEvent<ActivityEvent>(scope = this, dispatcher = Dispatchers.Main, minLifecycleState = Lifecycle.State.RESUMED) {
+            Log.d(TAG, "onReceived2:${it.name} ${Thread.currentThread().name}")
+            binding.tvActivityEvent2.text = "${getCurrentTime()}-onReceived2:${it.name} ${Thread.currentThread().name}  RESUMED time"
+        }
+        //Subscribe to events in the ViewModelStoreOwner scope within a separate **CoroutineScope**.
+        CoroutineScope(Dispatchers.Main).subscribeEvent<ActivityEvent>(scope = this) {
+            Log.d(TAG, "onReceived3:${it.name} ${Thread.currentThread().name}")
+            binding.tvActivityEvent3.text = "${getCurrentTime()}-onReceived3:${it.name} ${Thread.currentThread().name}"
         }
     }
 

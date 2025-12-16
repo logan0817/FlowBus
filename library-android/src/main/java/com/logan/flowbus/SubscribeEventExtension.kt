@@ -13,6 +13,18 @@ import kotlinx.coroutines.launch
 
 
 /**
+ * Subscribes to events in the **Application (global)** scope.
+ * This extension function manages subscriptions based on the lifecycle of a [LifecycleOwner] (e.g., an Activity or Fragment).
+ * Event collection begins when the [LifecycleOwner] reaches [minLifecycleState] and automatically stops at the end of its lifecycle.
+ * @receiver The lifecycle owner of the event subscription.
+ * @param T The data type of the event. The event name defaults to the fully qualified class name of T.
+ * @param dispatcher The coroutine dispatcher used to execute the [onReceived] lambda, defaulting to the main thread.
+ * @param minLifecycleState The minimum lifecycle state (e.g., STARTED, RESUMED) required for the subscription to begin collecting events.
+ * @param isSticky Whether the event is a sticky event. Sticky events replay the latest event to new subscribers.
+ * @param onReceived The callback function executed when an event is received.
+ * @return Job event collection Job, which can be used to manually unsubscribe.
+ *
+ *
  * 订阅 **Application (全局)** 作用域的事件。
  *
  * 该扩展函数基于 [LifecycleOwner] (例如 Activity 或 Fragment) 的生命周期来管理订阅。
@@ -33,8 +45,8 @@ inline fun <reified T> LifecycleOwner.subscribeEvent(
     isSticky: Boolean = false,
     noinline onReceived: (T) -> Unit
 ): Job {
-    return ApplicationScopeViewModelProvider.get(FlowEventBus::class.java)
-        .subscribe(
+    return GlobalViewModelStore.get(FlowEventBus::class.java)
+        .subscribeEvent(
             this,
             T::class.java.name,
             minLifecycleState,
@@ -46,11 +58,24 @@ inline fun <reified T> LifecycleOwner.subscribeEvent(
 
 
 /**
- * 订阅 **ViewModelStoreOwner (例如 Activity 或 Fragment)** 作用域的事件。
  *
+ * Subscribes to events in the **ViewModelStoreOwner** scope (e.g., Activity or Fragment).
+ * This extension function obtains the event bus instance based on the current **ViewModelStoreOwner** and manages the subscription's lifecycle using the passed-in **lifecycleOwner**.
+ * The lifecycle of a scoped event is bound to its creator (Activity/Fragment).
+ *
+ * @receiver The ViewModelStoreOwner provides the scope of the FlowEventBus instance (e.g., Activity or Fragment).
+ * @param T The data type of the event. The event name defaults to the fully qualified class name of T.
+ * @param scope The owner used to manage the subscription's lifecycle.
+ * @param dispatcher The coroutine dispatcher used to execute the **onReceived** lambda, defaulting to the main thread.
+ * @param minLifecycleState The minimum lifecycle state required for the subscription to begin collecting.
+ * @param isSticky Whether the event is a sticky event.
+ * @param onReceived: The callback function executed when an event is received.
+ * @return Job: The Job that collected the event.
+ *
+ *
+ * 订阅 **ViewModelStoreOwner (例如 Activity 或 Fragment)** 作用域的事件。
  * 该扩展函数基于当前 [ViewModelStoreOwner] 获取事件总线实例，并使用传入的 [lifecycleOwner] 管理订阅的生命周期。
  * 作用域事件的生命周期与其创建者 (Activity/Fragment) 绑定。
- *
  * @receiver ViewModelStoreOwner 提供 FlowEventBus 实例的作用域 (例如 Activity 或 Fragment)。
  * @param T 事件的数据类型。事件名默认为 T 的完整类名。
  * @param scope 用于管理订阅生命周期的所有者。
@@ -68,13 +93,15 @@ inline fun <reified T> ViewModelStoreOwner.subscribeEvent(
     isSticky: Boolean = false,
     noinline onReceived: (T) -> Unit
 ): Job {
-    val owner = if (scope is ViewModelStoreOwner){
+    val owner = if (scope is ViewModelStoreOwner) {
+        // Use the scope of the passed-in Activity/Fragment (busOwner)
+        // 使用传入的 Activity/Fragment (busOwner) 的作用域
         scope
-    }else{
+    } else {
         this
     }
     return ViewModelProvider(owner).get(FlowEventBus::class.java)
-        .subscribe(
+        .subscribeEvent(
             scope,
             T::class.java.name,
             minLifecycleState,
@@ -85,8 +112,20 @@ inline fun <reified T> ViewModelStoreOwner.subscribeEvent(
 }
 
 /**
- * 在独立的 **CoroutineScope** 内订阅 **Application (全局)** 作用域的事件。
  *
+ * Subscribes to events in the **Application (global)** scope within a separate **CoroutineScope**.
+ * This method does not depend on the Android [LifecycleOwner]; the event collection lifecycle is managed by the [CoroutineScope] itself.
+ * Subscription automatically stops when the [CoroutineScope] is canceled. Suitable for ViewModel or non-Android components.
+ *
+ *
+ * @receiver CoroutineScope The coroutine scope (e.g., viewModelScope) that runs the event collection.
+ * @param T The data type of the event.
+ * @param isSticky Whether the event is a sticky event.
+ * @param onReceived The callback function executed when the event is received.
+ * @return Job The event collection job.
+ *
+ *
+ * 在独立的 **CoroutineScope** 内订阅 **Application (全局)** 作用域的事件。
  * 此方法不依赖 Android [LifecycleOwner]，事件收集的生命周期由 [CoroutineScope] 自身管理。
  * 当 [CoroutineScope] 被取消时，订阅自动停止。适用于 ViewModel 或非 Android 组件。
  *
@@ -101,8 +140,8 @@ inline fun <reified T> CoroutineScope.subscribeEvent(
     isSticky: Boolean = false,
     noinline onReceived: (T) -> Unit
 ): Job = this.launch {
-    ApplicationScopeViewModelProvider.get(FlowEventBus::class.java)
-        .subscribeInScope(
+    GlobalViewModelStore.get(FlowEventBus::class.java)
+        .subscribeEvent(
             T::class.java.name,
             isSticky,
             onReceived
@@ -110,8 +149,19 @@ inline fun <reified T> CoroutineScope.subscribeEvent(
 }
 
 /**
- * 在独立的 **CoroutineScope** 内订阅 **ViewModelStoreOwner** 作用域的事件。
  *
+ * Subscribes to events in the **ViewModelStoreOwner** scope within a separate **CoroutineScope**.
+ * This method does not depend on the Android [LifecycleOwner]; the event collection lifecycle is managed by the [CoroutineScope] itself.
+ *
+ * @receiver CoroutineScope The coroutine scope that runs the event collection.
+ * @param T The data type of the event.
+ * @param scope The [ViewModelStoreOwner] (e.g., Activity or Fragment) that provides a FlowEventBus instance.
+ * @param isSticky Whether the event is a sticky event.
+ * @param onReceived The callback function executed when the event is received.
+ * @return Job The job for the event collection.
+ *
+ *
+ * 在独立的 **CoroutineScope** 内订阅 **ViewModelStoreOwner** 作用域的事件。
  * 此方法不依赖 Android [LifecycleOwner]，事件收集的生命周期由 [CoroutineScope] 自身管理。
  *
  * @receiver CoroutineScope 运行事件收集的协程作用域。
@@ -128,7 +178,7 @@ inline fun <reified T> CoroutineScope.subscribeEvent(
     noinline onReceived: (T) -> Unit
 ): Job = this.launch {
     ViewModelProvider(scope).get(FlowEventBus::class.java)
-        .subscribeInScope(
+        .subscribeEvent(
             T::class.java.name,
             isSticky,
             onReceived

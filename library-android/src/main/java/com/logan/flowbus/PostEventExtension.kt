@@ -17,7 +17,7 @@ import androidx.lifecycle.ViewModelStoreOwner
  * 事件发射前的延迟时间（毫秒）。默认是 0（立即）。
  */
 inline fun <reified T : Any> postEvent(event: T, timeMillis: Long = 0L) {
-    ApplicationScopeViewModelProvider.get(FlowEventBus::class.java).post(eventName = T::class.java.name, value = event, timeMillis = timeMillis)
+    GlobalViewModelStore.get(FlowEventBus::class.java).post(eventName = T::class.java.name, value = event, timeMillis = timeMillis)
 }
 
 /**
@@ -35,5 +35,5 @@ inline fun <reified T : Any> postEvent(event: T, timeMillis: Long = 0L) {
  * 事件发射前的延迟时间（毫秒）。默认是 0（立即）。
  */
 inline fun <reified T : Any> postEvent(scope: ViewModelStoreOwner, event: T, timeMillis: Long = 0L) {
-    ViewModelProvider(scope).get(FlowEventBus::class.java).post(eventName = T::class.java.name, value = event, timeMillis = timeMillis)
+    ViewModelProvider(owner = scope).get(FlowEventBus::class.java).post(eventName = T::class.java.name, value = event, timeMillis = timeMillis)
 }
