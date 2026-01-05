@@ -1,3 +1,6 @@
+
+Chinese document [中文文档](./README.md)
+
 FlowBus is a Kotlin Event Bus implemented using Kotlin Coroutines and Flows.
 
 FlowBus supports the following features: Sticky Events, Thread Switching, Multiple Subscriptions,

@@ -1,3 +1,6 @@
+
+英文文档 [English Document](./README_EN.md)
+
 基于 Kotlin Coroutines 和 Flows 实现的 FlowBus 是一个 Kotlin 事件总线。
 
 FlowBus支持：Sticky、切换线程、多个订阅、延迟发送、生命周期感知、有序接收消息
