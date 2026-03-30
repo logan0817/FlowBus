@@ -93,14 +93,9 @@ inline fun <reified T> ViewModelStoreOwner.subscribeEvent(
     isSticky: Boolean = false,
     noinline onReceived: (T) -> Unit
 ): Job {
-    val owner = if (scope is ViewModelStoreOwner) {
-        // Use the scope of the passed-in Activity/Fragment (busOwner)
-        // 使用传入的 Activity/Fragment (busOwner) 的作用域
-        scope
-    } else {
-        this
-    }
-    return ViewModelProvider(owner).get(FlowEventBus::class.java)
+    // The receiver defines the bus scope; `scope` only controls lifecycle-aware collection.
+    // 接收者决定总线作用域；`scope` 只用于控制生命周期感知的收集。
+    return ViewModelProvider(this).get(FlowEventBus::class.java)
         .subscribeEvent(
             scope,
             T::class.java.name,

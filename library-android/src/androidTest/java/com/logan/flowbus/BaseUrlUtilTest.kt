@@ -2,7 +2,8 @@ package com.logan.flowbus
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
-import org.junit.Assert
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -15,8 +16,10 @@ import org.junit.runner.RunWith
 class BaseUrlUtilTest {
 
     @Test
-    fun testLoadDynamicBaseUrlConfigs() {
+    fun instrumentationContext_isAvailable() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-//        Assert.assertEquals("https://www.google.com/", value.values.firstOrNull()?.url)
+
+        assertNotNull(context)
+        assertEquals("com.logan.flowbus.test", context.packageName)
     }
 }

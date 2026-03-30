@@ -6,18 +6,6 @@
     <color name="white">#ffffff</color>
     <color name="black">#000000</color>
     <color name="background_secondary">#F5F5F5</color>
-    <!--云水-->
-    <color name="cloud_water">#BACCD9</color>
-    <!--晴山-->
-    <color name="sunny_mountain">#8FB2C9</color>
     <!--秋波-->
     <color name="autumn_wave">#8ABCD1</color>
-    <!--甸子-->
-    <color name="meadow">#10AEC2</color>
-    <!--鸢尾-->
-    <color name="iris">#158BB8</color>
-    <!--蝶翅-->
-    <color name="butterfly_wings">#4E7CA1</color>
-    <!--景泰-->
-    <color name="jingtai_blue">#2775B6</color>
 </resources>

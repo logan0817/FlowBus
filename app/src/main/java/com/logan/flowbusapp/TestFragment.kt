@@ -9,7 +9,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import com.logan.flowbus.postEvent
-import com.logan.flowbus.removeStickyEvent
+import com.logan.flowbus.postStickyEvent
 import com.logan.flowbus.subscribeEvent
 import com.logan.flowbusapp.databinding.FragmentTestBinding
 import com.logan.flowbusapp.event.ActivityEvent
@@ -45,12 +45,12 @@ class TestFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-        removeStickyEvent<GlobalEvent>()
     }
 
     private fun setListeners() {
         binding.btnSendGlobalEvent.setOnClickListener {
             postEvent(GlobalEvent("Test GlobalEvent"))
+            postStickyEvent(GlobalEvent("Test GlobalEvent"))
         }
         binding.btnSendActivityEvent.setOnClickListener {
             postEvent(scope = requireActivity(), event = ActivityEvent("Test ActivityEvent"))
@@ -64,15 +64,15 @@ class TestFragment : Fragment() {
 
     @SuppressLint("SetTextI18n")
     private fun subscribeGlobalEvents() {
-        subscribeEvent<GlobalEvent> {
+        viewLifecycleOwner.subscribeEvent<GlobalEvent> {
             Log.d(TAG, "TestFragment received GlobalEvent 1:${it.name}")
             binding.tvGlobalEvent01.text = "${getCurrentTime()}-onReceived0-1:${it.name} "
         }
-        subscribeEvent<GlobalEvent>(isSticky = true) {
+        viewLifecycleOwner.subscribeEvent<GlobalEvent>(isSticky = true) {
             Log.d(TAG, "TestFragment received GlobalEvent 1:${it.name}")
             binding.tvGlobalEvent02.text = "${getCurrentTime()}-onReceived0-2:${it.name} "
         }
-        subscribeEvent<GlobalEvent>(dispatcher = Dispatchers.Main) {
+        viewLifecycleOwner.subscribeEvent<GlobalEvent>(dispatcher = Dispatchers.Main) {
             Log.d(TAG, "TestFragment received GlobalEvent 1:${it.name}")
             binding.tvGlobalEvent03.text = "${getCurrentTime()}-onReceived0-3:${it.name} "
         }
@@ -81,30 +81,44 @@ class TestFragment : Fragment() {
 
     @SuppressLint("SetTextI18n")
     private fun subscribeScopeEvents() {
-        //ActivityEvent
-        subscribeEvent<ActivityEvent>(scope = requireActivity()) {
+        // Activity-scoped event bus, but collection is tied to the Fragment view lifecycle.
+        requireActivity().subscribeEvent<ActivityEvent>(scope = viewLifecycleOwner) {
             Log.d(TAG, "received GlobalEvent1:${it.name}")
             binding.tvActivityEvent1.text = "${getCurrentTime()}-onReceived1:${it.name} "
         }
-        subscribeEvent<ActivityEvent>(scope = requireActivity(), minLifecycleState = Lifecycle.State.RESUMED) {
+        requireActivity().subscribeEvent<ActivityEvent>(
+            scope = viewLifecycleOwner,
+            minLifecycleState = Lifecycle.State.RESUMED
+        ) {
             Log.d(TAG, "received GlobalEvent2:${it.name}")
             binding.tvActivityEvent2.text = "${getCurrentTime()}-onReceived2:${it.name} "
         }
-        subscribeEvent<ActivityEvent>(scope = requireActivity(), dispatcher = Dispatchers.IO, minLifecycleState = Lifecycle.State.STARTED) {
+        requireActivity().subscribeEvent<ActivityEvent>(
+            scope = viewLifecycleOwner,
+            dispatcher = Dispatchers.Main,
+            minLifecycleState = Lifecycle.State.STARTED
+        ) {
             Log.d(TAG, "received ActivityEvent3:${it.name}")
             binding.tvActivityEvent3.text = "${getCurrentTime()}-onReceived3:${it.name} "
         }
 
-        //FragmentEvent
-        subscribeEvent<FragmentEvent>(scope = this@TestFragment) {
+        // Fragment-scoped event bus, also collected with the view lifecycle to avoid touching a dead binding.
+        this@TestFragment.subscribeEvent<FragmentEvent>(scope = viewLifecycleOwner) {
             Log.d(TAG, "received FragmentEvent1:${it.name}")
             binding.tvFragmentEvent1.text = "${getCurrentTime()}-onReceived1:${it.name} "
         }
-        subscribeEvent<FragmentEvent>(scope = this@TestFragment, minLifecycleState = Lifecycle.State.RESUMED) {
+        this@TestFragment.subscribeEvent<FragmentEvent>(
+            scope = viewLifecycleOwner,
+            minLifecycleState = Lifecycle.State.RESUMED
+        ) {
             Log.d(TAG, "received FragmentEvent2:${it.name}")
             binding.tvFragmentEvent2.text = "${getCurrentTime()}-onReceived2:${it.name} "
         }
-        subscribeEvent<FragmentEvent>(scope = this@TestFragment, dispatcher = Dispatchers.Main, minLifecycleState = Lifecycle.State.STARTED) {
+        this@TestFragment.subscribeEvent<FragmentEvent>(
+            scope = viewLifecycleOwner,
+            dispatcher = Dispatchers.Main,
+            minLifecycleState = Lifecycle.State.STARTED
+        ) {
             Log.d(TAG, "received FragmentEvent3:${it.name}")
             binding.tvFragmentEvent3.text = "${getCurrentTime()}-onReceived3:${it.name} "
         }

@@ -8,8 +8,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
-import com.logan.flowbus.clearStickyEvent
-import com.logan.flowbus.postEvent
+import com.logan.flowbus.postStickyEvent
 import com.logan.flowbus.removeStickyEvent
 import com.logan.flowbus.subscribeEvent
 import com.logan.flowbusapp.databinding.ActivityTestBinding
@@ -34,7 +33,7 @@ class TestActivity : AppCompatActivity() {
         setContentView(binding.root)
         setupInsets()
         setListeners()
-        subscribeGlobalEvents()
+        subscribeStickyEvents()
 
     }
 
@@ -50,8 +49,8 @@ class TestActivity : AppCompatActivity() {
 
 
     @SuppressLint("SetTextI18n")
-    private fun subscribeGlobalEvents() {
-        subscribeEvent<GlobalEvent>(isSticky = true) {
+    private fun subscribeStickyEvents() {
+        subscribeEvent<GlobalEvent>(scope = this, isSticky = true) {
             Log.d(TAG, "onReceived:${it.name}")
             val string = "${binding.tvEventText.text} \r\n"
             binding.tvEventText.text = "${string}${getCurrentTime()}-onReceived:${it.name}"
@@ -61,14 +60,14 @@ class TestActivity : AppCompatActivity() {
     @SuppressLint("SetTextI18n")
     private fun setListeners() {
         binding.btnSendCustomEvent.setOnClickListener {
-            postEvent(GlobalEvent("Test CustomEvent"))
+            postStickyEvent(scope = this, event = GlobalEvent("Test CustomEvent"))
         }
         binding.btnSendDelayCustomEvent.setOnClickListener {
-            postEvent(GlobalEvent("Test DelayCustomEvent"), 1000)
+            postStickyEvent(scope = this, event = GlobalEvent("Test DelayCustomEvent"), timeMillis = 1000)
         }
         binding.btnSendManyEvent.setOnClickListener {
             (1..200).forEach { index ->
-                postEvent(GlobalEvent(name = "Test ManyEvent-$index"))
+                postStickyEvent(scope = this, event = GlobalEvent(name = "Test ManyEvent-$index"))
             }
         }
     }
@@ -78,9 +77,6 @@ class TestActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         _binding = null
-        removeStickyEvent<GlobalEvent>()
         removeStickyEvent<GlobalEvent>(scope = this)
-        clearStickyEvent<GlobalEvent>()
-        clearStickyEvent<GlobalEvent>(scope = this)
     }
 }

@@ -8,7 +8,7 @@ FlowBus支持：Sticky、切换线程、多个订阅、延迟发送、生命周�
  优点      | 详细解释                                                                                                                                                                                                                                
 ---------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  实现粘性效果  | 当 replay 设置为 1 时，Flow 会缓存最近发出的 1 个值。<br>任何新的订阅者在开始收集时，会立即接收到这个缓存的值，即使该值是在订阅开始之前发布的。                                                                                                                                                 
- 轻松切换线程  | 在 subscribe 方法中，使用了 lifecycleOwner.lifecycleScope.launch 并在 collect 内部再次使用 this.launch(dispatcher) 来处理接收到的事件。<br>* 收集 (Collect)：可以在任何线程（通常是主线程/Dispatchers.Main）上安全地开始/停止。<br>* 处理 (Handle)：接收到数据后，可以轻松地切换到指定的线程来执行耗时操作，避免阻塞 UI 线程。 
+ 轻松切换线程  | 在 subscribe 方法中，FlowBus 会先按接收顺序 collect 事件，再通过 withContext(dispatcher) 切换到指定线程处理。<br>* 收集 (Collect)：可以在生命周期感知的协程中安全地开始/停止。<br>* 处理 (Handle)：接收到数据后，会串行切换到指定线程执行，避免阻塞 UI 线程，同时保持单个订阅者的处理顺序。 
  多个订阅    | SharedFlow 是一种热流 (Hot Flow)，它支持多播（Multicast）。<br>同一个 Flow 实例可以被多个 collect 调用同时订阅。<br>当事件通过 tryEmit() 发布时，所有当前活跃的观察者都会同时接收到该事件。                                                                                                      
  自动清除事件  | 当一个 MutableSharedFlow 的 replay 设置为 0 时，如果没有活跃的订阅者在监听，发布事件时（通过 tryEmit 或 emit），该事件将直接被丢弃。<br>这有效地避免了事件积压（Backlog）问题，防止应用在长时间无订阅者的情况下因事件过多而导致内存占用升高。                                                                                  
  生命周期感知  | 确保只有当 lifecycleOwner (如 Activity/Fragment) 的状态 大于或等于 startState 时，repeatOnLifecycle 块内的协程（即 collect 操作）才会被启动。                                                                                                                       
@@ -61,10 +61,9 @@ postEvent(GlobalEvent(value = "Delay GlobalEvent"), 1000)
 ## 订阅实例
 ```kotlin
 /** subscribeForever
- *  在任何地方使用，需要指定 coroutineScope 中
+ *  在需要 CoroutineScope 的地方使用，建议传入受生命周期管理的 scope
  */
-val coroutineScope = CoroutineScope(Dispatchers.Main)
-coroutineScope.subscribeEvent<GlobalEvent> {
+lifecycleScope.subscribeEvent<GlobalEvent> {
 
 }
 
@@ -89,7 +88,8 @@ subscribeEvent<FragmentEvent>(scope = fragment) {
 ## 切换线程实例
 
 ```kotlin
-subscribeEvent<XEvent>(Dispatchers.IO) {
+subscribeEvent<XEvent>(dispatcher = Dispatchers.IO) {
+    // 这里只做后台工作，不要直接更新 View
 
 }
 ```
@@ -110,17 +110,22 @@ subscribeEvent<XEvent>(isSticky = true) {
 }
 ```
 
+```kotlin
+// 发送粘性事件
+postStickyEvent(XEvent(...))
+```
+
 ## removeStickyEvent
 
 ```kotlin
 
 /**
  * 移除指定的粘性事件流
+ * 仅在你明确拥有该 sticky 作用域时再调用；
+ * 不要在页面销毁时顺手清理全局 sticky 事件。
  */
 //globalScope中
 removeStickyEvent<XEvent>()
-//coroutineScope中
-removeStickyEvent<XEvent>(scope = coroutineScope)
 //activity中
 removeStickyEvent<XEvent>(scope = activity)
 //fragment中
@@ -133,11 +138,10 @@ removeStickyEvent<XEvent>(scope = fragment)
 
 /**
  * 清除本地粘性事件类型 T 的缓存，但保留 Flow 实例。
+ * 同样只建议清理你明确拥有的 sticky 作用域。
  */
 //globalScope中
 clearStickyEvent<XEvent>()
-//coroutineScope中
-clearStickyEvent<XEvent>(scope = coroutineScope)
 //activity中
 clearStickyEvent<XEvent>(scope = activity)
 //fragment中

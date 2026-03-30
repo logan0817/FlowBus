@@ -17,7 +17,8 @@ import androidx.lifecycle.ViewModelStoreOwner
  * 事件发射前的延迟时间（毫秒）。默认是 0（立即）。
  */
 inline fun <reified T : Any> postEvent(event: T, timeMillis: Long = 0L) {
-    GlobalViewModelStore.get(FlowEventBus::class.java).post(eventName = T::class.java.name, value = event, timeMillis = timeMillis)
+    GlobalViewModelStore.get(FlowEventBus::class.java)
+        .post(eventName = T::class.java.name, value = event, timeMillis = timeMillis)
 }
 
 /**
@@ -35,5 +36,30 @@ inline fun <reified T : Any> postEvent(event: T, timeMillis: Long = 0L) {
  * 事件发射前的延迟时间（毫秒）。默认是 0（立即）。
  */
 inline fun <reified T : Any> postEvent(scope: ViewModelStoreOwner, event: T, timeMillis: Long = 0L) {
-    ViewModelProvider(owner = scope).get(FlowEventBus::class.java).post(eventName = T::class.java.name, value = event, timeMillis = timeMillis)
+    ViewModelProvider(owner = scope).get(FlowEventBus::class.java)
+        .post(eventName = T::class.java.name, value = event, timeMillis = timeMillis)
+}
+
+/**
+ * Global Scope Sticky Event Post.
+ * Publishes an event payload associated with the generic type T to the sticky bus.
+ *
+ * 全局作用域粘性事件发布。
+ * 发布与泛型类型 T 关联的粘性事件数据到事件总线。
+ */
+inline fun <reified T : Any> postStickyEvent(event: T, timeMillis: Long = 0L) {
+    GlobalViewModelStore.get(FlowEventBus::class.java)
+        .post(eventName = T::class.java.name, value = event, isSticky = true, timeMillis = timeMillis)
+}
+
+/**
+ * Limited Scope Sticky Event Post.
+ * Publishes an event payload associated with the generic type T to the scoped sticky bus.
+ *
+ * 限定作用域粘性事件发布。
+ * 发布与泛型类型 T 关联的粘性事件数据到事件总线。
+ */
+inline fun <reified T : Any> postStickyEvent(scope: ViewModelStoreOwner, event: T, timeMillis: Long = 0L) {
+    ViewModelProvider(owner = scope).get(FlowEventBus::class.java)
+        .post(eventName = T::class.java.name, value = event, isSticky = true, timeMillis = timeMillis)
 }

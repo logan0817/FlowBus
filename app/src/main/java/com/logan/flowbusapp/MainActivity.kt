@@ -10,13 +10,13 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
 import com.logan.flowbus.postEvent
 import com.logan.flowbus.subscribeEvent
 import com.logan.flowbusapp.databinding.ActivityMainBinding
 import com.logan.flowbusapp.event.ActivityEvent
 import com.logan.flowbusapp.event.GlobalEvent
 import com.logan.flowbusapp.login.LoginActivity
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -80,7 +80,7 @@ class MainActivity : AppCompatActivity() {
             Log.d(TAG, "onReceived0-1:${it.name}")
             binding.tvGlobalEvent01.text = "${getCurrentTime()}-onReceived0-1:${it.name} "
         }
-        CoroutineScope(Dispatchers.Main).subscribeEvent<GlobalEvent> {
+        lifecycleScope.subscribeEvent<GlobalEvent> {
             Log.d(TAG, "onReceived0-3:${it}")
             binding.tvGlobalEvent03.text = "${getCurrentTime()}-onReceived0-3:${it.name}"
         }
@@ -101,12 +101,17 @@ class MainActivity : AppCompatActivity() {
             Log.d(TAG, "onReceived2:${it.name} ${Thread.currentThread().name}")
             binding.tvActivityEvent2.text = "${getCurrentTime()}-onReceived2:${it.name} ${Thread.currentThread().name}  RESUMED time"
         }
-        //Subscribe to events in the ViewModelStoreOwner scope within a separate **CoroutineScope**.
-        CoroutineScope(Dispatchers.Main).subscribeEvent<ActivityEvent>(scope = this) {
+        // Subscribe using a lifecycle-managed CoroutineScope instead of creating an unmanaged scope.
+        lifecycleScope.subscribeEvent<ActivityEvent>(scope = this) {
             Log.d(TAG, "onReceived3:${it.name} ${Thread.currentThread().name}")
             binding.tvActivityEvent3.text = "${getCurrentTime()}-onReceived3:${it.name} ${Thread.currentThread().name}"
         }
     }
 
     fun getCurrentTime() = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault()).format(Calendar.getInstance().time)
+
+    override fun onDestroy() {
+        super.onDestroy()
+        _binding = null
+    }
 }

@@ -9,7 +9,7 @@ Delayed Posting, Lifecycle Awareness, and Ordered Message Reception.
  Feature                             | Detailed Explanation                                                                                                                                                                                                                                                                                                                                                                                                                                                   
 -------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Achieves "Sticky" Effect            | When replay is set to 1, the Flow caches the most recently emitted value.<br>Any new subscriber will immediately receive this cached value upon starting collection, even if the value was published before the subscription began.                                                                                                                                                                                                                                    
- Easy Thread Switching               | Inside the subscribe method, lifecycleOwner.lifecycleScope.launch is used, and this.launch(dispatcher) is used again within collect to process the received event.<br>* Collection (Collect): Can be safely started/stopped on any thread (typically the main thread/Dispatchers.Main).<br>* Handling (Handle): Upon receiving data, it's easy to switch to a specified thread to execute time-consuming operations, thus preventing the UI thread from being blocked. 
+ Easy Thread Switching               | Inside the subscribe method, FlowBus collects events in receive order and then switches to the target dispatcher with withContext(dispatcher).<br>* Collection (Collect): Can be safely started/stopped inside a lifecycle-aware coroutine.<br>* Handling (Handle): Each received event is processed serially on the requested dispatcher, which avoids blocking the UI thread while preserving per-subscriber ordering. 
  Multiple Subscriptions              | SharedFlow is a Hot Flow that supports Multicast.<br>The same Flow instance can be simultaneously subscribed to by multiple collect calls.<br>When an event is published via tryEmit(), all currently active observers receive the event simultaneously.                                                                                                                                                                                                               
  Automatic Event Cleanup             | When a MutableSharedFlow's replay is set to 0, published events (via tryEmit or emit) will be directly discarded if no active subscribers are listening.This effectively prevents the Event Backlog problem, stopping the application's memory usage from rising due to excessive events when there are no subscribers for a long time.                                                                                                                                
  Lifecycle Awareness                 | Ensures that the coroutine block inside repeatOnLifecycle (i.e., the collect operation) is launched only when the state of the lifecycleOwner (such as an Activity/Fragment) is greater than or equal to startState.                                                                                                                                                                                                                                                   
@@ -64,10 +64,9 @@ postEvent(GlobalEvent(value = "Delay GlobalEvent"), 1000)
 
 ```kotlin
 /** subscribeForever
- *  subscribeForever requires specifying the coroutineScope
+ *  Use a lifecycle-managed CoroutineScope when possible
  */
-val coroutineScope = CoroutineScope(Dispatchers.Main)
-coroutineScope.subscribeEvent<GlobalEvent> {
+lifecycleScope.subscribeEvent<GlobalEvent> {
 
 }
 
@@ -92,7 +91,8 @@ subscribeEvent<FragmentEvent>(scope = fragment) {
 ## Thread Switching Example
 
 ```kotlin
-subscribeEvent<XEvent>(Dispatchers.IO) {
+subscribeEvent<XEvent>(dispatcher = Dispatchers.IO) {
+    // Do background work only; do not update Views directly here
 
 }
 ```
@@ -113,16 +113,21 @@ subscribeEvent<XEvent>(isSticky = true) {
 }
 ```
 
+```kotlin
+// Post a sticky event
+postStickyEvent(XEvent(...))
+```
+
 ## removeStickyEvent
 
 ```kotlin
 /**
  * Remove specified sticky event stream
+ * Only do this when you explicitly own that sticky scope;
+ * do not clear global sticky state automatically from page teardown.
  */
 //In GlobalScope
 removeStickyEvent<XEvent>()
-//In CoroutineScope
-removeStickyEvent<XEvent>(scope = coroutineScope)
 //In Activity
 removeStickyEvent<XEvent>(scope = activity)
 //In Fragment
@@ -134,11 +139,10 @@ removeStickyEvent<XEvent>(scope = fragment)
 ```kotlin
 /**
  * Clears the replay cache for the local sticky event type T, but keeps the Flow instance.
+ * Prefer clearing only sticky scopes that your component explicitly owns.
  */
 //In GlobalScope
 clearStickyEvent<GlobalEvent>()
-//In CoroutineScope
-clearStickyEvent<XEvent>(scope = coroutineScope)
 //In Activity
 clearStickyEvent<XEvent>(scope = activity)
 //In Fragment

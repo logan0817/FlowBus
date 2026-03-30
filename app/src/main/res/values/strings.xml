@@ -9,16 +9,15 @@
     <string name="sendCustomEvent">Send custom event</string>
     <string name="sendCustomEventDelay">Send delayed custom event</string>
     <string name="sendManyEvent">Send 200 events</string>
-    <string name="sendEventGroup">Send events group</string>
     <string name="default_placeholder_log_text">----------------------------------------</string>
     <string name="login">login</string>
     <string name="password">password</string>
     <string name="account">account</string>
-    <string name="login_requesting">Logging in...</string>
+    <string name="login_requesting">Logging in&#8230;</string>
     <string name="login_successful">Login successful</string>
     <string name="login_failed">Login failed，Username and password cannot be empty.</string>
     <string name="register">Register and log in</string>
-    <string name="register_requesting">Registering...</string>
+    <string name="register_requesting">Registering&#8230;</string>
     <string name="register_successful">Register successful</string>
     <string name="register_failed">Register failed,Username and password cannot be empty.</string>
 </resources>
