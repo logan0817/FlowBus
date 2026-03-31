@@ -12,7 +12,9 @@ import androidx.core.view.updatePadding
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import com.logan.flowbus.postEvent
+import com.logan.flowbus.postEventTo
 import com.logan.flowbus.subscribeEvent
+import com.logan.flowbus.subscribeEventFrom
 import com.logan.flowbusapp.databinding.ActivityMainBinding
 import com.logan.flowbusapp.event.ActivityEvent
 import com.logan.flowbusapp.event.GlobalEvent
@@ -56,11 +58,11 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("SetTextI18n")
     private fun setListeners() {
         binding.btnSendGlobalEvent.setOnClickListener {
-            postEvent(GlobalEvent("Main GlobalEvent"))
-            postEvent("MainGlobalEvent")
+            postEvent(GlobalEvent("Refresh app"))
+            postEvent("Raw String event (demo only)")
         }
         binding.btnSendActivityEvent.setOnClickListener {
-            postEvent(scope = this, ActivityEvent("Main ActivityEvent"))
+            postEventTo(owner = this, event = ActivityEvent("Refresh activity widgets"))
         }
         binding.btnJumpNextPage.setOnClickListener {
             startActivity(Intent(this, TestActivity::class.java))
@@ -75,14 +77,14 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetTextI18n")
     private fun subscribeGlobalEvents() {
-        //监听
+        // Global bus examples.
         subscribeEvent<GlobalEvent> {
-            Log.d(TAG, "onReceived0-1:${it.name}")
-            binding.tvGlobalEvent01.text = "${getCurrentTime()}-onReceived0-1:${it.name} "
+            Log.d(TAG, "onReceived0-1:${it.message}")
+            binding.tvGlobalEvent01.text = "${getCurrentTime()}-onReceived0-1:${it.message} "
         }
         lifecycleScope.subscribeEvent<GlobalEvent> {
             Log.d(TAG, "onReceived0-3:${it}")
-            binding.tvGlobalEvent03.text = "${getCurrentTime()}-onReceived0-3:${it.name}"
+            binding.tvGlobalEvent03.text = "${getCurrentTime()}-onReceived0-3:${it.message}"
         }
         subscribeEvent<String> {
             Log.d(TAG, "onReceived0-2:${it}")
@@ -92,19 +94,19 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetTextI18n")
     private fun subscribeScopeEvents() {
-        subscribeEvent<ActivityEvent>(scope = this) {
-            Log.d(TAG, "onReceived1:${it.name}")
-            binding.tvActivityEvent1.text = "${getCurrentTime()}-onReceived1:${it.name}"
+        subscribeEvent<ActivityEvent>(owner = this) {
+            Log.d(TAG, "onReceived1:${it.message}")
+            binding.tvActivityEvent1.text = "${getCurrentTime()}-onReceived1:${it.message}"
         }
-        //Control Thread + Specify lifecycleState
-        subscribeEvent<ActivityEvent>(scope = this, dispatcher = Dispatchers.Main, minLifecycleState = Lifecycle.State.RESUMED) {
-            Log.d(TAG, "onReceived2:${it.name} ${Thread.currentThread().name}")
-            binding.tvActivityEvent2.text = "${getCurrentTime()}-onReceived2:${it.name} ${Thread.currentThread().name}  RESUMED time"
+        // Activity-scoped bus + dispatcher + lifecycle state.
+        subscribeEvent<ActivityEvent>(owner = this, dispatcher = Dispatchers.Main, minLifecycleState = Lifecycle.State.RESUMED) {
+            Log.d(TAG, "onReceived2:${it.message} ${Thread.currentThread().name}")
+            binding.tvActivityEvent2.text = "${getCurrentTime()}-onReceived2:${it.message} ${Thread.currentThread().name}  RESUMED time"
         }
         // Subscribe using a lifecycle-managed CoroutineScope instead of creating an unmanaged scope.
-        lifecycleScope.subscribeEvent<ActivityEvent>(scope = this) {
-            Log.d(TAG, "onReceived3:${it.name} ${Thread.currentThread().name}")
-            binding.tvActivityEvent3.text = "${getCurrentTime()}-onReceived3:${it.name} ${Thread.currentThread().name}"
+        lifecycleScope.subscribeEventFrom<ActivityEvent>(owner = this) {
+            Log.d(TAG, "onReceived3:${it.message} ${Thread.currentThread().name}")
+            binding.tvActivityEvent3.text = "${getCurrentTime()}-onReceived3:${it.message} ${Thread.currentThread().name}"
         }
     }
 

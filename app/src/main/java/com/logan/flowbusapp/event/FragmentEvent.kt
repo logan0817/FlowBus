@@ -1,3 +1,3 @@
 package com.logan.flowbusapp.event
 
-data class FragmentEvent(val name: String)
+data class FragmentEvent(val message: String)

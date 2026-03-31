@@ -56,6 +56,30 @@ inline fun <reified T> LifecycleOwner.subscribeEvent(
         )
 }
 
+/**
+ * Subscribes with an explicit event-bus owner and an explicit lifecycle owner.
+ *
+ * 显式指定事件总线 owner 的订阅方式，生命周期由当前 LifecycleOwner 管理。
+ */
+@MainThread
+inline fun <reified T> LifecycleOwner.subscribeEvent(
+    owner: ViewModelStoreOwner,
+    dispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
+    minLifecycleState: Lifecycle.State = Lifecycle.State.STARTED,
+    isSticky: Boolean = false,
+    noinline onReceived: (T) -> Unit
+): Job {
+    return ViewModelProvider(owner).get(FlowEventBus::class.java)
+        .subscribeEvent(
+            this,
+            T::class.java.name,
+            minLifecycleState,
+            dispatcher,
+            isSticky,
+            onReceived
+        )
+}
+
 
 /**
  *
@@ -85,6 +109,12 @@ inline fun <reified T> LifecycleOwner.subscribeEvent(
  * @param onReceived 接收到事件时执行的回调函数。
  * @return Job 事件收集的 Job。
  */
+@Deprecated(
+    message = "Use lifecycleOwner.subscribeEvent(owner = ..., ...) so the lifecycle owner and bus owner are explicit.",
+    replaceWith = ReplaceWith(
+        "scope.subscribeEvent(owner = this, dispatcher = dispatcher, minLifecycleState = minLifecycleState, isSticky = isSticky, onReceived = onReceived)"
+    )
+)
 @MainThread
 inline fun <reified T> ViewModelStoreOwner.subscribeEvent(
     scope: LifecycleOwner,
@@ -93,17 +123,13 @@ inline fun <reified T> ViewModelStoreOwner.subscribeEvent(
     isSticky: Boolean = false,
     noinline onReceived: (T) -> Unit
 ): Job {
-    // The receiver defines the bus scope; `scope` only controls lifecycle-aware collection.
-    // 接收者决定总线作用域；`scope` 只用于控制生命周期感知的收集。
-    return ViewModelProvider(this).get(FlowEventBus::class.java)
-        .subscribeEvent(
-            scope,
-            T::class.java.name,
-            minLifecycleState,
-            dispatcher,
-            isSticky,
-            onReceived
-        )
+    return scope.subscribeEvent(
+        owner = this,
+        dispatcher = dispatcher,
+        minLifecycleState = minLifecycleState,
+        isSticky = isSticky,
+        onReceived = onReceived
+    )
 }
 
 /**
@@ -144,6 +170,25 @@ inline fun <reified T> CoroutineScope.subscribeEvent(
 }
 
 /**
+ * Subscribes from an explicit scoped bus inside a CoroutineScope.
+ *
+ * 在 CoroutineScope 中显式指定 owner 的局部事件订阅。
+ */
+@MainThread
+inline fun <reified T> CoroutineScope.subscribeEventFrom(
+    owner: ViewModelStoreOwner,
+    isSticky: Boolean = false,
+    noinline onReceived: (T) -> Unit
+): Job = this.launch {
+    ViewModelProvider(owner).get(FlowEventBus::class.java)
+        .subscribeEvent(
+            T::class.java.name,
+            isSticky,
+            onReceived
+        )
+}
+
+/**
  *
  * Subscribes to events in the **ViewModelStoreOwner** scope within a separate **CoroutineScope**.
  * This method does not depend on the Android [LifecycleOwner]; the event collection lifecycle is managed by the [CoroutineScope] itself.
@@ -166,16 +211,13 @@ inline fun <reified T> CoroutineScope.subscribeEvent(
  * @param onReceived 接收到事件时执行的回调函数。
  * @return Job 事件收集的 Job。
  */
+@Deprecated(
+    message = "Use subscribeEventFrom(owner = ..., ...) so the bus owner is explicit.",
+    replaceWith = ReplaceWith("subscribeEventFrom(owner = scope, isSticky = isSticky, onReceived = onReceived)")
+)
 @MainThread
 inline fun <reified T> CoroutineScope.subscribeEvent(
     scope: ViewModelStoreOwner,
     isSticky: Boolean = false,
     noinline onReceived: (T) -> Unit
-): Job = this.launch {
-    ViewModelProvider(scope).get(FlowEventBus::class.java)
-        .subscribeEvent(
-            T::class.java.name,
-            isSticky,
-            onReceived
-        )
-}
+): Job = subscribeEventFrom(owner = scope, isSticky = isSticky, onReceived = onReceived)

@@ -1,176 +1,214 @@
-
 Chinese document [中文文档](./README.md)
 
-FlowBus is a Kotlin Event Bus implemented using Kotlin Coroutines and Flows.
+# FlowBus
 
-FlowBus supports the following features: Sticky Events, Thread Switching, Multiple Subscriptions,
-Delayed Posting, Lifecycle Awareness, and Ordered Message Reception.
+FlowBus is an Android event bus built on Kotlin Coroutines and SharedFlow.
 
- Feature                             | Detailed Explanation                                                                                                                                                                                                                                                                                                                                                                                                                                                   
--------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Achieves "Sticky" Effect            | When replay is set to 1, the Flow caches the most recently emitted value.<br>Any new subscriber will immediately receive this cached value upon starting collection, even if the value was published before the subscription began.                                                                                                                                                                                                                                    
- Easy Thread Switching               | Inside the subscribe method, FlowBus collects events in receive order and then switches to the target dispatcher with withContext(dispatcher).<br>* Collection (Collect): Can be safely started/stopped inside a lifecycle-aware coroutine.<br>* Handling (Handle): Each received event is processed serially on the requested dispatcher, which avoids blocking the UI thread while preserving per-subscriber ordering. 
- Multiple Subscriptions              | SharedFlow is a Hot Flow that supports Multicast.<br>The same Flow instance can be simultaneously subscribed to by multiple collect calls.<br>When an event is published via tryEmit(), all currently active observers receive the event simultaneously.                                                                                                                                                                                                               
- Automatic Event Cleanup             | When a MutableSharedFlow's replay is set to 0, published events (via tryEmit or emit) will be directly discarded if no active subscribers are listening.This effectively prevents the Event Backlog problem, stopping the application's memory usage from rising due to excessive events when there are no subscribers for a long time.                                                                                                                                
- Lifecycle Awareness                 | Ensures that the coroutine block inside repeatOnLifecycle (i.e., the collect operation) is launched only when the state of the lifecycleOwner (such as an Activity/Fragment) is greater than or equal to startState.                                                                                                                                                                                                                                                   
- Control Over Launch Timing          | Allows control over when event responses should begin by passing in a specific Lifecycle.State.                                                                                                                                                                                                                                                                                                                                                                        
- Coroutine Suspension and Resumption | When the lifecycleOwner's state drops below startState (e.g., transitioning from STARTED to STOPPED), repeatOnLifecycle automatically cancels its internal collect coroutine.<br>When the state returns to startState again, a new collect coroutine is automatically restarted.                                                                                                                                                                                       
+It provides:
+- global events
+- Activity / Fragment scoped events
+- lifecycle-aware subscriptions
+- sticky events
+- delayed post
+- dispatcher switching
 
-## Integration
+## Installation
 
-### Gradle:
+```gradle
+repositories {
+    mavenCentral()
+}
+```
 
-1. Add the remote repository to your Project's **build.gradle** or **setting.gradle**
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
-    ```gradle
-    repositories {
-        //
-        mavenCentral()
+```gradle
+implementation("io.github.logan0817:flowbus:1.0.3")
+```
+
+## Two simple rules
+
+### 1. `owner` decides where the event is posted
+
+- no `owner`: post to the global bus
+- with `owner`: post to the local bus owned by that `Activity` or `Fragment`
+
+```kotlin
+postEvent(GlobalEvent("refresh app"))
+postEventTo(owner = requireActivity(), event = ActivityEvent("refresh activity"))
+postEventTo(owner = this@DemoFragment, event = FragmentEvent("refresh fragment"))
+```
+
+### 2. The receiver decides who owns the subscription lifecycle
+
+- the receiver of `subscribeEvent(...)` controls the subscription lifecycle
+- `owner = ...` tells FlowBus which bus scope to read from
+
+```kotlin
+// Use the Fragment view lifecycle to receive Activity-scoped events
+viewLifecycleOwner.subscribeEvent<ActivityEvent>(owner = requireActivity()) {
+    render(it)
+}
+```
+
+## Define events
+
+Prefer dedicated event classes over raw `String` or `Int` values.
+
+```kotlin
+data class GlobalEvent(val message: String)
+data class ActivityEvent(val message: String)
+data class FragmentEvent(val message: String)
+```
+
+## Common usage
+
+### Post events
+
+```kotlin
+// Global event
+postEvent(GlobalEvent("refresh app"))
+
+// Activity-scoped event
+postEventTo(owner = requireActivity(), event = ActivityEvent("refresh activity"))
+
+// Fragment-scoped event
+postEventTo(owner = this@DemoFragment, event = FragmentEvent("refresh fragment"))
+
+// Delayed post
+postEvent(event = GlobalEvent("delay"), delayMillis = 1_000)
+```
+
+### Post sticky events
+
+```kotlin
+postStickyEvent(GlobalEvent("latest global state"))
+postStickyEventTo(owner = requireActivity(), event = ActivityEvent("latest activity state"))
+```
+
+### Subscribe inside an Activity
+
+```kotlin
+class MainActivity : AppCompatActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // Global events
+        subscribeEvent<GlobalEvent> {
+            renderGlobal(it)
+        }
+
+        // Activity-scoped events owned by this Activity
+        subscribeEvent<ActivityEvent>(owner = this) {
+            renderActivity(it)
+        }
     }
-    ```
-
-2. Add the dependency to your Module's **build.gradle**
-   [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
-
-    ```gradle
-   implementation 'io.github.logan0817:flowbus:1.0.1' // Replace with the latest version shown by the badge above
-    ```
-
-## Demo Effect
-<img src="GIF.gif" width="350" />
-
-> You can also directly download the [Demo App](https://raw.githubusercontent.com/logan0817/FlowBus/master/app/release/app-release.apk) to experience the effect.
-
-
-## post Examples
-
-```kotlin
-//Global Scope
-postEvent(GlobalEvent("Test GlobalEvent"))
-
-//Activity Scope
-postEvent(requireActivity(), ActivityEvent("Test ActivityEvent"))
-
-//Fragment Scope
-postEvent(this@TestFragment, FragmentEvent("Test FragmentEvent"))
-```
-
-```kotlin
-//延迟发送
-postEvent(GlobalEvent(value = "Delay GlobalEvent"), 1000)
-```
-
-## subscribe Examples
-
-```kotlin
-/** subscribeForever
- *  Use a lifecycle-managed CoroutineScope when possible
- */
-lifecycleScope.subscribeEvent<GlobalEvent> {
-
-}
-
-/** subscribe GlobalScopeEvent
- */
-subscribeEvent<GlobalEvent> {
-
-}
-/** subscribe ActivityEvent
- */
-subscribeEvent<ActivityEvent>(scope = activity) {
-
-}
-/** subscribe FragmentEvent
- */
-subscribeEvent<FragmentEvent>(scope = fragment) {
-
-}
-
-```
-
-## Thread Switching Example
-
-```kotlin
-subscribeEvent<XEvent>(dispatcher = Dispatchers.IO) {
-    // Do background work only; do not update Views directly here
-
 }
 ```
 
-## Lifecycle Awareness Example
+### Subscribe inside a Fragment
+
+If the callback touches views, prefer `viewLifecycleOwner`.
 
 ```kotlin
-subscribeEvent<XEvent>(minLifecycleState = Lifecycle.State.RESUMED) {
+class DemoFragment : Fragment() {
 
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        // Global bus
+        viewLifecycleOwner.subscribeEvent<GlobalEvent> {
+            renderGlobal(it)
+        }
+
+        // Activity-scoped bus
+        viewLifecycleOwner.subscribeEvent<ActivityEvent>(owner = requireActivity()) {
+            renderActivity(it)
+        }
+
+        // Fragment-scoped bus
+        viewLifecycleOwner.subscribeEvent<FragmentEvent>(owner = this@DemoFragment) {
+            renderFragment(it)
+        }
+    }
 }
 ```
 
-## Sticky Subscription Example
+### Subscribe inside a ViewModel or CoroutineScope
 
 ```kotlin
-subscribeEvent<XEvent>(isSticky = true) {
+class DemoViewModel : ViewModel() {
 
+    init {
+        // Global events
+        viewModelScope.subscribeEvent<GlobalEvent> {
+            handleGlobal(it)
+        }
+
+        // Activity / Fragment scoped events
+        viewModelScope.subscribeEventFrom<ActivityEvent>(owner = activityOwner) {
+            handleActivity(it)
+        }
+    }
 }
 ```
 
+## Threading and lifecycle
+
 ```kotlin
-// Post a sticky event
-postStickyEvent(XEvent(...))
+subscribeEvent<GlobalEvent>(dispatcher = Dispatchers.IO) {
+    saveToDisk(it)
+}
+
+subscribeEvent<GlobalEvent>(
+    minLifecycleState = Lifecycle.State.RESUMED
+) {
+    render(it)
+}
 ```
 
-## removeStickyEvent
+## Sticky cleanup
 
 ```kotlin
+
 /**
  * Remove specified sticky event stream
  * Only do this when you explicitly own that sticky scope;
  * do not clear global sticky state automatically from page teardown.
  */
-//In GlobalScope
-removeStickyEvent<XEvent>()
-//In Activity
-removeStickyEvent<XEvent>(scope = activity)
-//In Fragment
-removeStickyEvent<XEvent>(scope = fragment)
-```
+removeStickyEvent<GlobalEvent>()
+removeStickyEvent<ActivityEvent>(owner = requireActivity())
+removeStickyEvent<FragmentEvent>(owner = this@TestFragment)
 
-## clearStickyEvent
-
-```kotlin
 /**
  * Clears the replay cache for the local sticky event type T, but keeps the Flow instance.
  * Prefer clearing only sticky scopes that your component explicitly owns.
  */
-//In GlobalScope
 clearStickyEvent<GlobalEvent>()
-//In Activity
-clearStickyEvent<XEvent>(scope = activity)
-//In Fragment
-clearStickyEvent<XEvent>(scope = fragment)
+clearStickyEvent<ActivityEvent>(owner = requireActivity())
+clearStickyEvent<ActivityEvent>(owner = this@TestFragment)
 ```
 
-### License
+- `clearStickyEvent`: clears the latest cached value but keeps the Sticky Flow
+- `removeStickyEvent`: removes the Sticky Flow completely
 
-```
+## Notes
+
+- In Fragments, prefer `viewLifecycleOwner` when touching views
+- Normal events are for UI communication, not for guaranteed task queues
+- Sticky events keep only the latest value
+- Move heavy work to `Dispatchers.IO` or `Dispatchers.Default`
+- Old scoped APIs still work, but the explicit `owner` API is recommended for production code
+
+## Demo
+
+<img src="GIF.gif" width="350" />
+
+> You can also download the [demo app](https://raw.githubusercontent.com/logan0817/FlowBus/master/app/release/app-release.apk) to try it directly.
+
+## License
+
+```text
 MIT License
-
-Copyright (c) 2025 Logan Gan
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
 ```

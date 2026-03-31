@@ -1,6 +1,6 @@
 package com.logan.flowbusapp.login.event
 
-import com.logan.flowbus.postEvent
+import com.logan.flowbus.postEventTo
 import com.logan.flowbus.subscribeEvent
 import com.logan.flowbusapp.R
 import com.logan.flowbusapp.login.LoginActivity
@@ -11,19 +11,19 @@ class LoginComponent {
         showLoading()
         printLog(getString(R.string.login_requesting))
         //Simulated login request
-        postEvent(scope = this, LoginEvent(userName!!, password!!), delayMillis = 2000)
+        postEventTo(owner = this, event = LoginEvent(userName!!, password!!), delayMillis = 2000)
     }
 
     fun registerAndLogin(activity: LoginActivity, userName: String?, password: String?) = with(activity) {
         showLoading()
         printLog(getString(R.string.register_requesting))
         //Simulated register request
-        postEvent(scope = this, RegisterEvent(userName!!, password!!), delayMillis = 2000)
+        postEventTo(owner = this, event = RegisterEvent(userName!!, password!!), delayMillis = 2000)
 
     }
 
     fun subscribe(activity: LoginActivity) = with(activity) {
-        subscribeEvent<LoginEvent>(this) {
+        subscribeEvent<LoginEvent>(owner = this) {
             val result = if (it.userName.isNullOrBlank() || it.password.isNullOrBlank()) {
                 getString(R.string.login_failed)
             } else {
@@ -33,7 +33,7 @@ class LoginComponent {
             hideLoading()
         }
 
-        subscribeEvent<RegisterEvent>(this) {
+        subscribeEvent<RegisterEvent>(owner = this) {
             if (it.userName.isNullOrBlank() || it.password.isNullOrBlank()) {
                 printLog(getString(R.string.register_failed))
                 hideLoading()

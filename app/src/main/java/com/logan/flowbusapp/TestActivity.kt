@@ -8,11 +8,11 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
-import com.logan.flowbus.postStickyEvent
+import com.logan.flowbus.postStickyEventTo
 import com.logan.flowbus.removeStickyEvent
 import com.logan.flowbus.subscribeEvent
 import com.logan.flowbusapp.databinding.ActivityTestBinding
-import com.logan.flowbusapp.event.GlobalEvent
+import com.logan.flowbusapp.event.ActivityEvent
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -44,30 +44,30 @@ class TestActivity : AppCompatActivity() {
             WindowInsetsCompat.CONSUMED
         }
         setSupportActionBar(binding.toolbar)
-        supportActionBar?.title  = TestActivity::class.java.simpleName
+        supportActionBar?.title = TestActivity::class.java.simpleName
     }
 
 
     @SuppressLint("SetTextI18n")
     private fun subscribeStickyEvents() {
-        subscribeEvent<GlobalEvent>(scope = this, isSticky = true) {
-            Log.d(TAG, "onReceived:${it.name}")
+        subscribeEvent<ActivityEvent>(owner = this, isSticky = true) {
+            Log.d(TAG, "onReceived:${it.message}")
             val string = "${binding.tvEventText.text} \r\n"
-            binding.tvEventText.text = "${string}${getCurrentTime()}-onReceived:${it.name}"
+            binding.tvEventText.text = "${string}${getCurrentTime()}-onReceived:${it.message}"
         }
     }
 
     @SuppressLint("SetTextI18n")
     private fun setListeners() {
         binding.btnSendCustomEvent.setOnClickListener {
-            postStickyEvent(scope = this, event = GlobalEvent("Test CustomEvent"))
+            postStickyEventTo(owner = this, event = ActivityEvent("Latest activity state"))
         }
         binding.btnSendDelayCustomEvent.setOnClickListener {
-            postStickyEvent(scope = this, event = GlobalEvent("Test DelayCustomEvent"), delayMillis = 1000)
+            postStickyEventTo(owner = this, event = ActivityEvent("Latest activity state after delay"), delayMillis = 1000)
         }
         binding.btnSendManyEvent.setOnClickListener {
             (1..200).forEach { index ->
-                postStickyEvent(scope = this, event = GlobalEvent(name = "Test ManyEvent-$index"))
+                postStickyEventTo(owner = this, event = ActivityEvent(message = "Latest activity state #$index"))
             }
         }
     }
@@ -77,6 +77,6 @@ class TestActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         _binding = null
-        removeStickyEvent<GlobalEvent>(scope = this)
+        removeStickyEvent<ActivityEvent>(owner = this)
     }
 }

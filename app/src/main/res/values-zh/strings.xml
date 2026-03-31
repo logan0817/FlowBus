@@ -6,9 +6,9 @@
     <string name="jumpNextPage1">打开TestActivity</string>
     <string name="jumpNextPage2">打开TestFragmentActivity</string>
     <string name="jumpNextPage3">打开LoginActivity</string>
-    <string name="sendCustomEvent">发送自定义事件</string>
-    <string name="sendCustomEventDelay">发送延迟自定义事件</string>
-    <string name="sendManyEvent">发送200次事件</string>
+    <string name="sendCustomEvent">发送 Activity Sticky 事件</string>
+    <string name="sendCustomEventDelay">发送延迟 Activity Sticky 事件</string>
+    <string name="sendManyEvent">发送 200 次 Activity Sticky 事件</string>
     <string name="default_placeholder_log_text">----------------------------------------</string>
     <string name="login">登录</string>
     <string name="password">密码</string>

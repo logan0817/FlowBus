@@ -2,8 +2,6 @@
 
 package com.logan.flowbus
 
-
-import android.util.Log
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
@@ -34,7 +32,6 @@ import kotlinx.coroutines.launch
  */
 
 class FlowEventBus : ViewModel() {
-    private val TAG = FlowEventBus::class.java.simpleName
     private val eventFlowStore = EventFlowStore()
 
     /**
@@ -63,7 +60,6 @@ class FlowEventBus : ViewModel() {
         isSticky: Boolean,
         onReceived: (T) -> Unit
     ): Job {
-        Log.w(TAG, "subscribe:$eventName")
         return lifecycleOwner.lifecycleScope.launch {
             // Repeat the coroutine block when the host is in the specified lifecycle state.
             // 在指定生命周期状态下重复执行块内的协程。
@@ -112,7 +108,6 @@ class FlowEventBus : ViewModel() {
      * @param delayMillis The delay time for posting (in milliseconds). 延迟发布的时间（毫秒）。
      */
     fun post(eventName: String, value: Any, isSticky: Boolean = false, delayMillis: Long = 0) {
-        Log.w(TAG, "post:$eventName isSticky:$isSticky")
         if (delayMillis > 0) {
             viewModelScope.launch {
                 delay(delayMillis)
