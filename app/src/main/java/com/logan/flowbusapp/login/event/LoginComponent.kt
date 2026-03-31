@@ -11,14 +11,14 @@ class LoginComponent {
         showLoading()
         printLog(getString(R.string.login_requesting))
         //Simulated login request
-        postEvent(scope = this, LoginEvent(userName!!, password!!), timeMillis = 2000)
+        postEvent(scope = this, LoginEvent(userName!!, password!!), delayMillis = 2000)
     }
 
     fun registerAndLogin(activity: LoginActivity, userName: String?, password: String?) = with(activity) {
         showLoading()
         printLog(getString(R.string.register_requesting))
         //Simulated register request
-        postEvent(scope = this, RegisterEvent(userName!!, password!!), timeMillis = 2000)
+        postEvent(scope = this, RegisterEvent(userName!!, password!!), delayMillis = 2000)
 
     }
 

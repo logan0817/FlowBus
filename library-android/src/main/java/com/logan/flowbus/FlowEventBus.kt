@@ -109,13 +109,13 @@ class FlowEventBus : ViewModel() {
      * @param eventName The event name. 事件名。
      * @param value The data carried by the event. 事件携带的数据。
      * @param isSticky Whether the event should be emitted to the sticky flow. 是否发往粘性事件流。
-     * @param timeMillis The delay time for posting (in milliseconds). 延迟发布的时间（毫秒）。
+     * @param delayMillis The delay time for posting (in milliseconds). 延迟发布的时间（毫秒）。
      */
-    fun post(eventName: String, value: Any, isSticky: Boolean = false, timeMillis: Long = 0) {
+    fun post(eventName: String, value: Any, isSticky: Boolean = false, delayMillis: Long = 0) {
         Log.w(TAG, "post:$eventName isSticky:$isSticky")
-        if (timeMillis > 0) {
+        if (delayMillis > 0) {
             viewModelScope.launch {
-                delay(timeMillis)
+                delay(delayMillis)
                 eventFlowStore.post(eventName, value, isSticky)
             }
         } else {

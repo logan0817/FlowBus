@@ -13,12 +13,12 @@ import androidx.lifecycle.ViewModelStoreOwner
  *
  * @param event The event payload.
  * 事件数据。
- * @param timeMillis The delay in milliseconds before the event is emitted. Default is 0 (immediate).
+ * @param delayMillis The delay in milliseconds before the event is emitted. Default is 0 (immediate).
  * 事件发射前的延迟时间（毫秒）。默认是 0（立即）。
  */
-inline fun <reified T : Any> postEvent(event: T, timeMillis: Long = 0L) {
+inline fun <reified T : Any> postEvent(event: T, delayMillis: Long = 0L) {
     GlobalViewModelStore.get(FlowEventBus::class.java)
-        .post(eventName = T::class.java.name, value = event, timeMillis = timeMillis)
+        .post(eventName = T::class.java.name, value = event, delayMillis = delayMillis)
 }
 
 /**
@@ -32,12 +32,12 @@ inline fun <reified T : Any> postEvent(event: T, timeMillis: Long = 0L) {
  * 作用域
  * @param event The event payload.
  * 事件数据。
- * @param timeMillis The delay in milliseconds before the event is emitted. Default is 0 (immediate).
+ * @param delayMillis The delay in milliseconds before the event is emitted. Default is 0 (immediate).
  * 事件发射前的延迟时间（毫秒）。默认是 0（立即）。
  */
-inline fun <reified T : Any> postEvent(scope: ViewModelStoreOwner, event: T, timeMillis: Long = 0L) {
+inline fun <reified T : Any> postEvent(scope: ViewModelStoreOwner, event: T, delayMillis: Long = 0L) {
     ViewModelProvider(owner = scope).get(FlowEventBus::class.java)
-        .post(eventName = T::class.java.name, value = event, timeMillis = timeMillis)
+        .post(eventName = T::class.java.name, value = event, delayMillis = delayMillis)
 }
 
 /**
@@ -47,9 +47,9 @@ inline fun <reified T : Any> postEvent(scope: ViewModelStoreOwner, event: T, tim
  * 全局作用域粘性事件发布。
  * 发布与泛型类型 T 关联的粘性事件数据到事件总线。
  */
-inline fun <reified T : Any> postStickyEvent(event: T, timeMillis: Long = 0L) {
+inline fun <reified T : Any> postStickyEvent(event: T, delayMillis: Long = 0L) {
     GlobalViewModelStore.get(FlowEventBus::class.java)
-        .post(eventName = T::class.java.name, value = event, isSticky = true, timeMillis = timeMillis)
+        .post(eventName = T::class.java.name, value = event, isSticky = true, delayMillis = delayMillis)
 }
 
 /**
@@ -59,7 +59,7 @@ inline fun <reified T : Any> postStickyEvent(event: T, timeMillis: Long = 0L) {
  * 限定作用域粘性事件发布。
  * 发布与泛型类型 T 关联的粘性事件数据到事件总线。
  */
-inline fun <reified T : Any> postStickyEvent(scope: ViewModelStoreOwner, event: T, timeMillis: Long = 0L) {
+inline fun <reified T : Any> postStickyEvent(scope: ViewModelStoreOwner, event: T, delayMillis: Long = 0L) {
     ViewModelProvider(owner = scope).get(FlowEventBus::class.java)
-        .post(eventName = T::class.java.name, value = event, isSticky = true, timeMillis = timeMillis)
+        .post(eventName = T::class.java.name, value = event, isSticky = true, delayMillis = delayMillis)
 }

@@ -63,7 +63,7 @@ class TestActivity : AppCompatActivity() {
             postStickyEvent(scope = this, event = GlobalEvent("Test CustomEvent"))
         }
         binding.btnSendDelayCustomEvent.setOnClickListener {
-            postStickyEvent(scope = this, event = GlobalEvent("Test DelayCustomEvent"), timeMillis = 1000)
+            postStickyEvent(scope = this, event = GlobalEvent("Test DelayCustomEvent"), delayMillis = 1000)
         }
         binding.btnSendManyEvent.setOnClickListener {
             (1..200).forEach { index ->
