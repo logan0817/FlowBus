@@ -1,3 +1,4 @@
+import com.vanniktech.maven.publish.AndroidSingleVariantLibrary
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
@@ -5,7 +6,11 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     id("com.android.library")
     kotlin("android")
+    alias(libs.plugins.vanniktech.maven.publish)
 }
+
+val hasSigningKey = providers.gradleProperty("signingInMemoryKey").isPresent ||
+    providers.gradleProperty("signing.secretKeyRingFile").isPresent
 
 
 android {
@@ -38,7 +43,6 @@ android {
         }
     }
 
-
     lint {
         warningsAsErrors = true
         abortOnError = true
@@ -54,10 +58,58 @@ tasks.withType<KotlinCompile>().configureEach {
 }
 
 dependencies {
-    implementation(libs.lifecycle.runtime)
-    implementation(libs.lifecycle.viewmodel)
+    api(projects.flowbusCore)
+    api(libs.lifecycle.runtime)
+    api(libs.lifecycle.viewmodel)
     testImplementation(libs.junit)
 
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)
+}
+
+mavenPublishing {
+    configure(
+        AndroidSingleVariantLibrary(
+            variant = "release",
+            sourcesJar = true,
+            publishJavadocJar = true,
+        )
+    )
+
+    coordinates(
+        providers.gradleProperty("GROUP").get(),
+        "flowbus",
+        providers.gradleProperty("VERSION_NAME").get()
+    )
+
+    pom {
+        name.set("FlowBus")
+        description.set("Android entry package for FlowBus, built on top of flowbus-core.")
+        inceptionYear.set("2026")
+        url.set(providers.gradleProperty("POM_URL"))
+        licenses {
+            license {
+                name.set(providers.gradleProperty("POM_LICENSE_NAME"))
+                url.set(providers.gradleProperty("POM_LICENSE_URL"))
+                distribution.set("repo")
+            }
+        }
+        developers {
+            developer {
+                id.set(providers.gradleProperty("POM_DEVELOPER_ID"))
+                name.set(providers.gradleProperty("POM_DEVELOPER_NAME"))
+                email.set(providers.gradleProperty("POM_DEVELOPER_EMAIL"))
+            }
+        }
+        scm {
+            url.set(providers.gradleProperty("POM_SCM_URL"))
+            connection.set(providers.gradleProperty("POM_SCM_CONNECTION"))
+            developerConnection.set(providers.gradleProperty("POM_SCM_DEV_CONNECTION"))
+        }
+    }
+
+    publishToMavenCentral()
+    if (hasSigningKey) {
+        signAllPublications()
+    }
 }

@@ -5,219 +5,195 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
+import com.logan.flowbus.core.defaultEventName
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
-
 /**
- * Subscribes to events in the **Application (global)** scope.
- * This extension function manages subscriptions based on the lifecycle of a [LifecycleOwner] (e.g., an Activity or Fragment).
- * Event collection begins when the [LifecycleOwner] reaches [minLifecycleState] and automatically stops at the end of its lifecycle.
- * @receiver The lifecycle owner of the event subscription.
- * @param T The data type of the event. The event name defaults to the fully qualified class name of T.
- * @param dispatcher The coroutine dispatcher used to execute the [onReceived] lambda, defaulting to the main thread.
- * @param minLifecycleState The minimum lifecycle state (e.g., STARTED, RESUMED) required for the subscription to begin collecting events.
- * @param isSticky Whether the event is a sticky event. Sticky events replay the latest event to new subscribers.
- * @param onReceived The callback function executed when an event is received.
- * @return Job event collection Job, which can be used to manually unsubscribe.
+ * 订阅全局总线中的事件，并由当前 [LifecycleOwner] 管理订阅生命周期。
  *
- *
- * 订阅 **Application (全局)** 作用域的事件。
- *
- * 该扩展函数基于 [LifecycleOwner] (例如 Activity 或 Fragment) 的生命周期来管理订阅。
- * 当 [LifecycleOwner] 的状态达到 [minLifecycleState] 时开始收集事件，并在生命周期结束时自动停止。
- *
- * @receiver LifecycleOwner 事件订阅的生命周期所有者。
- * @param T 事件的数据类型。事件名默认为 T 的完整类名。
- * @param dispatcher 用于执行 [onReceived] lambda 的协程调度器，默认为主线程。
- * @param minLifecycleState 订阅开始收集所需的最小生命周期状态 (如 STARTED, RESUMED)。
- * @param isSticky 事件是否为粘性事件 (Sticky Event)。粘性事件会重放最新的一个事件给新的订阅者。
- * @param onReceived 接收到事件时执行的回调函数。
- * @return Job 事件收集的 Job，可用于手动取消订阅。
+ * @param dispatcher 回调执行所在的协程调度器。
+ * @param minLifecycleState 开始收集的最小生命周期状态。
+ * @param isSticky 是否订阅粘性事件。
+ * @param eventName 事件通道名；默认使用事件类型全名。
+ * @param onReceived 收到事件后的回调。
  */
 @MainThread
-inline fun <reified T> LifecycleOwner.subscribeEvent(
+inline fun <reified T : Any> LifecycleOwner.subscribeEvent(
     dispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
     minLifecycleState: Lifecycle.State = Lifecycle.State.STARTED,
     isSticky: Boolean = false,
+    eventName: String = defaultEventName<T>(),
     noinline onReceived: (T) -> Unit
 ): Job {
     return GlobalViewModelStore.get(FlowEventBus::class.java)
         .subscribeEvent(
-            this,
-            T::class.java.name,
-            minLifecycleState,
-            dispatcher,
-            isSticky,
-            onReceived
+            lifecycleOwner = this,
+            eventName = eventName,
+            valueType = T::class,
+            startState = minLifecycleState,
+            dispatcher = dispatcher,
+            isSticky = isSticky,
+            onReceived = onReceived
         )
 }
 
 /**
- * Subscribes with an explicit event-bus owner and an explicit lifecycle owner.
- *
- * 显式指定事件总线 owner 的订阅方式，生命周期由当前 LifecycleOwner 管理。
+ * 订阅全局总线中指定 [channel] 的事件，并由当前 [LifecycleOwner] 管理订阅生命周期。
  */
 @MainThread
-inline fun <reified T> LifecycleOwner.subscribeEvent(
+fun <T : Any> LifecycleOwner.subscribeEvent(
+    channel: EventChannel<T>,
+    dispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
+    minLifecycleState: Lifecycle.State = Lifecycle.State.STARTED,
+    isSticky: Boolean = false,
+    onReceived: (T) -> Unit
+): Job {
+    return GlobalViewModelStore.get(FlowEventBus::class.java)
+        .subscribeEvent(
+            lifecycleOwner = this,
+            eventName = channel.name,
+            valueType = channel.valueType,
+            startState = minLifecycleState,
+            dispatcher = dispatcher,
+            isSticky = isSticky,
+            onReceived = onReceived
+        )
+}
+
+/**
+ * 订阅指定 [owner] 对应局部总线中的事件，并由当前 [LifecycleOwner] 管理订阅生命周期。
+ *
+ * 这是 Android 层最容易混淆的地方：
+ * - 接收者 [LifecycleOwner] 决定“订阅活多久”
+ * - 参数 [owner] 决定“从哪个总线收”
+ *
+ * [owner] 不局限于 Activity / Fragment，只要实现了 `ViewModelStoreOwner` 即可。
+ */
+@MainThread
+inline fun <reified T : Any> LifecycleOwner.subscribeEvent(
     owner: ViewModelStoreOwner,
     dispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
     minLifecycleState: Lifecycle.State = Lifecycle.State.STARTED,
     isSticky: Boolean = false,
+    eventName: String = defaultEventName<T>(),
     noinline onReceived: (T) -> Unit
 ): Job {
     return ViewModelProvider(owner).get(FlowEventBus::class.java)
         .subscribeEvent(
-            this,
-            T::class.java.name,
-            minLifecycleState,
-            dispatcher,
-            isSticky,
-            onReceived
+            lifecycleOwner = this,
+            eventName = eventName,
+            valueType = T::class,
+            startState = minLifecycleState,
+            dispatcher = dispatcher,
+            isSticky = isSticky,
+            onReceived = onReceived
         )
 }
 
-
 /**
- *
- * Subscribes to events in the **ViewModelStoreOwner** scope (e.g., Activity or Fragment).
- * This extension function obtains the event bus instance based on the current **ViewModelStoreOwner** and manages the subscription's lifecycle using the passed-in **lifecycleOwner**.
- * The lifecycle of a scoped event is bound to its creator (Activity/Fragment).
- *
- * @receiver The ViewModelStoreOwner provides the scope of the FlowEventBus instance (e.g., Activity or Fragment).
- * @param T The data type of the event. The event name defaults to the fully qualified class name of T.
- * @param scope The owner used to manage the subscription's lifecycle.
- * @param dispatcher The coroutine dispatcher used to execute the **onReceived** lambda, defaulting to the main thread.
- * @param minLifecycleState The minimum lifecycle state required for the subscription to begin collecting.
- * @param isSticky Whether the event is a sticky event.
- * @param onReceived: The callback function executed when an event is received.
- * @return Job: The Job that collected the event.
- *
- *
- * 订阅 **ViewModelStoreOwner (例如 Activity 或 Fragment)** 作用域的事件。
- * 该扩展函数基于当前 [ViewModelStoreOwner] 获取事件总线实例，并使用传入的 [lifecycleOwner] 管理订阅的生命周期。
- * 作用域事件的生命周期与其创建者 (Activity/Fragment) 绑定。
- * @receiver ViewModelStoreOwner 提供 FlowEventBus 实例的作用域 (例如 Activity 或 Fragment)。
- * @param T 事件的数据类型。事件名默认为 T 的完整类名。
- * @param scope 用于管理订阅生命周期的所有者。
- * @param dispatcher 用于执行 [onReceived] lambda 的协程调度器，默认为主线程。
- * @param minLifecycleState 订阅开始收集所需的最小生命周期状态。
- * @param isSticky 事件是否为粘性事件。
- * @param onReceived 接收到事件时执行的回调函数。
- * @return Job 事件收集的 Job。
+ * 订阅指定 [owner] 局部总线中命名 [channel] 的事件，并由当前 [LifecycleOwner] 管理订阅生命周期。
  */
-@Deprecated(
-    message = "Use lifecycleOwner.subscribeEvent(owner = ..., ...) so the lifecycle owner and bus owner are explicit.",
-    replaceWith = ReplaceWith(
-        "scope.subscribeEvent(owner = this, dispatcher = dispatcher, minLifecycleState = minLifecycleState, isSticky = isSticky, onReceived = onReceived)"
-    )
-)
 @MainThread
-inline fun <reified T> ViewModelStoreOwner.subscribeEvent(
-    scope: LifecycleOwner,
+fun <T : Any> LifecycleOwner.subscribeEvent(
+    owner: ViewModelStoreOwner,
+    channel: EventChannel<T>,
     dispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
     minLifecycleState: Lifecycle.State = Lifecycle.State.STARTED,
     isSticky: Boolean = false,
-    noinline onReceived: (T) -> Unit
+    onReceived: (T) -> Unit
 ): Job {
-    return scope.subscribeEvent(
-        owner = this,
-        dispatcher = dispatcher,
-        minLifecycleState = minLifecycleState,
-        isSticky = isSticky,
-        onReceived = onReceived
-    )
+    return ViewModelProvider(owner).get(FlowEventBus::class.java)
+        .subscribeEvent(
+            lifecycleOwner = this,
+            eventName = channel.name,
+            valueType = channel.valueType,
+            startState = minLifecycleState,
+            dispatcher = dispatcher,
+            isSticky = isSticky,
+            onReceived = onReceived
+        )
 }
 
 /**
+ * 在当前 [CoroutineScope] 中订阅全局总线事件。
  *
- * Subscribes to events in the **Application (global)** scope within a separate **CoroutineScope**.
- * This method does not depend on the Android [LifecycleOwner]; the event collection lifecycle is managed by the [CoroutineScope] itself.
- * Subscription automatically stops when the [CoroutineScope] is canceled. Suitable for ViewModel or non-Android components.
- *
- *
- * @receiver CoroutineScope The coroutine scope (e.g., viewModelScope) that runs the event collection.
- * @param T The data type of the event.
- * @param isSticky Whether the event is a sticky event.
- * @param onReceived The callback function executed when the event is received.
- * @return Job The event collection job.
- *
- *
- * 在独立的 **CoroutineScope** 内订阅 **Application (全局)** 作用域的事件。
- * 此方法不依赖 Android [LifecycleOwner]，事件收集的生命周期由 [CoroutineScope] 自身管理。
- * 当 [CoroutineScope] 被取消时，订阅自动停止。适用于 ViewModel 或非 Android 组件。
- *
- * @receiver CoroutineScope 运行事件收集的协程作用域 (例如 viewModelScope)。
- * @param T 事件的数据类型。
- * @param isSticky 事件是否为粘性事件。
- * @param onReceived 接收到事件时执行的回调函数。
- * @return Job 事件收集的 Job。
+ * 订阅生命周期完全由当前协程作用域管理，适用于 ViewModel、Repository、Worker
+ * 以及其他非 UI 场景。
  */
 @MainThread
-inline fun <reified T> CoroutineScope.subscribeEvent(
+inline fun <reified T : Any> CoroutineScope.subscribeEvent(
     isSticky: Boolean = false,
+    eventName: String = defaultEventName<T>(),
     noinline onReceived: (T) -> Unit
-): Job = this.launch {
+): Job = launch {
     GlobalViewModelStore.get(FlowEventBus::class.java)
         .subscribeEvent(
-            T::class.java.name,
-            isSticky,
-            onReceived
+            eventName = eventName,
+            valueType = T::class,
+            isSticky = isSticky,
+            onReceived = onReceived
         )
 }
 
 /**
- * Subscribes from an explicit scoped bus inside a CoroutineScope.
- *
- * 在 CoroutineScope 中显式指定 owner 的局部事件订阅。
+ * 在当前 [CoroutineScope] 中订阅全局总线里命名 [channel] 的事件。
  */
 @MainThread
-inline fun <reified T> CoroutineScope.subscribeEventFrom(
+fun <T : Any> CoroutineScope.subscribeEvent(
+    channel: EventChannel<T>,
+    isSticky: Boolean = false,
+    onReceived: (T) -> Unit
+): Job = launch {
+    GlobalViewModelStore.get(FlowEventBus::class.java)
+        .subscribeEvent(
+            eventName = channel.name,
+            valueType = channel.valueType,
+            isSticky = isSticky,
+            onReceived = onReceived
+        )
+}
+
+/**
+ * 在当前 [CoroutineScope] 中订阅指定 [owner] 对应局部总线的事件。
+ *
+ * - 当前 [CoroutineScope] 决定“订阅活多久”
+ * - 参数 [owner] 决定“从哪个总线收”
+ */
+@MainThread
+inline fun <reified T : Any> CoroutineScope.subscribeEventFrom(
     owner: ViewModelStoreOwner,
     isSticky: Boolean = false,
+    eventName: String = defaultEventName<T>(),
     noinline onReceived: (T) -> Unit
-): Job = this.launch {
+): Job = launch {
     ViewModelProvider(owner).get(FlowEventBus::class.java)
         .subscribeEvent(
-            T::class.java.name,
-            isSticky,
-            onReceived
+            eventName = eventName,
+            valueType = T::class,
+            isSticky = isSticky,
+            onReceived = onReceived
         )
 }
 
 /**
- *
- * Subscribes to events in the **ViewModelStoreOwner** scope within a separate **CoroutineScope**.
- * This method does not depend on the Android [LifecycleOwner]; the event collection lifecycle is managed by the [CoroutineScope] itself.
- *
- * @receiver CoroutineScope The coroutine scope that runs the event collection.
- * @param T The data type of the event.
- * @param scope The [ViewModelStoreOwner] (e.g., Activity or Fragment) that provides a FlowEventBus instance.
- * @param isSticky Whether the event is a sticky event.
- * @param onReceived The callback function executed when the event is received.
- * @return Job The job for the event collection.
- *
- *
- * 在独立的 **CoroutineScope** 内订阅 **ViewModelStoreOwner** 作用域的事件。
- * 此方法不依赖 Android [LifecycleOwner]，事件收集的生命周期由 [CoroutineScope] 自身管理。
- *
- * @receiver CoroutineScope 运行事件收集的协程作用域。
- * @param T 事件的数据类型。
- * @param scope 提供 FlowEventBus 实例的 [ViewModelStoreOwner] (例如 Activity 或 Fragment)。
- * @param isSticky 事件是否为粘性事件。
- * @param onReceived 接收到事件时执行的回调函数。
- * @return Job 事件收集的 Job。
+ * 在当前 [CoroutineScope] 中订阅指定 [owner] 局部总线里命名 [channel] 的事件。
  */
-@Deprecated(
-    message = "Use subscribeEventFrom(owner = ..., ...) so the bus owner is explicit.",
-    replaceWith = ReplaceWith("subscribeEventFrom(owner = scope, isSticky = isSticky, onReceived = onReceived)")
-)
 @MainThread
-inline fun <reified T> CoroutineScope.subscribeEvent(
-    scope: ViewModelStoreOwner,
+fun <T : Any> CoroutineScope.subscribeEventFrom(
+    owner: ViewModelStoreOwner,
+    channel: EventChannel<T>,
     isSticky: Boolean = false,
-    noinline onReceived: (T) -> Unit
-): Job = subscribeEventFrom(owner = scope, isSticky = isSticky, onReceived = onReceived)
+    onReceived: (T) -> Unit
+): Job = launch {
+    ViewModelProvider(owner).get(FlowEventBus::class.java)
+        .subscribeEvent(
+            eventName = channel.name,
+            valueType = channel.valueType,
+            isSticky = isSticky,
+            onReceived = onReceived
+        )
+}

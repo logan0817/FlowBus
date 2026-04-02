@@ -2,213 +2,142 @@
 
 # FlowBus
 
-FlowBus 是一个基于 Kotlin Coroutines 和 SharedFlow 的 Android 事件总线。
+FlowBus 是一个基于 Kotlin Coroutines / Flow 的 Flow-first 事件框架。
 
-它提供：
-- 全局事件
-- Activity / Fragment 局部事件
-- 生命周期感知订阅
-- Sticky 事件
-- 延迟发送
-- 指定线程处理
+当前仓库包含两个对外模块：
+- `flowbus-core`：平台无关的基础核心模块
+- `flowbus`（`library-android`）：构建在 `flowbus-core` 之上的 Android 适配模块
 
-## 引入
+## 为什么创建 FlowBus
+
+FlowBus 用来处理更像“事件广播”的场景，例如 UI、ViewModel、Repository、Worker 之间的跨层通知，
+以及全局事件或局部作用域事件的统一建模。
+
+它不是状态管理或一对一调用的替代品：
+- 页面内部状态优先 `StateFlow`
+- 明确调用关系优先直接方法调用 / use case
+- 严格请求-响应优先返回值、挂起函数或专用通道
+
+## 先选对模块
+
+### Android 项目
+
+优先使用：
 
 ```gradle
-repositories {
-    mavenCentral()
-}
+implementation("io.github.logan0817:flowbus:<latest-version>")
 ```
 
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
+适合你如果你需要：
+- Android 应用里的全局事件
+- 基于 `ViewModelStoreOwner` 的局部事件
+- `eventFlow<T>()` / `eventFlowFrom<T>(owner = ...)`
+- `eventChannel<T>("...")` 这种可复用的命名事件句柄
+- `collectEvent(flow) { ... }`
+- Activity / Fragment / ViewModel 场景下的生命周期安全收集
+
+Android 模块文档：
+- 本地文档：[`library-android/README.md`](./library-android/README.md)
+- GitHub 地址：[library-android README](https://github.com/logan0817/FlowBus/blob/master/library-android/README.md)
+
+### 平台无关 Kotlin / Coroutine 场景
+
+使用：
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.0.3")
+implementation("io.github.logan0817:flowbus-core:<latest-version>")
 ```
 
-## 先记住两个规则
+适合你如果你需要：
+- root bus 与 named scoped bus
+- `FlowBus`、`DefaultFlowBus`、`EventKey`、sticky event
+- `EventChannel<T>` / `eventChannel(...)`
+- `FlowBusScope`
+- 基于 `Job` / `CoroutineScope` 的 scope 生命周期绑定
+- `bus.post(value)` / `DefaultFlowBus.flow<T>()` 这类默认简化 API
+- 自定义 logger / error handler / buffer 策略
+- 自己构建上层适配，或在非 Android 架构中使用
 
-### 1. 发送到哪里，看 `owner`
+Core 模块文档：
+- 本地文档：[`flowbus-core/README.md`](./flowbus-core/README.md)
+- GitHub 地址：[flowbus-core README](https://github.com/logan0817/FlowBus/blob/master/flowbus-core/README.md)
 
-- 不传 `owner`：发送到全局总线
-- 传 `owner`：发送到该 `Activity` / `Fragment` 自己持有的局部总线
+## 模块关系
 
-```kotlin
-postEvent(GlobalEvent("refresh app"))
-postEventTo(owner = requireActivity(), event = ActivityEvent("refresh activity"))
-postEventTo(owner = this@DemoFragment, event = FragmentEvent("refresh fragment"))
-```
+- `flowbus-core` 定义事件模型与核心运行时行为
+- `flowbus` 提供面向 Android 的推荐 API
+- Android 用户默认从 `flowbus` 开始
+- 非 Android 用户或适配层开发者从 `flowbus-core` 开始
 
-### 2. 谁来管理订阅生命周期，看接收者
+## 使用原则
 
-- `subscribeEvent(...)` 的接收者是谁，就由谁管理生命周期
-- `owner = ...` 表示你要从哪个总线作用域收消息
+- FlowBus 是按事件类型分发的广播模型；同一类型的事件会进入同一个事件流
+- Android 项目里优先用明确的 `data class` / `sealed class` 定义业务事件
+- 全局广播用 `eventFlow<T>()`，局部作用域事件用 `eventFlowFrom<T>(owner = ...)` 或更直觉的 `owner.eventFlow<T>()`
+- 必须保证送达时使用 `emitEvent*`，允许 best-effort 时才使用 `postEvent*`
+- sticky event 只适合“后来订阅者也需要拿到最近一次值”的场景
 
-```kotlin
-// 用 Fragment view 的生命周期，订阅 Activity 作用域事件
-viewLifecycleOwner.subscribeEvent<ActivityEvent>(owner = requireActivity()) {
-    render(it)
-}
-```
+## 仓库结构
 
-## 定义事件
+- `flowbus-core`：核心框架模块
+- `library-android`：Android 适配模块
+- `app`：demo app
 
-建议使用明确的事件类，不要长期复用 `String` / `Int`。
+## 快速导航
 
-```kotlin
-data class GlobalEvent(val message: String)
-data class ActivityEvent(val message: String)
-data class FragmentEvent(val message: String)
-```
+### Android 用法
 
-## 常用写法
+Android 推荐 API 在 `flowbus`：
+- `postEvent(...)` / `emitEvent(...)`
+- `postEventTo(owner = ..., event = ...)` / `emitEventTo(owner = ..., event = ...)`
+- `eventFlow<T>()`
+- `eventFlowFrom<T>(owner = ...)`
+- `eventChannel<T>("...")`
+- `channel.post(...)` / `channel.flow()`
+- `channel.postTo(owner, ...)` / `channel.flowFrom(owner)`
+- `owner.eventFlow<T>()`
+- `stickyEventFlow<T>()`
+- `stickyEventFlowFrom<T>(owner = ...)`
+- `LifecycleOwner.onEvent(channel)` / `LifecycleOwner.onEvent(from = ..., channel = ...)`
+- `LifecycleOwner.onEvent<T>(from = ...)`
+- `collectEvent(flow) { ... }`
+- `removeStickyEvent<T>()` / `clearStickyEvent<T>()`
+- `postEvent*` / `postStickyEvent*`：best-effort 发送
+- `emitEvent*` / `emitStickyEvent*`：遵循背压，挂起直到成功写入
 
-### 发送事件
+查看：
+- [`library-android/README.md`](./library-android/README.md)
+- [Android 模块 GitHub 页面](https://github.com/logan0817/FlowBus/tree/master/library-android)
 
-```kotlin
-// 全局事件
-postEvent(GlobalEvent("refresh app"))
+### Core 用法
 
-// Activity 作用域事件
-postEventTo(owner = requireActivity(), event = ActivityEvent("refresh activity"))
+Core 推荐 API 在 `flowbus-core`：
+- `DefaultFlowBus`
+- `FlowBus`
+- `EventKey`
+- `eventKey(...)`
+- `EventChannel<T>` / `eventChannel(...)`
+- `FlowBus.post(value)` / `FlowBus.flow<T>()`
+- `channel.post(...)` / `channel.flow()`
+- `channel.postOn(bus, ...)` / `channel.flowOn(bus)`
+- `FlowBus.scoped(...)` / `DefaultFlowBus.scoped(...)`
+- `FlowBus.openScope(...)` / `DefaultFlowBus.openScope(...)`
+- `FlowBusScope.bindTo(job)`
+- `FlowBusScope.bindTo(scope)`
 
-// Fragment 作用域事件
-postEventTo(owner = this@DemoFragment, event = FragmentEvent("refresh fragment"))
-
-// 延迟发送
-postEvent(event = GlobalEvent("delay"), delayMillis = 1_000)
-```
-
-### 发送 Sticky 事件
-
-```kotlin
-postStickyEvent(GlobalEvent("latest global state"))
-postStickyEventTo(owner = requireActivity(), event = ActivityEvent("latest activity state"))
-```
-
-### 在 Activity 中订阅
-
-```kotlin
-class MainActivity : AppCompatActivity() {
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        // 订阅全局事件
-        subscribeEvent<GlobalEvent> {
-            renderGlobal(it)
-        }
-
-        // 订阅当前 Activity 作用域事件
-        subscribeEvent<ActivityEvent>(owner = this) {
-            renderActivity(it)
-        }
-    }
-}
-```
-
-### 在 Fragment 中订阅
-
-如果回调里会访问 View，请优先使用 `viewLifecycleOwner`。
-
-```kotlin
-class DemoFragment : Fragment() {
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        // 订阅全局事件
-        viewLifecycleOwner.subscribeEvent<GlobalEvent> {
-            renderGlobal(it)
-        }
-
-        // 订阅 Activity 作用域事件
-        viewLifecycleOwner.subscribeEvent<ActivityEvent>(owner = requireActivity()) {
-            renderActivity(it)
-        }
-
-        // 订阅当前 Fragment 作用域事件
-        viewLifecycleOwner.subscribeEvent<FragmentEvent>(owner = this@DemoFragment) {
-            renderFragment(it)
-        }
-    }
-}
-```
-
-### 在 ViewModel / CoroutineScope 中订阅
-
-```kotlin
-class DemoViewModel : ViewModel() {
-
-    init {
-        // 全局事件
-        viewModelScope.subscribeEvent<GlobalEvent> {
-            handleGlobal(it)
-        }
-
-        // Activity / Fragment 局部事件
-        viewModelScope.subscribeEventFrom<ActivityEvent>(owner = activityOwner) {
-            handleActivity(it)
-        }
-    }
-}
-```
-
-## 线程与生命周期
-
-```kotlin
-subscribeEvent<GlobalEvent>(dispatcher = Dispatchers.IO) {
-    saveToDisk(it)
-}
-
-subscribeEvent<GlobalEvent>(
-    minLifecycleState = Lifecycle.State.RESUMED
-) {
-    render(it)
-}
-```
-
-## Sticky 事件清理
-
-```kotlin
-
-/**
- * 移除指定的粘性事件流
- * 仅在你明确拥有该 sticky 作用域时再调用；
- * 不要在页面销毁时顺手清理全局 sticky 事件。
- */
-removeStickyEvent<GlobalEvent>()
-removeStickyEvent<ActivityEvent>(owner = requireActivity())
-removeStickyEvent<FragmentEvent>(owner = this@TestFragment)
-
-/**
- * 清除本地粘性事件类型 T 的缓存，但保留 Flow 实例。
- * 同样只建议清理你明确拥有的 sticky 作用域。
- */
-clearStickyEvent<GlobalEvent>()
-clearStickyEvent<ActivityEvent>(owner = requireActivity())
-clearStickyEvent<ActivityEvent>(owner = this@TestFragment)
-```
-
-- `clearStickyEvent`：清空最后一次缓存，但保留 Sticky Flow
-- `removeStickyEvent`：彻底移除 Sticky Flow
-
-## 使用建议
-
-- Fragment 回调里操作 View 时，优先使用 `viewLifecycleOwner`
-- 普通事件适合页面通信，不适合做“绝对不能丢消息”的任务队列
-- Sticky 事件只保留最新一条
-- 重任务请切到 `Dispatchers.IO` 或 `Dispatchers.Default`
-- 旧的 scoped API 仍可用，但已不推荐；生产代码建议改用显式 `owner` 写法
+查看：
+- [`flowbus-core/README.md`](./flowbus-core/README.md)
+- [Core 模块 GitHub 页面](https://github.com/logan0817/FlowBus/tree/master/flowbus-core)
 
 ## Demo
 
 <img src="GIF.gif" width="350" />
 
-> 你也可以直接下载 [演示 App](https://raw.githubusercontent.com/logan0817/FlowBus/master/app/release/app-release.apk) 查看效果
+Demo 源码位于 [`app`](./app) 模块，可直接运行或自行打包体验。
 
 ## License
 
 ```text
 MIT License
 ```
+

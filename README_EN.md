@@ -2,213 +2,142 @@ Chinese document [中文文档](./README.md)
 
 # FlowBus
 
-FlowBus is an Android event bus built on Kotlin Coroutines and SharedFlow.
+FlowBus is a Flow-first event framework built on Kotlin Coroutines / Flow.
 
-It provides:
-- global events
-- Activity / Fragment scoped events
-- lifecycle-aware subscriptions
-- sticky events
-- delayed post
-- dispatcher switching
+This repository contains two public modules:
+- `flowbus-core`: platform-neutral core module
+- `flowbus` (`library-android`): Android adapter module built on top of `flowbus-core`
 
-## Installation
+## Why FlowBus exists
+
+FlowBus is for communication that naturally looks like event broadcast, such as cross-layer delivery
+between UI, ViewModel, Repository, and Worker code, plus one model for both global and scoped events.
+
+It is not meant to replace:
+- page-local state management: prefer `StateFlow`
+- explicit one-to-one calls: prefer direct function calls / use cases
+- strict request-response pairs: prefer return values, suspend functions, or dedicated channels
+
+## Choose the right module
+
+### For Android projects
+
+Start with:
 
 ```gradle
-repositories {
-    mavenCentral()
-}
+implementation("io.github.logan0817:flowbus:<latest-version>")
 ```
 
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
+Use this module if you want:
+- global events in Android apps
+- `ViewModelStoreOwner` scoped events
+- `eventFlow<T>()` / `eventFlowFrom<T>(owner = ...)`
+- reusable named event handles such as `eventChannel<T>("...")`
+- `collectEvent(flow) { ... }`
+- lifecycle-aware collection in Activity / Fragment / ViewModel code
+
+Android module docs:
+- local doc: [`library-android/README_EN.md`](./library-android/README_EN.md)
+- GitHub URL: [library-android README](https://github.com/logan0817/FlowBus/blob/master/library-android/README_EN.md)
+
+### For platform-neutral Kotlin / Coroutine usage
+
+Use:
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.0.3")
+implementation("io.github.logan0817:flowbus-core:<latest-version>")
 ```
 
-## Two simple rules
+Use this module if you want:
+- root bus and named scoped bus
+- `FlowBus`, `DefaultFlowBus`, `EventKey`, sticky events
+- `EventChannel<T>` / `eventChannel(...)`
+- `FlowBusScope`
+- scope lifecycle binding with `Job` / `CoroutineScope`
+- simplified APIs like `bus.post(value)` / `DefaultFlowBus.flow<T>()`
+- custom logger / error handler / buffer strategy
+- your own upper-layer adapter or non-Android architecture integration
 
-### 1. `owner` decides where the event is posted
+Core module docs:
+- local doc: [`flowbus-core/README_EN.md`](./flowbus-core/README_EN.md)
+- GitHub URL: [flowbus-core README](https://github.com/logan0817/FlowBus/blob/master/flowbus-core/README_EN.md)
 
-- no `owner`: post to the global bus
-- with `owner`: post to the local bus owned by that `Activity` or `Fragment`
+## Module relationship
 
-```kotlin
-postEvent(GlobalEvent("refresh app"))
-postEventTo(owner = requireActivity(), event = ActivityEvent("refresh activity"))
-postEventTo(owner = this@DemoFragment, event = FragmentEvent("refresh fragment"))
-```
+- `flowbus-core` defines the event model and core runtime behavior
+- `flowbus` provides Android-oriented APIs on top of `flowbus-core`
+- Android users should treat `flowbus` as the default entry
+- non-Android or adapter authors should start from `flowbus-core`
 
-### 2. The receiver decides who owns the subscription lifecycle
+## Usage principles
 
-- the receiver of `subscribeEvent(...)` controls the subscription lifecycle
-- `owner = ...` tells FlowBus which bus scope to read from
+- FlowBus uses a type-based broadcast model; events of the same type go through the same event stream
+- In Android apps, prefer explicit business event types with `data class` / `sealed class`
+- Use `eventFlow<T>()` for global broadcasts and `eventFlowFrom<T>(owner = ...)` for `ViewModelStoreOwner`-scoped events
+- Use `emitEvent*` when delivery must succeed, and `postEvent*` only when best-effort delivery is acceptable
+- Sticky events are only for "late subscribers should still see the latest value"
 
-```kotlin
-// Use the Fragment view lifecycle to receive Activity-scoped events
-viewLifecycleOwner.subscribeEvent<ActivityEvent>(owner = requireActivity()) {
-    render(it)
-}
-```
+## Repository layout
 
-## Define events
+- `flowbus-core`: core framework module
+- `library-android`: Android adapter module
+- `app`: demo app
 
-Prefer dedicated event classes over raw `String` or `Int` values.
+## Quick navigation
 
-```kotlin
-data class GlobalEvent(val message: String)
-data class ActivityEvent(val message: String)
-data class FragmentEvent(val message: String)
-```
+### Android usage
 
-## Common usage
+Recommended Android APIs live in `flowbus`:
+- `postEvent(...)` / `emitEvent(...)`
+- `postEventTo(owner = ..., event = ...)` / `emitEventTo(owner = ..., event = ...)`
+- `eventFlow<T>()`
+- `eventFlowFrom<T>(owner = ...)`
+- `eventChannel<T>("...")`
+- `channel.post(...)` / `channel.flow()`
+- `channel.postTo(owner, ...)` / `channel.flowFrom(owner)`
+- `owner.eventFlow<T>()`
+- `stickyEventFlow<T>()`
+- `stickyEventFlowFrom<T>(owner = ...)`
+- `LifecycleOwner.onEvent(channel)` / `LifecycleOwner.onEvent(from = ..., channel = ...)`
+- `LifecycleOwner.onEvent<T>(from = ...)`
+- `collectEvent(flow) { ... }`
+- `removeStickyEvent<T>()` / `clearStickyEvent<T>()`
+- `postEvent*` / `postStickyEvent*`: best-effort delivery
+- `emitEvent*` / `emitStickyEvent*`: suspend until delivery succeeds under backpressure
 
-### Post events
+See:
+- [`library-android/README_EN.md`](./library-android/README_EN.md)
+- [Android module on GitHub](https://github.com/logan0817/FlowBus/tree/master/library-android)
 
-```kotlin
-// Global event
-postEvent(GlobalEvent("refresh app"))
+### Core usage
 
-// Activity-scoped event
-postEventTo(owner = requireActivity(), event = ActivityEvent("refresh activity"))
+Recommended core APIs live in `flowbus-core`:
+- `DefaultFlowBus`
+- `FlowBus`
+- `EventKey`
+- `eventKey(...)`
+- `EventChannel<T>` / `eventChannel(...)`
+- `FlowBus.post(value)` / `FlowBus.flow<T>()`
+- `channel.post(...)` / `channel.flow()`
+- `channel.postOn(bus, ...)` / `channel.flowOn(bus)`
+- `FlowBus.scoped(...)` / `DefaultFlowBus.scoped(...)`
+- `FlowBus.openScope(...)` / `DefaultFlowBus.openScope(...)`
+- `FlowBusScope.bindTo(job)`
+- `FlowBusScope.bindTo(scope)`
 
-// Fragment-scoped event
-postEventTo(owner = this@DemoFragment, event = FragmentEvent("refresh fragment"))
-
-// Delayed post
-postEvent(event = GlobalEvent("delay"), delayMillis = 1_000)
-```
-
-### Post sticky events
-
-```kotlin
-postStickyEvent(GlobalEvent("latest global state"))
-postStickyEventTo(owner = requireActivity(), event = ActivityEvent("latest activity state"))
-```
-
-### Subscribe inside an Activity
-
-```kotlin
-class MainActivity : AppCompatActivity() {
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        // Global events
-        subscribeEvent<GlobalEvent> {
-            renderGlobal(it)
-        }
-
-        // Activity-scoped events owned by this Activity
-        subscribeEvent<ActivityEvent>(owner = this) {
-            renderActivity(it)
-        }
-    }
-}
-```
-
-### Subscribe inside a Fragment
-
-If the callback touches views, prefer `viewLifecycleOwner`.
-
-```kotlin
-class DemoFragment : Fragment() {
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        // Global bus
-        viewLifecycleOwner.subscribeEvent<GlobalEvent> {
-            renderGlobal(it)
-        }
-
-        // Activity-scoped bus
-        viewLifecycleOwner.subscribeEvent<ActivityEvent>(owner = requireActivity()) {
-            renderActivity(it)
-        }
-
-        // Fragment-scoped bus
-        viewLifecycleOwner.subscribeEvent<FragmentEvent>(owner = this@DemoFragment) {
-            renderFragment(it)
-        }
-    }
-}
-```
-
-### Subscribe inside a ViewModel or CoroutineScope
-
-```kotlin
-class DemoViewModel : ViewModel() {
-
-    init {
-        // Global events
-        viewModelScope.subscribeEvent<GlobalEvent> {
-            handleGlobal(it)
-        }
-
-        // Activity / Fragment scoped events
-        viewModelScope.subscribeEventFrom<ActivityEvent>(owner = activityOwner) {
-            handleActivity(it)
-        }
-    }
-}
-```
-
-## Threading and lifecycle
-
-```kotlin
-subscribeEvent<GlobalEvent>(dispatcher = Dispatchers.IO) {
-    saveToDisk(it)
-}
-
-subscribeEvent<GlobalEvent>(
-    minLifecycleState = Lifecycle.State.RESUMED
-) {
-    render(it)
-}
-```
-
-## Sticky cleanup
-
-```kotlin
-
-/**
- * Remove specified sticky event stream
- * Only do this when you explicitly own that sticky scope;
- * do not clear global sticky state automatically from page teardown.
- */
-removeStickyEvent<GlobalEvent>()
-removeStickyEvent<ActivityEvent>(owner = requireActivity())
-removeStickyEvent<FragmentEvent>(owner = this@TestFragment)
-
-/**
- * Clears the replay cache for the local sticky event type T, but keeps the Flow instance.
- * Prefer clearing only sticky scopes that your component explicitly owns.
- */
-clearStickyEvent<GlobalEvent>()
-clearStickyEvent<ActivityEvent>(owner = requireActivity())
-clearStickyEvent<ActivityEvent>(owner = this@TestFragment)
-```
-
-- `clearStickyEvent`: clears the latest cached value but keeps the Sticky Flow
-- `removeStickyEvent`: removes the Sticky Flow completely
-
-## Notes
-
-- In Fragments, prefer `viewLifecycleOwner` when touching views
-- Normal events are for UI communication, not for guaranteed task queues
-- Sticky events keep only the latest value
-- Move heavy work to `Dispatchers.IO` or `Dispatchers.Default`
-- Old scoped APIs still work, but the explicit `owner` API is recommended for production code
+See:
+- [`flowbus-core/README_EN.md`](./flowbus-core/README_EN.md)
+- [Core module on GitHub](https://github.com/logan0817/FlowBus/tree/master/flowbus-core)
 
 ## Demo
 
 <img src="GIF.gif" width="350" />
 
-> You can also download the [demo app](https://raw.githubusercontent.com/logan0817/FlowBus/master/app/release/app-release.apk) to try it directly.
+Demo source lives in the [`app`](./app) module, so you can run it locally or build the APK yourself.
 
 ## License
 
 ```text
 MIT License
 ```
+

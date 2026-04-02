@@ -2,90 +2,149 @@ package com.logan.flowbus
 
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
-
+import com.logan.flowbus.core.defaultEventName
 
 /**
- * Global Scope Event Post.
- * Publishes an event payload associated with the generic type T to the bus.
+ * 向全局总线发送事件。
  *
- * 全局作用域事件发布。
- * 发布与泛型类型 T 关联的事件数据到事件总线。
+ * 这是 best-effort 发送；当底层缓冲已满时，事件可能不会被接收。
+ * 如果你需要遵循背压策略并保证发送成功，请使用 [emitEvent]。
  *
- * @param event The event payload.
- * 事件数据。
- * @param delayMillis The delay in milliseconds before the event is emitted. Default is 0 (immediate).
- * 事件发射前的延迟时间（毫秒）。默认是 0（立即）。
+ * @param event 事件数据。
+ * @param delayMillis 延迟发送时间，单位毫秒。
+ * @param eventName 事件通道名；默认使用事件类型全名。
  */
-inline fun <reified T : Any> postEvent(event: T, delayMillis: Long = 0L) {
+inline fun <reified T : Any> postEvent(
+    event: T,
+    delayMillis: Long = 0L,
+    eventName: String = defaultEventName<T>()
+) {
     GlobalViewModelStore.get(FlowEventBus::class.java)
-        .post(eventName = T::class.java.name, value = event, delayMillis = delayMillis)
+        .post(eventName = eventName, value = event, valueType = T::class, delayMillis = delayMillis)
 }
 
 /**
- * Scoped event post with an explicit bus owner.
+ * 向指定 [owner] 对应的局部总线发送事件。
  *
- * 显式指定事件总线所属 owner 的局部事件发送。
+ * 这是 best-effort 发送；当底层缓冲已满时，事件可能不会被接收。
+ * 如果你需要遵循背压策略并保证发送成功，请使用 [emitEventTo]。
+ *
+ * [owner] 用来决定“往哪个总线发”，它不限制具体类型，只要实现了
+ * `ViewModelStoreOwner` 即可。
+ *
+ * @param owner 事件总线所属作用域。
+ * @param event 事件数据。
+ * @param delayMillis 延迟发送时间，单位毫秒。
+ * @param eventName 事件通道名；默认使用事件类型全名。
  */
-inline fun <reified T : Any> postEventTo(owner: ViewModelStoreOwner, event: T, delayMillis: Long = 0L) {
+inline fun <reified T : Any> postEventTo(
+    owner: ViewModelStoreOwner,
+    event: T,
+    delayMillis: Long = 0L,
+    eventName: String = defaultEventName<T>()
+) {
     ViewModelProvider(owner = owner).get(FlowEventBus::class.java)
-        .post(eventName = T::class.java.name, value = event, delayMillis = delayMillis)
+        .post(eventName = eventName, value = event, valueType = T::class, delayMillis = delayMillis)
 }
 
 /**
- * Limited Scope Event Post.
- * Publishes an event payload associated with the generic type T to the bus.
- *
- * 限定作用域事件发布。
- * 发布与泛型类型 T 关联的事件数据到事件总线。
- *
- * @param scope Scope
- * 作用域
- * @param event The event payload.
- * 事件数据。
- * @param delayMillis The delay in milliseconds before the event is emitted. Default is 0 (immediate).
- * 事件发射前的延迟时间（毫秒）。默认是 0（立即）。
+ * 挂起直到全局事件成功发送。
  */
-@Deprecated(
-    message = "Use postEventTo(owner = ..., event = ...) for scoped events.",
-    replaceWith = ReplaceWith("postEventTo(owner = scope, event = event, delayMillis = delayMillis)")
-)
-inline fun <reified T : Any> postEvent(scope: ViewModelStoreOwner, event: T, delayMillis: Long = 0L) {
-    postEventTo(owner = scope, event = event, delayMillis = delayMillis)
-}
-
-/**
- * Global Scope Sticky Event Post.
- * Publishes an event payload associated with the generic type T to the sticky bus.
- *
- * 全局作用域粘性事件发布。
- * 发布与泛型类型 T 关联的粘性事件数据到事件总线。
- */
-inline fun <reified T : Any> postStickyEvent(event: T, delayMillis: Long = 0L) {
+suspend inline fun <reified T : Any> emitEvent(
+    event: T,
+    delayMillis: Long = 0L,
+    eventName: String = defaultEventName<T>()
+) {
     GlobalViewModelStore.get(FlowEventBus::class.java)
-        .post(eventName = T::class.java.name, value = event, isSticky = true, delayMillis = delayMillis)
+        .emit(eventName = eventName, value = event, valueType = T::class, delayMillis = delayMillis)
 }
 
 /**
- * Scoped sticky event post with an explicit bus owner.
- *
- * 显式指定事件总线所属 owner 的局部粘性事件发送。
+ * 挂起直到指定 [owner] 对应的局部事件成功发送。
  */
-inline fun <reified T : Any> postStickyEventTo(owner: ViewModelStoreOwner, event: T, delayMillis: Long = 0L) {
+suspend inline fun <reified T : Any> emitEventTo(
+    owner: ViewModelStoreOwner,
+    event: T,
+    delayMillis: Long = 0L,
+    eventName: String = defaultEventName<T>()
+) {
     ViewModelProvider(owner = owner).get(FlowEventBus::class.java)
-        .post(eventName = T::class.java.name, value = event, isSticky = true, delayMillis = delayMillis)
+        .emit(eventName = eventName, value = event, valueType = T::class, delayMillis = delayMillis)
 }
 
 /**
- * Limited Scope Sticky Event Post.
- * Publishes an event payload associated with the generic type T to the scoped sticky bus.
+ * 向全局总线发送粘性事件。
  *
- * 限定作用域粘性事件发布。
- * 发布与泛型类型 T 关联的粘性事件数据到事件总线。
+ * 这是 best-effort 发送；当底层缓冲已满时，事件可能不会被接收。
+ * 如果你需要遵循背压策略并保证发送成功，请使用 [emitStickyEvent]。
  */
-@Deprecated(
-    message = "Use postStickyEventTo(owner = ..., event = ...) for scoped sticky events.",
-    replaceWith = ReplaceWith("postStickyEventTo(owner = scope, event = event, delayMillis = delayMillis)")
-)
-inline fun <reified T : Any> postStickyEvent(scope: ViewModelStoreOwner, event: T, delayMillis: Long = 0L) {
-    postStickyEventTo(owner = scope, event = event, delayMillis = delayMillis)
+inline fun <reified T : Any> postStickyEvent(
+    event: T,
+    delayMillis: Long = 0L,
+    eventName: String = defaultEventName<T>()
+) {
+    GlobalViewModelStore.get(FlowEventBus::class.java)
+        .post(
+            eventName = eventName,
+            value = event,
+            valueType = T::class,
+            isSticky = true,
+            delayMillis = delayMillis
+        )
+}
+
+/**
+ * 向指定 [owner] 对应的局部总线发送粘性事件。
+ */
+inline fun <reified T : Any> postStickyEventTo(
+    owner: ViewModelStoreOwner,
+    event: T,
+    delayMillis: Long = 0L,
+    eventName: String = defaultEventName<T>()
+) {
+    ViewModelProvider(owner = owner).get(FlowEventBus::class.java)
+        .post(
+            eventName = eventName,
+            value = event,
+            valueType = T::class,
+            isSticky = true,
+            delayMillis = delayMillis
+        )
+}
+
+/**
+ * 挂起直到全局粘性事件成功发送。
+ */
+suspend inline fun <reified T : Any> emitStickyEvent(
+    event: T,
+    delayMillis: Long = 0L,
+    eventName: String = defaultEventName<T>()
+) {
+    GlobalViewModelStore.get(FlowEventBus::class.java)
+        .emit(
+            eventName = eventName,
+            value = event,
+            valueType = T::class,
+            isSticky = true,
+            delayMillis = delayMillis
+        )
+}
+
+/**
+ * 挂起直到指定 [owner] 对应的局部粘性事件成功发送。
+ */
+suspend inline fun <reified T : Any> emitStickyEventTo(
+    owner: ViewModelStoreOwner,
+    event: T,
+    delayMillis: Long = 0L,
+    eventName: String = defaultEventName<T>()
+) {
+    ViewModelProvider(owner = owner).get(FlowEventBus::class.java)
+        .emit(
+            eventName = eventName,
+            value = event,
+            valueType = T::class,
+            isSticky = true,
+            delayMillis = delayMillis
+        )
 }

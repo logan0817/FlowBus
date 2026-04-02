@@ -1,26 +1,26 @@
-package com.logan.flowbus
+package com.logan.flowbus.core
 
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import kotlinx.coroutines.flow.MutableSharedFlow
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.util.Collections
 
-class EventCollectorTest {
+class FlowBusCollectorTest {
 
     @Test
-    fun `collectEventFlowSequentially preserves handler order`() = runBlocking {
+    fun `collectFlowBusSequentially preserves handler order`() = runBlocking {
         val flow = MutableSharedFlow<Any>(replay = 2)
         val received = Collections.synchronizedList(mutableListOf<Int>())
         val completed = CompletableDeferred<Unit>()
 
         val job = launch {
-            collectEventFlowSequentially<Int>(
+            collectFlowBusSequentially<Int>(
                 flow = flow,
                 dispatcher = Dispatchers.Default
             ) { value ->

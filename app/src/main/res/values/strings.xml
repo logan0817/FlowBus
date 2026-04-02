@@ -3,6 +3,7 @@
     <string name="sendGlobalEvent">Send global event</string>
     <string name="sendActivityEvent">Send Activity event</string>
     <string name="sendFragmentEvent">Send Fragment event</string>
+    <string name="runNonUiDemo">Run ViewModel / Repository / Worker demo</string>
     <string name="jumpNextPage1">Open TestActivity</string>
     <string name="jumpNextPage2">Open TestFragmentActivity</string>
     <string name="jumpNextPage3">Open LoginActivity</string>

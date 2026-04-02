@@ -81,7 +81,6 @@
             app:layout_constraintRight_toRightOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/llActivityEvent" />
 
-
         <androidx.appcompat.widget.AppCompatTextView
             android:id="@+id/tvActivityEvent1"
             android:layout_width="match_parent"
@@ -101,6 +100,46 @@
             android:text="@string/default_placeholder_log_text" />
     </LinearLayout>
 
+    <LinearLayout
+        android:id="@+id/llNonUiEvent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="20dp"
+        android:orientation="vertical"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/llActivityEvent">
+
+        <Button
+            android:id="@+id/btnRunNonUiDemo"
+            style="@style/Widget.AppCompat.Button.Colored"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/autumn_wave"
+            android:text="@string/runNonUiDemo"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:textSize="18sp" />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/tvViewModelEvent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/default_placeholder_log_text" />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/tvRepositoryEvent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/default_placeholder_log_text" />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/tvWorkerEvent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/default_placeholder_log_text" />
+    </LinearLayout>
+
     <Button
         android:id="@+id/btnJumpNextPage"
         style="@style/Widget.AppCompat.Button.Colored"
@@ -115,7 +154,7 @@
         android:textSize="18sp"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/llActivityEvent" />
+        app:layout_constraintTop_toBottomOf="@+id/llNonUiEvent" />
 
     <Button
         android:id="@+id/btnJumpNextFragmentPage"

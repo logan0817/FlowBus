@@ -2,43 +2,46 @@ package com.logan.flowbus
 
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
+import com.logan.flowbus.core.defaultEventName
 
 /**
- * Permanently removes the Sticky Event Flow and its replay cache for event type T from the global bus.
- *
- * 从全局总线中永久移除事件类型 T 的粘性事件 Flow 及其重放缓存。
+ * 从全局总线中彻底移除事件类型 [T] 的粘性 Flow 及其重放缓存。
  */
-inline fun <reified T> removeStickyEvent() {
-    GlobalViewModelStore.get(FlowEventBus::class.java).removeStickEvent(T::class.java.name)
+inline fun <reified T : Any> removeStickyEvent(
+    eventName: String = defaultEventName<T>()
+) {
+    GlobalViewModelStore.get(FlowEventBus::class.java)
+        .removeStickyEvent(eventName = eventName, valueType = T::class)
 }
 
 /**
- * Permanently removes the Sticky Event Flow and its replay cache for event type T from the local bus.
- *
- * 从本地总线中永久移除事件类型 T 的粘性事件 Flow 及其重放缓存。
- *
- * @param scope The ViewModelStoreOwner providing the local FlowEventBus instance.
+ * 从指定 [owner] 对应的局部总线中彻底移除事件类型 [T] 的粘性 Flow 及其重放缓存。
  */
-inline fun <reified T> removeStickyEvent(owner: ViewModelStoreOwner) {
-    ViewModelProvider(owner).get(FlowEventBus::class.java).removeStickEvent(T::class.java.name)
+inline fun <reified T : Any> removeStickyEvent(
+    owner: ViewModelStoreOwner,
+    eventName: String = defaultEventName<T>()
+) {
+    ViewModelProvider(owner).get(FlowEventBus::class.java)
+        .removeStickyEvent(eventName = eventName, valueType = T::class)
 }
 
 /**
- * Clears the replay cache for the global Sticky Event Flow of type T, but keeps the Flow instance.
- *
- * 清除全局粘性事件类型 T 的重放缓存，但保留 Flow 实例。
+ * 清空全局总线中事件类型 [T] 的粘性重放缓存，但保留 Flow 实例。
  */
-inline fun <reified T> clearStickyEvent() {
-    GlobalViewModelStore.get(FlowEventBus::class.java).clearStickEvent(T::class.java.name)
+inline fun <reified T : Any> clearStickyEvent(
+    eventName: String = defaultEventName<T>()
+) {
+    GlobalViewModelStore.get(FlowEventBus::class.java)
+        .clearStickyEvent(eventName = eventName, valueType = T::class)
 }
 
 /**
- * Clears the replay cache for the local Sticky Event Flow of type T, but keeps the Flow instance.
- *
- * 清除本地粘性事件类型 T 的重放缓存，但保留 Flow 实例。
- *
- * @param scope The ViewModelStoreOwner providing the local FlowEventBus instance.
+ * 清空指定 [owner] 对应局部总线中事件类型 [T] 的粘性重放缓存，但保留 Flow 实例。
  */
-inline fun <reified T> clearStickyEvent(owner: ViewModelStoreOwner) {
-    ViewModelProvider(owner).get(FlowEventBus::class.java).clearStickEvent(T::class.java.name)
+inline fun <reified T : Any> clearStickyEvent(
+    owner: ViewModelStoreOwner,
+    eventName: String = defaultEventName<T>()
+) {
+    ViewModelProvider(owner).get(FlowEventBus::class.java)
+        .clearStickyEvent(eventName = eventName, valueType = T::class)
 }

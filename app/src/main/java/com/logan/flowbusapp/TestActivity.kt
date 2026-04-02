@@ -8,9 +8,10 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
+import com.logan.flowbus.collectEvent
+import com.logan.flowbus.eventFlowFrom
 import com.logan.flowbus.postStickyEventTo
 import com.logan.flowbus.removeStickyEvent
-import com.logan.flowbus.subscribeEvent
 import com.logan.flowbusapp.databinding.ActivityTestBinding
 import com.logan.flowbusapp.event.ActivityEvent
 import java.text.SimpleDateFormat
@@ -25,7 +26,6 @@ class TestActivity : AppCompatActivity() {
     private var _binding: ActivityTestBinding? = null
     private val binding get() = _binding!!
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         _binding = ActivityTestBinding.inflate(layoutInflater)
@@ -34,7 +34,6 @@ class TestActivity : AppCompatActivity() {
         setupInsets()
         setListeners()
         subscribeStickyEvents()
-
     }
 
     private fun setupInsets() {
@@ -47,10 +46,9 @@ class TestActivity : AppCompatActivity() {
         supportActionBar?.title = TestActivity::class.java.simpleName
     }
 
-
     @SuppressLint("SetTextI18n")
     private fun subscribeStickyEvents() {
-        subscribeEvent<ActivityEvent>(owner = this, isSticky = true) {
+        collectEvent(eventFlowFrom<ActivityEvent>(owner = this, isSticky = true)) {
             Log.d(TAG, "onReceived:${it.message}")
             val string = "${binding.tvEventText.text} \r\n"
             binding.tvEventText.text = "${string}${getCurrentTime()}-onReceived:${it.message}"

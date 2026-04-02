@@ -3,6 +3,7 @@
     <string name="sendGlobalEvent">发送全局事件</string>
     <string name="sendActivityEvent">发送Activity事件</string>
     <string name="sendFragmentEvent">发送Fragment事件</string>
+    <string name="runNonUiDemo">运行 ViewModel / Repository / Worker 示例</string>
     <string name="jumpNextPage1">打开TestActivity</string>
     <string name="jumpNextPage2">打开TestFragmentActivity</string>
     <string name="jumpNextPage3">打开LoginActivity</string>

@@ -1,5 +1,3 @@
-@file:OptIn(ExperimentalCoroutinesApi::class)
-
 package com.logan.flowbus
 
 import androidx.lifecycle.Lifecycle
@@ -8,65 +6,67 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewModelScope
+import com.logan.flowbus.core.EventKey
+import com.logan.flowbus.core.FlowBus
+import com.logan.flowbus.core.collectFlowBusSequentially
+import com.logan.flowbus.core.eventKey
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import kotlin.reflect.KClass
 
 /**
- * FlowEventBus: An Event Bus implemented using Kotlin Flow, inheriting from ViewModel.
+ * Android 层对 [FlowBus] 的 `ViewModel` 适配。
  *
- * Inheriting ViewModel ensures the FlowEventBus has the same lifecycle as the ViewModel (usually
- * an Activity/Fragment), allows the use of viewModelScope for lifecycle binding, and automatically
- * cancels all internal coroutine tasks when the host is destroyed.
+ * 每个 [FlowEventBus] 实例都绑定在某个 `ViewModelStoreOwner` 上，因此不同 owner
+ * 会天然得到不同的总线实例；[GlobalViewModelStore] 则提供全局总线。
  *
- * FlowEventBus：基于 Kotlin Flow 实现的事件总线，继承自 ViewModel。
- *
- * 继承 ViewModel 确保了 FlowEventBus 的生命周期与 ViewModel 相同（通常是 Activity/Fragment），
- * 并且可以使用 viewModelScope 进行生命周期绑定，在宿主销毁时自动取消所有内部协程任务。
- *
- * @author logan
- * @email notwalnut@163.com
- * @date 2025/12/11
+ * Android 层创建总线时所用的 [com.logan.flowbus.core.FlowBusConfig] 由 [FlowBusAndroid]
+ * 提供。如果你需要自定义 logger、错误处理或缓冲策略，请在首次获取总线之前调用
+ * [FlowBusAndroid.configure]。
  */
-
 class FlowEventBus : ViewModel() {
-    private val eventFlowStore = EventFlowStore()
+    private val bus = FlowBus(config = FlowBusAndroid.createFlowBusConfig())
 
     /**
-     * Subscribes to an event flow.
-     * 订阅事件流。
+     * 以 `LifecycleOwner` 感知的方式订阅当前总线中的事件。
      *
-     * This method uses LifecycleOwner and repeatOnLifecycle to ensure collection starts when the host
-     * is in the specified state and automatically pauses collection when the host enters the STOPPED
-     * state, preventing memory leaks and unnecessary resource consumption.
-     * 该方法基于 LifecycleOwner 和 repeatOnLifecycle 实现，确保在宿主处于指定状态时开始收集，
-     * 并在宿主进入 STOPPED 状态时自动暂停收集，避免内存泄漏和不必要的资源消耗。
+     * - 当前 [FlowEventBus] 决定从哪个总线实例收事件
+     * - [lifecycleOwner] 决定订阅生命周期
      *
-     * @param lifecycleOwner The host lifecycle object (e.g., Activity/Fragment). 宿主生命周期对象。
-     * @param eventName The event name. 事件名。
-     * @param startState The minimum Lifecycle.State to trigger collection, defaults to STARTED. 触发收集的最小生命周期状态。
-     * @param dispatcher The CoroutineDispatcher used for processing the received event. 用于处理接收到事件的协程调度器。
-     * @param isSticky Whether to subscribe to the sticky event. 是否订阅粘性事件。
-     * @param onReceived The event reception callback, generic T is the type of data carried by the event. 事件接收回调。
-     * @return Returns the Job instance, which can be used to manually cancel the subscription. 返回 Job 实例，可用于手动取消订阅。
+     * @param lifecycleOwner 负责托管订阅生命周期的宿主。
+     * @param eventName 事件名。
+     * @param valueType 事件值类型。
+     * @param startState 开始收集的最小生命周期状态。
+     * @param dispatcher 回调执行所在的协程调度器。
+     * @param isSticky 是否订阅粘性事件。
+     * @param onReceived 收到事件后的回调。
      */
     fun <T : Any> subscribeEvent(
         lifecycleOwner: LifecycleOwner,
         eventName: String,
+        valueType: KClass<T>,
         startState: Lifecycle.State = Lifecycle.State.STARTED,
         dispatcher: CoroutineDispatcher,
         isSticky: Boolean,
         onReceived: (T) -> Unit
     ): Job {
         return lifecycleOwner.lifecycleScope.launch {
-            // Repeat the coroutine block when the host is in the specified lifecycle state.
-            // 在指定生命周期状态下重复执行块内的协程。
             lifecycleOwner.repeatOnLifecycle(startState) {
-                collectEventFlowSequentially(
-                    flow = eventFlowStore.getEventFlow(eventName, isSticky),
+                val eventKey = eventKey(name = eventName, valueType = valueType)
+                collectFlowBusSequentially(
+                    flow = if (isSticky) {
+                        bus.stickyFlow(eventKey)
+                    } else {
+                        bus.flow(eventKey)
+                    },
+                    eventKey = eventKey,
+                    isSticky = isSticky,
                     dispatcher = dispatcher,
+                    logger = bus.config.logger,
+                    errorHandler = bus.config.errorHandler,
                     onReceived = onReceived
                 )
             }
@@ -74,76 +74,141 @@ class FlowEventBus : ViewModel() {
     }
 
     /**
-     * Subscribes to the event flow within the current coroutine scope.
-     * 在当前协程作用域内订阅事件流。
+     * 返回当前总线里指定事件对应的 [Flow]。
      *
-     * Suitable for ViewModel or other coroutine environments that do not require LifecycleOwner binding.
-     * Note: The caller needs to manage the lifecycle of this coroutine itself.
-     * 适用于 ViewModel 或其他无需绑定 LifecycleOwner 的协程环境。注意：调用者需要自行管理该协程的生命周期。
+     * 该方法只负责暴露 Flow，本身不处理生命周期；你可以在任意 `LifecycleOwner`、
+     * `CoroutineScope` 或其他协程环境中自行收集。
      *
-     * @param eventName The event name. 事件名。
-     * @param isSticky Whether to subscribe to the sticky event. 是否订阅粘性事件。
-     * @param onReceived The event reception callback, generic T is the type of data carried by the event. 事件接收回调。
+     * @param eventName 事件名。
+     * @param valueType 事件值类型。
+     * @param isSticky 是否读取粘性事件流。
+     */
+    fun <T : Any> eventFlow(
+        eventName: String,
+        valueType: KClass<T>,
+        isSticky: Boolean = false
+    ): Flow<T> {
+        val eventKey = eventKey(name = eventName, valueType = valueType)
+        return if (isSticky) {
+            bus.stickyFlow(eventKey)
+        } else {
+            bus.flow(eventKey)
+        }
+    }
+
+    /**
+     * 在调用方管理的协程中持续订阅当前总线中的事件。
+     *
+     * 适用于 `ViewModel`、Repository、Worker 或任意非 UI 协程环境。
+     * 该挂起函数会一直收集，直到外部协程被取消。
+     *
+     * @param eventName 事件名。
+     * @param valueType 事件值类型。
+     * @param isSticky 是否订阅粘性事件。
+     * @param onReceived 收到事件后的回调。
      */
     suspend fun <T : Any> subscribeEvent(
         eventName: String,
+        valueType: KClass<T>,
         isSticky: Boolean,
         onReceived: (T) -> Unit
     ) {
-        // Blocking collection until the outer coroutine is cancelled.
-        // 阻塞式收集，直到外部协程取消。
-        collectEventFlowSequentially(
-            flow = eventFlowStore.getEventFlow(eventName, isSticky),
+        val eventKey = eventKey(name = eventName, valueType = valueType)
+        collectFlowBusSequentially(
+            flow = if (isSticky) {
+                bus.stickyFlow(eventKey)
+            } else {
+                bus.flow(eventKey)
+            },
+            eventKey = eventKey,
+            isSticky = isSticky,
+            logger = bus.config.logger,
+            errorHandler = bus.config.errorHandler,
             onReceived = onReceived
         )
     }
 
     /**
-     * Posts an event.
-     * 发布事件。
+     * 向当前总线发送事件。
      *
-     * @param eventName The event name. 事件名。
-     * @param value The data carried by the event. 事件携带的数据。
-     * @param isSticky Whether the event should be emitted to the sticky flow. 是否发往粘性事件流。
-     * @param delayMillis The delay time for posting (in milliseconds). 延迟发布的时间（毫秒）。
+     * 这是 best-effort 发送：如果底层缓冲无法立即接收，当前调用不会挂起等待，
+     * 而是记录一条 warning。需要严格遵循背压时请改用 [emit]。
+     *
+     * @param eventName 事件名。
+     * @param value 事件数据。
+     * @param valueType 事件值类型。
+     * @param isSticky 是否发送为粘性事件。
+     * @param delayMillis 延迟发送时间，单位毫秒。
      */
-    fun post(eventName: String, value: Any, isSticky: Boolean = false, delayMillis: Long = 0) {
+    fun <T : Any> post(
+        eventName: String,
+        value: T,
+        valueType: KClass<T>,
+        isSticky: Boolean = false,
+        delayMillis: Long = 0
+    ) {
+        val eventKey = eventKey(name = eventName, valueType = valueType)
         if (delayMillis > 0) {
             viewModelScope.launch {
                 delay(delayMillis)
-                eventFlowStore.post(eventName, value, isSticky)
+                postOrWarn(eventKey = eventKey, value = value, isSticky = isSticky)
             }
+            return
+        }
+
+        postOrWarn(eventKey = eventKey, value = value, isSticky = isSticky)
+    }
+
+    /**
+     * 挂起直到事件成功发送到当前总线。
+     *
+     * 与 [post] 不同，该方法会遵循底层缓冲与背压策略，不会因为 `tryEmit` 失败而静默丢失。
+     */
+    suspend fun <T : Any> emit(
+        eventName: String,
+        value: T,
+        valueType: KClass<T>,
+        isSticky: Boolean = false,
+        delayMillis: Long = 0
+    ) {
+        val eventKey = eventKey(name = eventName, valueType = valueType)
+        if (delayMillis > 0) {
+            delay(delayMillis)
+        }
+
+        if (isSticky) {
+            bus.emitSticky(eventKey, value)
         } else {
-            eventFlowStore.post(eventName, value, isSticky)
+            bus.emit(eventKey, value)
         }
     }
 
     /**
-     * Removes the specified sticky event flow.
-     * 移除指定的粘性事件流。
-     *
-     * Completely deletes the Flow from the stickyEventFlows Map, meaning future subscribers
-     * will no longer be able to get or subscribe to this event.
-     * 会从 stickyEventFlows Map 中彻底删除该 Flow，后续的订阅者将无法再获取或订阅该事件。
-     *
-     * @param eventName The name of the sticky event to remove. 要移除的粘性事件名。
+     * 从当前总线中彻底移除指定粘性事件，包括其 Flow 实例和重放缓存。
      */
-    fun removeStickEvent(eventName: String) {
-        eventFlowStore.removeStickyEvent(eventName)
+    fun <T : Any> removeStickyEvent(eventName: String, valueType: KClass<T>) {
+        bus.removeSticky(eventKey(name = eventName, valueType = valueType))
     }
 
     /**
-     * Clears the replay cache of the specified sticky event.
-     * 清除指定粘性事件的重放缓存。
-     *
-     * If the Flow exists, calling resetReplayCache() clears the last cached value of the sticky event,
-     * so subsequent new subscribers will no longer receive the old data upon subscription.
-     * 如果 Flow 存在，调用 resetReplayCache() 会清除粘性事件缓存的最后一个值，
-     * 使得后续新的订阅者在订阅时不会再收到旧数据。
-     *
-     * @param eventName The name of the sticky event whose cache is to be cleared. 要清除缓存的粘性事件名。
+     * 清空指定粘性事件的重放缓存，但保留 Flow 实例本身。
      */
-    fun clearStickEvent(eventName: String) {
-        eventFlowStore.clearStickyEvent(eventName)
+    fun <T : Any> clearStickyEvent(eventName: String, valueType: KClass<T>) {
+        bus.clearSticky(eventKey(name = eventName, valueType = valueType))
+    }
+
+    private fun <T : Any> postOrWarn(eventKey: EventKey<T>, value: T, isSticky: Boolean) {
+        val accepted = if (isSticky) {
+            bus.postSticky(eventKey, value)
+        } else {
+            bus.post(eventKey, value)
+        }
+
+        if (!accepted) {
+            bus.config.logger.warn(
+                tag = "FlowBus",
+                message = "Dropped event '${eventKey.name}' because the buffer is full. Use emitEvent(...) for guaranteed delivery."
+            )
+        }
     }
 }
