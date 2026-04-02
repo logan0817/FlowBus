@@ -4,152 +4,463 @@
 
 `library-android` 是 FlowBus 的 Android 适配模块。
 
-Gradle 模块目录名是 `library-android`，对外发布的 Android 依赖坐标是：
+Gradle 模块目录名是 `library-android`，对外发布的依赖坐标是：
 
 ```gradle
 implementation("io.github.logan0817:flowbus:<latest-version>")
 ```
 
-它构建在 `flowbus-core` 之上，也是 Android 项目的推荐入口。
+如果你是 Android 项目接入 FlowBus，通常就从这个模块开始，不需要先研究 `flowbus-core`。
 
-## 适合使用这个模块的场景
+## 它到底是做什么的
 
-- Android 应用开发
-- 需要全局事件或基于 `ViewModelStoreOwner` 的局部事件
-- 更偏好 `eventFlow<T>()` 这种 Flow-first API
-- 需要 `collectEvent(...)` 这种生命周期安全收集方式
+FlowBus 更适合处理“事件广播”问题，也就是：
 
-## 在使用前，先理解 FlowBus 的定位
+- 某个地方发出一个通知，多个地方都可能关心
+- 发送方和接收方不想直接互相持有引用
+- 事件天然是异步的，更适合用 `Flow` 收
+- 你想按页面、Activity、NavBackStackEntry 或全局维度组织事件
 
-FlowBus 更适合“事件广播”，例如跨页面、跨模块、跨层的通知类事件，
-以及 UI、ViewModel、Repository、Worker 之间的异步事件传播。
+Android 项目里最常见的使用方式是：
 
-不适合的场景：
+- 页面 A 通知页面 B 刷新
+- Fragment 通知 Activity 执行某个 UI 动作
+- ViewModel / Repository / Worker 通知 UI 弹 Toast、刷新列表、重新拉数据
+- 某个作用域里广播一次事件，让多个观察者同时响应
+
+它不适合下面这些场景：
+
 - 页面内部状态管理：优先 `StateFlow`
 - 明确的一对一调用：优先直接方法调用 / use case
-- 严格的请求-响应配对：优先返回值、挂起函数或专用通道
+- 严格请求-响应：优先返回值、挂起函数、专用通道
+- 长期共享状态：优先状态容器，而不是事件总线
 
-如果你需要平台无关的底层能力，或要基于 FlowBus 构建自己的适配层，
-请查看 `flowbus-core`：
+## 先记住这 5 句话
 
-- 本地文档：[`../flowbus-core/README.md`](../flowbus-core/README.md)
-- GitHub 地址：[flowbus-core README](https://github.com/logan0817/FlowBus/blob/master/flowbus-core/README.md)
+1. `postEvent(...)` / `emitEvent(...)` 发的是全局事件，整个 app 都能订阅。
+2. `postEventTo(owner, ...)` / `owner.postEvent(...)` 发的是局部事件，只在这个 `owner` 对应的总线里流动。
+3. 默认按“事件类型”分发；如果同一类型要拆成多个业务通道，就用 `eventChannel<T>("name")`。
+4. `post*` 是立即尝试发送，`emit*` 是挂起直到成功写入。
+5. `collectEvent(flow)` 适合已经拿到 `Flow` 的情况，`onEvent(...)` 适合想直接一行开始监听。
 
-## 推荐 Android API
+## 3 分钟上手
 
-- `postEvent(...)` / `postStickyEvent(...)`：发送全局事件，best-effort
-- `emitEvent(...)` / `emitStickyEvent(...)`：发送全局事件，挂起直到成功写入
-- `postEventTo(owner = ...)` / `postStickyEventTo(owner = ...)`：发送局部事件，best-effort
-- `emitEventTo(owner = ...)` / `emitStickyEventTo(owner = ...)`：发送局部事件，挂起直到成功写入
-- `eventFlow<T>()` / `stickyEventFlow<T>()`：以 `Flow` 形式读取全局事件
-- `eventChannel<T>("...")`：声明一个可复用的命名事件句柄
-- `channel.post(...)` / `channel.flow()`：围绕命名句柄组织全局事件
-- `channel.postTo(owner, ...)` / `channel.flowFrom(owner)`：围绕命名句柄组织局部事件
-- `owner.eventFlow<T>()` / `owner.stickyEventFlow<T>()`：更直觉的 owner-centric 局部事件读取方式
-- `eventFlowFrom<T>(owner = ...)` / `stickyEventFlowFrom<T>(owner = ...)`：以 `Flow` 形式读取局部事件
-- `LifecycleOwner.collectEvent(flow) { ... }`：生命周期安全收集
-- `LifecycleOwner.onEvent(channel)` / `LifecycleOwner.onEvent(from = ..., channel = ...)`：基于命名句柄直接订阅
-- `LifecycleOwner.onEvent<T>(from = ...)` / `CoroutineScope.onEvent<T>(from = ...)`：更短的直接订阅别名
-- `LifecycleOwner.subscribeEvent(owner = ...)` / `CoroutineScope.subscribeEventFrom(owner = ...)`：直接订阅局部事件
-- `removeStickyEvent<T>()` / `clearStickyEvent<T>()`：移除或清空全局 sticky event
-- `removeStickyEvent<T>(owner)` / `clearStickyEvent<T>(owner)`：移除或清空局部 sticky event
-- `FlowBusAndroid.configure(...)`：首次使用前覆盖默认 core 配置
+### 1. 添加依赖
 
-## 推荐使用规则
-
-- FlowBus 默认按事件类型分发；同一类型就是同一个事件通道
-- Android 层现在也支持显式 `eventName`，因此同一类型可以声明多个语义清晰的 channel
-- 同一类型的多个订阅者都会收到事件；它是广播模型，不是独占消费队列
-- 全局事件用 `postEvent(...)` / `eventFlow<T>()`
-- 局部作用域事件用 `postEventTo(owner, ...)` / `eventFlowFrom<T>(owner = ...)`
-- UI 层优先配合 `collectEvent(...)` 使用，让收集过程跟随生命周期
-- 需要严格保证送达时，使用 `emitEvent(...)` 或 `emitEventTo(...)`
-- `postEvent(...)` 是 best-effort 发送，底层缓冲无法立即接收时可能丢失
-- sticky event 只适合“后来的订阅者也需要读到最近一次值”的场景
-
-## 事件建模建议
-
-优先给业务定义明确的事件类型，而不是长期直接发送 `String`、`Int` 等基础类型。
-常见做法是单个事件用 `data class`，同一业务域的多个动作用 `sealed interface` / `sealed class`。
-
-例如：
-
-```kotlin
-sealed interface MainEvent {
-    data object Refresh : MainEvent
-    data class OpenDetail(val id: Long) : MainEvent
-    data class ShowToast(val message: String) : MainEvent
-}
-
-postEvent<MainEvent>(MainEvent.Refresh)
-postEvent<MainEvent>(MainEvent.OpenDetail(id = 42L))
-postEvent<MainEvent>(MainEvent.ShowToast(message = "success"))
+```gradle
+implementation("io.github.logan0817:flowbus:<latest-version>")
 ```
 
-## 最简洁写法
+### 2. 定义一个事件类型
+
+如果只是一个简单动作，直接一个 `data class` 或 `data object` 就够了：
 
 ```kotlin
-requireActivity().postEvent(ActivityEvent.Reload)
-viewLifecycleOwner.collectEvent(requireActivity().eventFlow<ActivityEvent>()) {
-    renderActivity(it)
-}
+data class RefreshHomeEvent(val source: String)
+```
 
-viewLifecycleOwner.onEvent<GlobalEvent> {
-    renderGlobal(it)
-}
+### 3. 在任意地方发送事件
 
-postEvent(event = "toast", eventName = "ui.toast")
+```kotlin
+postEvent(RefreshHomeEvent(source = "login"))
+```
+
+### 4. 在页面里接收事件
+
+最短写法：
+
+```kotlin
+viewLifecycleOwner.onEvent<RefreshHomeEvent> { event ->
+    viewModel.refreshFrom(event.source)
+}
+```
+
+如果你更喜欢先拿到 `Flow` 再自己组合：
+
+```kotlin
+viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
+    viewModel.refreshFrom(event.source)
+}
+```
+
+看到这里就已经可以开始用了：
+
+- 发送：`postEvent(...)`
+- 接收：`onEvent<T> { ... }`
+- 如果要限制在某个 Activity / Fragment / NavBackStackEntry 作用域内，再用 `owner` 版本
+
+## 最常见的 4 个使用场景
+
+### 场景 1：全局广播，一个事件多个地方都能收到
+
+适合：
+
+- 登录成功后让多个页面刷新
+- 某个后台任务完成后让多个观察者同步更新
+- 全局消息、埋点通知、刷新指令
+
+```kotlin
+data class SyncFinishedEvent(val successCount: Int)
+
+postEvent(SyncFinishedEvent(successCount = 3))
+
+viewLifecycleOwner.onEvent<SyncFinishedEvent> { event ->
+    showResult(event.successCount)
+}
+```
+
+这类事件没有 owner 限制，谁订阅谁就能收到。
+
+### 场景 2：Fragment 和 Activity 之间通信
+
+适合：
+
+- Fragment 通知 Activity 刷新标题栏
+- Fragment 请求 Activity 执行导航、弹窗、权限流程
+- 某个页面树只想在当前 Activity 内部广播，不想影响全局
+
+```kotlin
+data object ReloadToolbarEvent
+
+requireActivity().postEvent(ReloadToolbarEvent)
+
+viewLifecycleOwner.onEvent<ReloadToolbarEvent>(from = requireActivity()) {
+    renderToolbar()
+}
+```
+
+这里的 `requireActivity()` 不是监听者，而是“事件总线挂在哪个作用域上”的意思。
+同理，你也可以把事件挂在 `NavBackStackEntry` 或自定义 `ViewModelStoreOwner` 上。
+
+如果你更喜欢 owner 在前的写法，也可以这样：
+
+```kotlin
+requireActivity().postEvent(ReloadToolbarEvent)
+
+viewLifecycleOwner.collectEvent(requireActivity().eventFlow<ReloadToolbarEvent>()) {
+    renderToolbar()
+}
+```
+
+### 场景 3：同样都是 `String`，但你不想到处写字符串通道名
+
+适合：
+
+- `Toast`、`SnackBar`、导航命令这类“值类型简单，但语义不同”的事件
+- 同一个类型需要拆成多个明确的业务 channel
+- 你不想在业务代码里散落 `"ui.toast"`、`"page.reload"` 这类裸字符串
+
+推荐写法：
+
+```kotlin
+val toastChannel = eventChannel<String>("ui.toast")
+
+toastChannel.post("保存成功")
+
+viewLifecycleOwner.onEvent(toastChannel) { message ->
+    showToast(message)
+}
+```
+
+如果这个事件只想在当前 Activity 范围内传播：
+
+```kotlin
+val activityCommand = eventChannel<String>("activity.command")
+
+activityCommand.postTo(requireActivity(), "reload")
+
+viewLifecycleOwner.onEvent(from = requireActivity(), channel = activityCommand) { command ->
+    handleActivityCommand(command)
+}
+```
+
+你当然也可以继续直接写 `eventName`：
+
+```kotlin
+postEvent(event = "保存成功", eventName = "ui.toast")
 viewLifecycleOwner.collectEvent(eventFlow<String>(eventName = "ui.toast")) {
     showToast(it)
 }
 ```
 
-## 命名事件句柄写法
+但对外公开或复用频繁的通道，优先推荐 `eventChannel(...)`，更清楚，也更不容易写错。
+
+### 场景 4：ViewModel / Repository / Worker 通知 UI
+
+适合：
+
+- 后台同步完成后提示 UI 刷新
+- Repository 完成某个动作后发通知给多个页面
+- Worker 执行完任务后，页面恢复时自动拿到结果
 
 ```kotlin
-val toastChannel = eventChannel<String>("ui.toast")
-val activityReload = eventChannel<ActivityEvent>("activity.reload")
+data class UploadFinishedEvent(val taskId: String)
 
-toastChannel.post("Saved")
-activityReload.postTo(requireActivity(), ActivityEvent.Reload)
-
-viewLifecycleOwner.collectEvent(toastChannel.flow()) {
-    showToast(it)
+class UploadViewModel : ViewModel() {
+    fun onUploadSuccess(taskId: String) {
+        postEvent(UploadFinishedEvent(taskId = taskId))
+    }
 }
 
-viewLifecycleOwner.onEvent(from = requireActivity(), channel = activityReload) {
-    renderActivity(it)
-}
-```
-
-## Fragment 示例
-
-```kotlin
-class DemoFragment : Fragment() {
-
+class UploadFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-
-        postEvent(GlobalEvent.Refresh)
-        postEventTo(owner = requireActivity(), event = ActivityEvent.Reload)
-
-        viewLifecycleOwner.collectEvent(eventFlow<GlobalEvent>()) {
-            renderGlobal(it)
-        }
-
-        viewLifecycleOwner.collectEvent(
-            eventFlowFrom<ActivityEvent>(owner = requireActivity())
-        ) {
-            renderActivity(it)
+        viewLifecycleOwner.onEvent<UploadFinishedEvent> { event ->
+            showToast("任务 ${event.taskId} 上传完成")
         }
     }
 }
 ```
 
+如果你只想通知当前 Activity 相关页面，而不是全 app，就把发送改成：
+
+```kotlin
+requireActivity().postEvent(UploadFinishedEvent(taskId = taskId))
+```
+
+接收时改成：
+
+```kotlin
+viewLifecycleOwner.onEvent<UploadFinishedEvent>(from = requireActivity()) { event ->
+    showToast("任务 ${event.taskId} 上传完成")
+}
+```
+
+## 发送 API 怎么选
+
+### 发到全局
+
+最常用：
+
+```kotlin
+postEvent(MyEvent(...))
+```
+
+需要挂起直到真正写入成功：
+
+```kotlin
+viewModelScope.launch {
+    emitEvent(MyEvent(...))
+}
+```
+
+### 发到指定 owner
+
+这两种写法等价，按你更顺手的风格选一种：
+
+```kotlin
+postEventTo(owner = requireActivity(), event = ReloadToolbarEvent)
+```
+
+```kotlin
+requireActivity().postEvent(ReloadToolbarEvent)
+```
+
+### 发到命名 channel
+
+```kotlin
+val toastChannel = eventChannel<String>("ui.toast")
+toastChannel.post("保存成功")
+toastChannel.postTo(requireActivity(), "保存成功")
+```
+
+## 接收 API 怎么选
+
+### 只想一行开始监听
+
+```kotlin
+viewLifecycleOwner.onEvent<RefreshHomeEvent> { event ->
+    render(event)
+}
+```
+
+或者监听命名 channel：
+
+```kotlin
+viewLifecycleOwner.onEvent(toastChannel) { message ->
+    showToast(message)
+}
+```
+
+### 想先拿到 Flow，再自己做组合、过滤、转换
+
+```kotlin
+viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
+    render(event)
+}
+```
+
+owner 版本：
+
+```kotlin
+viewLifecycleOwner.collectEvent(requireActivity().eventFlow<ReloadToolbarEvent>()) {
+    renderToolbar()
+}
+```
+
+命名 channel 版本：
+
+```kotlin
+viewLifecycleOwner.collectEvent(toastChannel.flow()) { message ->
+    showToast(message)
+}
+```
+
+简单理解：
+
+- `onEvent(...)`：最短、最直接，适合大多数 UI 监听
+- `eventFlow(...)`：适合你还要 `map`、`filter`、`debounce` 或组合多个流
+- `collectEvent(flow)`：把任意 `Flow` 绑定到 `LifecycleOwner` 安全收集，不只限于 FlowBus
+
+## `postEvent` 和 `emitEvent` 到底有什么区别
+
+### `postEvent(...)`
+
+特点：
+
+- 非挂起
+- 调用最轻便
+- best-effort
+- 当底层缓冲无法立刻接收时，可能发送失败
+
+适合：
+
+- UI 层一次性通知
+- 可以容忍极端情况下丢失的轻量事件
+- 你就是想快速广播一下
+
+### `emitEvent(...)`
+
+特点：
+
+- 挂起函数
+- 遵循背压
+- 会等待直到成功写入
+
+适合：
+
+- 你不希望事件悄悄丢掉
+- 发送时机比“调用手感”更重要
+- Repository / Worker / ViewModel 内的关键通知
+
+经验上可以这样选：
+
+- UI 点击、轻量提示：先用 `postEvent`
+- 关键业务链路、必须送达：用 `emitEvent`
+
+## sticky event 什么时候该用
+
+sticky event 的含义是：
+
+- 事件发出去后，会保留最近一次值
+- 后来才开始订阅的人，也能立刻拿到最近一次值
+
+适合：
+
+- “当前配置已准备好”
+- “最近一次会话信息”
+- “初始化结果”
+- “页面恢复时需要读到最近一次成功状态”
+
+不适合：
+
+- Toast
+- 导航
+- 一次性点击事件
+- 只该消费一次的瞬时动作
+
+示例：
+
+```kotlin
+data class SessionReadyEvent(val userId: Long)
+
+postStickyEvent(SessionReadyEvent(userId = 42L))
+
+viewLifecycleOwner.onEvent<SessionReadyEvent>(isSticky = true) { event ->
+    bindSession(event.userId)
+}
+```
+
+不再需要时可以清掉：
+
+```kotlin
+clearStickyEvent<SessionReadyEvent>()
+removeStickyEvent<SessionReadyEvent>()
+```
+
+简单理解：
+
+- `clearStickyEvent`：清 replay 缓存，但保留通道
+- `removeStickyEvent`：把这个 sticky 通道整体移除
+
+## 事件类型怎么设计，最容易读也最不容易出错
+
+推荐顺序：
+
+1. 单个动作，用一个明确的 `data class` / `data object`
+2. 同一业务域的多个动作，用 `sealed interface` / `sealed class`
+3. 只有在值真的非常简单而且语义明确时，才直接发 `String` / `Int`
+
+### 推荐：单个动作直接一个类型
+
+```kotlin
+data object ReloadToolbarEvent
+data class ShowToastEvent(val message: String)
+```
+
+### 推荐：同一业务域多个动作用 sealed
+
+```kotlin
+sealed interface MainUiEvent {
+    data object Refresh : MainUiEvent
+    data class ShowToast(val message: String) : MainUiEvent
+    data class OpenDetail(val id: Long) : MainUiEvent
+}
+```
+
+发送时记得指定父类型，这样这些子事件才会进入同一个事件通道：
+
+```kotlin
+postEvent<MainUiEvent>(MainUiEvent.Refresh)
+postEvent<MainUiEvent>(MainUiEvent.ShowToast(message = "success"))
+
+viewLifecycleOwner.onEvent<MainUiEvent> { event ->
+    when (event) {
+        MainUiEvent.Refresh -> refresh()
+        is MainUiEvent.ShowToast -> showToast(event.message)
+        is MainUiEvent.OpenDetail -> openDetail(event.id)
+    }
+}
+```
+
+如果你不显式写父类型，Kotlin 可能会把通道推断成具体子类型，这不是 FlowBus 的限制，而是类型推断的自然结果。
+
+## 如果你只想记最短用法，看这里
+
+### 全局事件
+
+```kotlin
+postEvent(RefreshHomeEvent(source = "login"))
+viewLifecycleOwner.onEvent<RefreshHomeEvent> { render(it) }
+```
+
+### Activity 局部事件
+
+```kotlin
+requireActivity().postEvent(ReloadToolbarEvent)
+viewLifecycleOwner.onEvent<ReloadToolbarEvent>(from = requireActivity()) { renderToolbar() }
+```
+
+### 命名 channel
+
+```kotlin
+val toastChannel = eventChannel<String>("ui.toast")
+toastChannel.post("保存成功")
+viewLifecycleOwner.onEvent(toastChannel) { showToast(it) }
+```
+
 ## 可选配置
 
-如果你希望调整底层 core 配置，请在第一次调用 `postEvent(...)`、
-`emitEvent(...)`、`eventFlow(...)` 或其他总线入口之前执行 `FlowBusAndroid.configure(...)`：
+如果你想改底层缓冲、日志、错误处理，请在第一次调用任何总线 API 之前配置：
 
 ```kotlin
 FlowBusAndroid.configure(
@@ -160,17 +471,16 @@ FlowBusAndroid.configure(
 )
 ```
 
-## flowbus-core 提供了什么
+## 什么时候再去看 `flowbus-core`
 
-`library-android` 底层依赖 `flowbus-core`，后者提供：
+当你有这些需求时，再看 core 文档就够了：
 
-- `FlowBus`
-- `EventKey`
-- sticky event 支持
-- 命名作用域与可关闭作用域
-- logger / error handler / buffer 配置
+- 需要自己管理 `FlowBus` 实例，而不是使用 Android 默认入口
+- 需要多个 bus 实例隔离
+- 需要非 Android 环境复用同一套事件模型
+- 需要 `FlowBusScope`、`EventKey`、`DefaultFlowBus` 这些更底层能力
 
-如果你需要直接使用这些更底层的 API，请查看：
+文档入口：
 
 - 本地文档：[`../flowbus-core/README.md`](../flowbus-core/README.md)
 - GitHub 地址：[flowbus-core README](https://github.com/logan0817/FlowBus/blob/master/flowbus-core/README.md)
@@ -180,4 +490,3 @@ FlowBusAndroid.configure(
 - 仓库主页：[FlowBus](https://github.com/logan0817/FlowBus)
 - Core 模块：[flowbus-core](https://github.com/logan0817/FlowBus/tree/master/flowbus-core)
 - Demo 模块：[app](https://github.com/logan0817/FlowBus/tree/master/app)
-
