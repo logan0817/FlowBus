@@ -1,0 +1,3 @@
+[submodule "flowbus-core"]
+	path = flowbus-core
+	url = git@github.com:logan0817/flowbus-core.git

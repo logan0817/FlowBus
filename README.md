@@ -58,7 +58,7 @@ implementation("io.github.logan0817:flowbus:<latest-version>")
 文档入口：
 
 - 本地文档：[`library-android/README.md`](./library-android/README.md)
-- GitHub 地址：[library-android README](https://github.com/logan0817/FlowBus/blob/master/library-android/README.md)
+- GitHub 地址：[library-android README](https://github.com/logan0817/FlowBus/blob/main/library-android/README.md)
 
 ### 如果你是纯 Kotlin / Coroutines / 非 Android 场景
 
@@ -79,7 +79,13 @@ implementation("io.github.logan0817:flowbus-core:<latest-version>")
 文档入口：
 
 - 本地文档：[`flowbus-core/README.md`](./flowbus-core/README.md)
-- GitHub 地址：[flowbus-core README](https://github.com/logan0817/FlowBus/blob/master/flowbus-core/README.md)
+- GitHub 地址：[flowbus-core README](https://github.com/logan0817/flowbus-core/blob/main/README.md)
+
+## 仓库结构
+
+- 主仓库 `FlowBus` 继续维护 Android 模块、Demo 和整体集成。
+- `flowbus-core` 现在作为 git submodule 挂载在当前目录下，同时拥有自己的独立仓库。
+- 首次拉取主仓库时请使用 `git clone --recurse-submodules ...`，或在已有工作区执行 `git submodule update --init --recursive`。
 
 ## 第一次接触，建议这样开始
 

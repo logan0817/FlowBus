@@ -68,3 +68,19 @@ sticky event 适合“后来订阅的人也应该拿到最近一次值”的场�
 
 - `clearSticky*`：只清 replay 缓存，保留 Flow
 - `removeSticky*`：连 sticky Flow 一起移除
+
+## 7. 拉主仓库后 `flowbus-core` 目录是空的
+
+`flowbus-core` 现在通过 git submodule 管理。
+
+如果你是第一次拉取主仓库，建议直接使用：
+
+```bash
+git clone --recurse-submodules <repo-url>
+```
+
+如果你已经有本地仓库，只需要补拉子模块：
+
+```bash
+git submodule update --init --recursive
+```

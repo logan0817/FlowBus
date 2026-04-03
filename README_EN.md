@@ -58,7 +58,7 @@ Use it when you need:
 Docs:
 
 - local doc: [`library-android/README_EN.md`](./library-android/README_EN.md)
-- GitHub URL: [library-android README](https://github.com/logan0817/FlowBus/blob/master/library-android/README_EN.md)
+- GitHub URL: [library-android README](https://github.com/logan0817/FlowBus/blob/main/library-android/README_EN.md)
 
 ### If you need pure Kotlin / Coroutines / non-Android usage
 
@@ -79,7 +79,13 @@ Use it when you need:
 Docs:
 
 - local doc: [`flowbus-core/README_EN.md`](./flowbus-core/README_EN.md)
-- GitHub URL: [flowbus-core README](https://github.com/logan0817/FlowBus/blob/master/flowbus-core/README_EN.md)
+- GitHub URL: [flowbus-core README](https://github.com/logan0817/flowbus-core/blob/main/README_EN.md)
+
+## Repository Layout
+
+- The `FlowBus` repository continues to own the Android module, demo app, and integration-level development.
+- `flowbus-core` now lives in its own repository and is mounted here as a git submodule.
+- When cloning the main repository for the first time, use `git clone --recurse-submodules ...`, or run `git submodule update --init --recursive` in an existing checkout.
 
 ## Recommended onboarding path
 
