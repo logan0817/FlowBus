@@ -42,7 +42,7 @@ object FlowBusAndroid {
     private fun builtInFlowBusConfig(): FlowBusConfig {
         return FlowBusConfig(
             logger = AndroidFlowBusLogger,
-            errorHandler = FlowBusErrorHandler.Ignore
+            errorHandler = FlowBusErrorHandler.Rethrow
         )
     }
 }

@@ -5,8 +5,11 @@
     <string name="sendFragmentEvent">Send Fragment event</string>
     <string name="runNonUiDemo">Run ViewModel / Repository / Worker demo</string>
     <string name="jumpNextPage1">Open TestActivity</string>
-    <string name="jumpNextPage2">Open TestFragmentActivity</string>
-    <string name="jumpNextPage3">Open LoginActivity</string>
+    <string name="jumpNextPage2">Open Fragment scope demo</string>
+    <string name="jumpNextPage3">Open Login owner demo</string>
+    <string name="sendChannelEvent">Send eventChannel demo</string>
+    <string name="activity_scope_message">Activity scope event from host</string>
+    <string name="activity_channel_message">eventChannel message from host</string>
     <string name="sendCustomEvent">Send sticky Activity event</string>
     <string name="sendCustomEventDelay">Send delayed sticky Activity event</string>
     <string name="sendManyEvent">Send 200 sticky Activity events</string>

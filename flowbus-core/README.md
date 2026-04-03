@@ -37,7 +37,7 @@
 2. 需要依赖注入、多实例隔离或明确生命周期，就自己创建 `FlowBus()`。
 3. 默认按事件类型分发；同一类型需要多个通道时，用 `eventChannel<T>("name")` 或显式 `eventName`。
 4. `scoped(...)` 是共享作用域视图，`openScope(...)` 是带显式生命周期的 scope 句柄。
-5. `post*` 是立即尝试发送，`emit*` / `awaitSend*` 是挂起直到成功写入。
+5. `post*` / `send()` 是立即尝试发送并返回 `Boolean`，`emit*` / `awaitSend*` 是挂起直到成功写入。
 
 ## 安装
 
@@ -270,6 +270,19 @@ scope.launch {
 val channel = eventChannel<String>("ui.toast")
 val key = channel.asEventKey()
 ```
+
+## API 选择矩阵
+
+| 需求 | 推荐 API |
+| --- | --- |
+| 默认单例 | `DefaultFlowBus` |
+| 多实例隔离 | `FlowBus()` |
+| 想最短发送 | `post(...)` / `send()` |
+| 需要返回是否接收 | `post(...)` / `send()` 的 `Boolean` |
+| 保证写入成功 | `emit(...)` / `awaitSend()` |
+| 命名通道 | `eventChannel<T>("name")` |
+| 命名 scope 视图 | `scoped(...)` |
+| 显式生命周期 scope | `openScope(...)` |
 
 ## 发送 API 怎么选
 

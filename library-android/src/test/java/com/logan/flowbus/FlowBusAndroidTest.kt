@@ -32,6 +32,13 @@ class FlowBusAndroidTest {
     }
 
     @Test
+    fun `android built-in config rethrows subscriber exceptions by default`() {
+        val config = flowBusConfigOf(FlowEventBus())
+
+        assertTrue(config.errorHandler === FlowBusErrorHandler.Rethrow)
+    }
+
+    @Test
     fun `configure applies custom config to new FlowEventBus`() {
         val config = FlowBusConfig(
             normalBufferCapacity = 8,
@@ -124,6 +131,43 @@ class FlowBusAndroidTest {
         assertEquals(listOf(1, 2), received)
         firstEmitJob.cancelAndJoin()
         secondEmitJob.cancelAndJoin()
+        collectorJob.cancelAndJoin()
+        owner.viewModelStore.clear()
+    }
+
+    @Test
+    fun `tryPostEvent returns false when an event is dropped`() = runBlocking {
+        FlowBusAndroid.configure(
+            FlowBusConfig(
+                normalBufferCapacity = 0,
+                overflowPolicy = BufferOverflow.SUSPEND,
+                logger = FlowBusLogger.None,
+                errorHandler = FlowBusErrorHandler.Rethrow
+            )
+        )
+
+        val owner = TestOwner()
+        val flow = eventFlowFrom<Int>(owner = owner) as MutableSharedFlow<Int>
+        val firstHandled = CompletableDeferred<Unit>()
+        val allowFirstToFinish = CompletableDeferred<Unit>()
+
+        val collectorJob = launch {
+            flow.collect { value ->
+                if (value == 1 && !firstHandled.isCompleted) {
+                    firstHandled.complete(Unit)
+                    allowFirstToFinish.await()
+                }
+            }
+        }
+
+        flow.subscriptionCount.first { it > 0 }
+        val firstEmitJob = launch { emitEventTo(owner = owner, event = 1) }
+        firstHandled.await()
+
+        assertFalse(tryPostEventTo(owner = owner, event = 2))
+
+        allowFirstToFinish.complete(Unit)
+        firstEmitJob.cancelAndJoin()
         collectorJob.cancelAndJoin()
         owner.viewModelStore.clear()
     }

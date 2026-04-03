@@ -1,6 +1,5 @@
 package com.logan.flowbus
 
-import androidx.annotation.MainThread
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModelProvider
@@ -21,7 +20,6 @@ import kotlinx.coroutines.launch
  * @param eventName 事件通道名；默认使用事件类型全名。
  * @param onReceived 收到事件后的回调。
  */
-@MainThread
 inline fun <reified T : Any> LifecycleOwner.subscribeEvent(
     dispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
     minLifecycleState: Lifecycle.State = Lifecycle.State.STARTED,
@@ -44,7 +42,6 @@ inline fun <reified T : Any> LifecycleOwner.subscribeEvent(
 /**
  * 订阅全局总线中指定 [channel] 的事件，并由当前 [LifecycleOwner] 管理订阅生命周期。
  */
-@MainThread
 fun <T : Any> LifecycleOwner.subscribeEvent(
     channel: EventChannel<T>,
     dispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
@@ -73,7 +70,6 @@ fun <T : Any> LifecycleOwner.subscribeEvent(
  *
  * [owner] 不局限于 Activity / Fragment，只要实现了 `ViewModelStoreOwner` 即可。
  */
-@MainThread
 inline fun <reified T : Any> LifecycleOwner.subscribeEvent(
     owner: ViewModelStoreOwner,
     dispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
@@ -97,7 +93,6 @@ inline fun <reified T : Any> LifecycleOwner.subscribeEvent(
 /**
  * 订阅指定 [owner] 局部总线中命名 [channel] 的事件，并由当前 [LifecycleOwner] 管理订阅生命周期。
  */
-@MainThread
 fun <T : Any> LifecycleOwner.subscribeEvent(
     owner: ViewModelStoreOwner,
     channel: EventChannel<T>,
@@ -124,7 +119,6 @@ fun <T : Any> LifecycleOwner.subscribeEvent(
  * 订阅生命周期完全由当前协程作用域管理，适用于 ViewModel、Repository、Worker
  * 以及其他非 UI 场景。
  */
-@MainThread
 inline fun <reified T : Any> CoroutineScope.subscribeEvent(
     isSticky: Boolean = false,
     eventName: String = defaultEventName<T>(),
@@ -142,7 +136,6 @@ inline fun <reified T : Any> CoroutineScope.subscribeEvent(
 /**
  * 在当前 [CoroutineScope] 中订阅全局总线里命名 [channel] 的事件。
  */
-@MainThread
 fun <T : Any> CoroutineScope.subscribeEvent(
     channel: EventChannel<T>,
     isSticky: Boolean = false,
@@ -163,7 +156,6 @@ fun <T : Any> CoroutineScope.subscribeEvent(
  * - 当前 [CoroutineScope] 决定“订阅活多久”
  * - 参数 [owner] 决定“从哪个总线收”
  */
-@MainThread
 inline fun <reified T : Any> CoroutineScope.subscribeEventFrom(
     owner: ViewModelStoreOwner,
     isSticky: Boolean = false,
@@ -182,7 +174,6 @@ inline fun <reified T : Any> CoroutineScope.subscribeEventFrom(
 /**
  * 在当前 [CoroutineScope] 中订阅指定 [owner] 局部总线里命名 [channel] 的事件。
  */
-@MainThread
 fun <T : Any> CoroutineScope.subscribeEventFrom(
     owner: ViewModelStoreOwner,
     channel: EventChannel<T>,

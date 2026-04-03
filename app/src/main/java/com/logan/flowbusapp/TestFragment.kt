@@ -11,13 +11,14 @@ import androidx.lifecycle.Lifecycle
 import com.logan.flowbus.collectEvent
 import com.logan.flowbus.eventFlow
 import com.logan.flowbus.eventFlowFrom
+import com.logan.flowbus.onEvent
 import com.logan.flowbus.postEvent
 import com.logan.flowbus.postEventTo
 import com.logan.flowbus.postStickyEvent
 import com.logan.flowbus.postStickyEventTo
-import com.logan.flowbus.removeStickyEvent
 import com.logan.flowbus.stickyEventFlow
 import com.logan.flowbus.stickyEventFlowFrom
+import com.logan.flowbus.tryPostTo
 import com.logan.flowbusapp.databinding.FragmentTestBinding
 import com.logan.flowbusapp.event.ActivityEvent
 import com.logan.flowbusapp.event.FragmentEvent
@@ -30,7 +31,7 @@ import java.util.Locale
 class TestFragment : Fragment() {
 
     companion object {
-        val TAG = "TestFragmentTAG"
+        private const val TAG = "TestFragmentTAG"
     }
 
     private var _binding: FragmentTestBinding? = null
@@ -60,16 +61,17 @@ class TestFragment : Fragment() {
 
     private fun setListeners() {
         binding.btnSendGlobalEvent.setOnClickListener {
-            postEvent(GlobalEvent("Refresh app"))
+            postEvent(GlobalEvent("Refresh app from fragment"))
             postStickyEvent(GlobalEvent("Latest global state"))
         }
         binding.btnSendActivityEvent.setOnClickListener {
-            postEventTo(owner = requireActivity(), event = ActivityEvent("Refresh activity widgets"))
+            postEventTo(owner = requireActivity(), event = ActivityEvent("Refresh activity widgets from fragment"))
             postStickyEventTo(owner = requireActivity(), event = ActivityEvent("Latest activity widgets"))
         }
         binding.btnSendFragmentEvent.setOnClickListener {
             postEventTo(owner = this@TestFragment, event = FragmentEvent("Refresh fragment widgets"))
             postStickyEventTo(owner = this@TestFragment, event = FragmentEvent("Latest fragment state"))
+            activityToastChannel.tryPostTo(requireActivity(), "Fragment sent eventChannel message")
         }
     }
 
@@ -77,9 +79,9 @@ class TestFragment : Fragment() {
 
     @SuppressLint("SetTextI18n")
     private fun subscribeGlobalEvents() {
-        viewLifecycleOwner.collectEvent(eventFlow<GlobalEvent>()) {
+        viewLifecycleOwner.onEvent<GlobalEvent> {
             Log.d(TAG, "TestFragment received GlobalEvent 1:${it.message}")
-            binding.tvGlobalEvent01.text = "${getCurrentTime()}-onReceived0-1:${it.message} "
+            binding.tvGlobalEvent01.text = "${getCurrentTime()}-onEvent:${it.message}"
         }
         viewLifecycleOwner.collectEvent(
             flow = eventFlow<GlobalEvent>(),
@@ -112,6 +114,10 @@ class TestFragment : Fragment() {
         viewLifecycleOwner.collectEvent(stickyEventFlowFrom<ActivityEvent>(owner = requireActivity())) {
             Log.d(TAG, "received ActivityEvent3 isSticky:${it.message}")
             binding.tvActivityEvent3.text = "${getCurrentTime()}-onReceived3 isSticky:${it.message} "
+        }
+        viewLifecycleOwner.onEvent(from = requireActivity(), channel = activityToastChannel) { message ->
+            Log.d(TAG, "received activity channel:$message")
+            binding.tvActivityEvent3.text = "${getCurrentTime()}-channel:${message}"
         }
 
         viewLifecycleOwner.collectEvent(eventFlowFrom<FragmentEvent>(owner = this@TestFragment)) {

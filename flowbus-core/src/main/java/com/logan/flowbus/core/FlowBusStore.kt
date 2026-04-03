@@ -11,9 +11,9 @@ import kotlin.reflect.KClass
 internal class FlowBusStore(
     private val config: FlowBusConfig
 ) {
-    private val normalEventFlows: MutableMap<String, MutableSharedFlow<Any>> = ConcurrentHashMap()
-    private val stickyEventFlows: MutableMap<String, MutableSharedFlow<Any>> = ConcurrentHashMap()
-    private val keyTypes: MutableMap<String, KClass<out Any>> = ConcurrentHashMap()
+    private val normalEventFlows = ConcurrentHashMap<String, MutableSharedFlow<Any>>()
+    private val stickyEventFlows = ConcurrentHashMap<String, MutableSharedFlow<Any>>()
+    private val keyTypes = ConcurrentHashMap<String, KClass<out Any>>()
 
     fun <T : Any> post(key: EventKey<T>, value: T, isSticky: Boolean): Boolean {
         registerKeyType(key)
@@ -66,7 +66,7 @@ internal class FlowBusStore(
 
     private fun getEventFlow(eventName: String, isSticky: Boolean): MutableSharedFlow<Any> {
         val targetMap = if (isSticky) stickyEventFlows else normalEventFlows
-        return targetMap.getOrPut(eventName) {
+        return targetMap.computeIfAbsent(eventName) {
             MutableSharedFlow(
                 replay = if (isSticky) config.stickyReplay else 0,
                 extraBufferCapacity = if (isSticky) config.stickyExtraBufferCapacity else config.normalBufferCapacity,

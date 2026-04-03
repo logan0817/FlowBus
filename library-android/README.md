@@ -40,8 +40,8 @@ Android 项目里最常见的使用方式是：
 1. `postEvent(...)` / `emitEvent(...)` 发的是全局事件，整个 app 都能订阅。
 2. `postEventTo(owner, ...)` / `owner.postEvent(...)` 发的是局部事件，只在这个 `owner` 对应的总线里流动。
 3. 默认按“事件类型”分发；如果同一类型要拆成多个业务通道，就用 `eventChannel<T>("name")`。
-4. `post*` 是立即尝试发送，`emit*` 是挂起直到成功写入。
-5. `collectEvent(flow)` 适合已经拿到 `Flow` 的情况，`onEvent(...)` 适合想直接一行开始监听。
+4. `post*` 是立即尝试发送，`tryPost*` 会额外返回是否已被当前总线接收，`emit*` 是挂起直到成功写入。
+5. `onEvent(...)` 是推荐的 UI 最短路径；`collectEvent(flow)` 更适合你已经拿到了 `Flow`。
 
 ## 3 分钟上手
 
@@ -225,6 +225,18 @@ viewLifecycleOwner.onEvent<UploadFinishedEvent>(from = requireActivity()) { even
 }
 ```
 
+## API 选择矩阵
+
+| 需求 | 推荐 API |
+| --- | --- |
+| 全局发送 | `postEvent(...)` |
+| 需要返回是否接收 | `tryPostEvent(...)` |
+| 发到 owner 作用域 | `postEventTo(owner, ...)` |
+| 命名通道 | `eventChannel<T>("name")` + `channel.post(...)` |
+| 最短监听 | `onEvent(...)` |
+| 先拿 Flow 再组合 | `eventFlow(...)` + `collectEvent(...)` |
+| 保证写入成功 | `emitEvent(...)` |
+
 ## 发送 API 怎么选
 
 ### 发到全局
@@ -233,6 +245,12 @@ viewLifecycleOwner.onEvent<UploadFinishedEvent>(from = requireActivity()) { even
 
 ```kotlin
 postEvent(MyEvent(...))
+```
+
+如果你想知道这次 best-effort 发送是否被当前总线接收：
+
+```kotlin
+val accepted = tryPostEvent(MyEvent(...))
 ```
 
 需要挂起直到真正写入成功：

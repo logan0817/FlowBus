@@ -15,6 +15,7 @@ import androidx.lifecycle.lifecycleScope
 import com.logan.flowbus.collectEvent
 import com.logan.flowbus.eventFlow
 import com.logan.flowbus.eventFlowFrom
+import com.logan.flowbus.onEvent
 import com.logan.flowbus.postEvent
 import com.logan.flowbus.postEventTo
 import com.logan.flowbus.core.DefaultFlowBus
@@ -34,7 +35,7 @@ import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
     companion object {
-        val TAG = "MainActivityTAG"
+        private const val TAG = "MainActivityTAG"
     }
 
     private val demoViewModel by viewModels<MainDemoViewModel>()
@@ -67,8 +68,8 @@ class MainActivity : AppCompatActivity() {
     @SuppressLint("SetTextI18n")
     private fun setListeners() {
         binding.btnSendGlobalEvent.setOnClickListener {
+            // 首页优先展示推荐路径：类型化事件 + onEvent/collectEvent。
             postEvent(GlobalEvent("Refresh app"))
-            postEvent("Raw String event (demo only)")
         }
         binding.btnSendActivityEvent.setOnClickListener {
             postEventTo(owner = this, event = ActivityEvent("Refresh activity widgets"))
@@ -89,19 +90,17 @@ class MainActivity : AppCompatActivity() {
 
     @SuppressLint("SetTextI18n")
     private fun subscribeGlobalEvents() {
-        collectEvent(eventFlow<GlobalEvent>()) {
-            Log.d(TAG, "onReceived0-1:${it.message}")
-            binding.tvGlobalEvent01.text = "${getCurrentTime()}-onReceived0-1:${it.message} "
-        }
-        lifecycleScope.launch {
-            eventFlow<String>().collect {
-                Log.d(TAG, "onReceived0-2:$it")
-                binding.tvGlobalEvent02.text = "${getCurrentTime()}-onReceived0-2:$it"
-            }
+        onEvent<GlobalEvent> {
+            Log.d(TAG, "onEvent global-1:${it.message}")
+            binding.tvGlobalEvent01.text = "${getCurrentTime()}-onEvent:${it.message}"
         }
         collectEvent(eventFlow<GlobalEvent>()) {
-            Log.d(TAG, "onReceived0-3:${it.message}")
-            binding.tvGlobalEvent03.text = "${getCurrentTime()}-onReceived0-3:${it.message}"
+            Log.d(TAG, "collectEvent global-2:${it.message}")
+            binding.tvGlobalEvent02.text = "${getCurrentTime()}-collectEvent:${it.message}"
+        }
+        collectEvent(eventFlow<GlobalEvent>(), minLifecycleState = Lifecycle.State.RESUMED) {
+            Log.d(TAG, "collectEvent global-3 resumed:${it.message}")
+            binding.tvGlobalEvent03.text = "${getCurrentTime()}-RESUMED:${it.message}"
         }
     }
 

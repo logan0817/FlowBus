@@ -22,7 +22,7 @@ class FlowBus(
     }
 
     private val rootStore = FlowBusStore(config)
-    private val scopedStores: MutableMap<String, FlowBusStore> = ConcurrentHashMap()
+    private val scopedStores = ConcurrentHashMap<String, FlowBusStore>()
 
     /**
      * 尝试向根总线发送普通事件。
@@ -182,6 +182,6 @@ class FlowBus(
 
     private fun getScopedStore(scopeName: String): FlowBusStore {
         require(scopeName.isNotBlank()) { "scopeName must not be blank" }
-        return scopedStores.getOrPut(scopeName) { FlowBusStore(config) }
+        return scopedStores.computeIfAbsent(scopeName) { FlowBusStore(config) }
     }
 }

@@ -8,6 +8,7 @@ import com.logan.flowbus.core.defaultEventName
  * 向全局总线发送事件。
  *
  * 这是 best-effort 发送；当底层缓冲已满时，事件可能不会被接收。
+ * 如果你需要明确知道这次发送是否被当前总线接收，请使用 [tryPostEvent]；
  * 如果你需要遵循背压策略并保证发送成功，请使用 [emitEvent]。
  *
  * @param event 事件数据。
@@ -19,7 +20,21 @@ inline fun <reified T : Any> postEvent(
     delayMillis: Long = 0L,
     eventName: String = defaultEventName<T>()
 ) {
-    GlobalViewModelStore.get(FlowEventBus::class.java)
+    tryPostEvent(event = event, delayMillis = delayMillis, eventName = eventName)
+}
+
+/**
+ * 尝试向全局总线发送事件，并返回当前调用是否已被总线接收。
+ *
+ * - 返回 `true`：事件已被接收；若使用延迟发送，则表示发送任务已成功安排
+ * - 返回 `false`：当前缓冲已满，事件被丢弃
+ */
+inline fun <reified T : Any> tryPostEvent(
+    event: T,
+    delayMillis: Long = 0L,
+    eventName: String = defaultEventName<T>()
+): Boolean {
+    return GlobalViewModelStore.get(FlowEventBus::class.java)
         .post(eventName = eventName, value = event, valueType = T::class, delayMillis = delayMillis)
 }
 
@@ -27,6 +42,7 @@ inline fun <reified T : Any> postEvent(
  * 向指定 [owner] 对应的局部总线发送事件。
  *
  * 这是 best-effort 发送；当底层缓冲已满时，事件可能不会被接收。
+ * 如果你需要明确知道这次发送是否被当前总线接收，请使用 [tryPostEventTo]；
  * 如果你需要遵循背压策略并保证发送成功，请使用 [emitEventTo]。
  *
  * [owner] 用来决定“往哪个总线发”，它不限制具体类型，只要实现了
@@ -43,7 +59,19 @@ inline fun <reified T : Any> postEventTo(
     delayMillis: Long = 0L,
     eventName: String = defaultEventName<T>()
 ) {
-    ViewModelProvider(owner = owner).get(FlowEventBus::class.java)
+    tryPostEventTo(owner = owner, event = event, delayMillis = delayMillis, eventName = eventName)
+}
+
+/**
+ * 尝试向指定 [owner] 对应的局部总线发送事件，并返回当前调用是否已被总线接收。
+ */
+inline fun <reified T : Any> tryPostEventTo(
+    owner: ViewModelStoreOwner,
+    event: T,
+    delayMillis: Long = 0L,
+    eventName: String = defaultEventName<T>()
+): Boolean {
+    return ViewModelProvider(owner = owner).get(FlowEventBus::class.java)
         .post(eventName = eventName, value = event, valueType = T::class, delayMillis = delayMillis)
 }
 
@@ -76,6 +104,7 @@ suspend inline fun <reified T : Any> emitEventTo(
  * 向全局总线发送粘性事件。
  *
  * 这是 best-effort 发送；当底层缓冲已满时，事件可能不会被接收。
+ * 如果你需要明确知道这次发送是否被当前总线接收，请使用 [tryPostStickyEvent]；
  * 如果你需要遵循背压策略并保证发送成功，请使用 [emitStickyEvent]。
  */
 inline fun <reified T : Any> postStickyEvent(
@@ -83,7 +112,18 @@ inline fun <reified T : Any> postStickyEvent(
     delayMillis: Long = 0L,
     eventName: String = defaultEventName<T>()
 ) {
-    GlobalViewModelStore.get(FlowEventBus::class.java)
+    tryPostStickyEvent(event = event, delayMillis = delayMillis, eventName = eventName)
+}
+
+/**
+ * 尝试向全局总线发送粘性事件，并返回当前调用是否已被总线接收。
+ */
+inline fun <reified T : Any> tryPostStickyEvent(
+    event: T,
+    delayMillis: Long = 0L,
+    eventName: String = defaultEventName<T>()
+): Boolean {
+    return GlobalViewModelStore.get(FlowEventBus::class.java)
         .post(
             eventName = eventName,
             value = event,
@@ -102,7 +142,19 @@ inline fun <reified T : Any> postStickyEventTo(
     delayMillis: Long = 0L,
     eventName: String = defaultEventName<T>()
 ) {
-    ViewModelProvider(owner = owner).get(FlowEventBus::class.java)
+    tryPostStickyEventTo(owner = owner, event = event, delayMillis = delayMillis, eventName = eventName)
+}
+
+/**
+ * 尝试向指定 [owner] 对应的局部总线发送粘性事件，并返回当前调用是否已被总线接收。
+ */
+inline fun <reified T : Any> tryPostStickyEventTo(
+    owner: ViewModelStoreOwner,
+    event: T,
+    delayMillis: Long = 0L,
+    eventName: String = defaultEventName<T>()
+): Boolean {
+    return ViewModelProvider(owner = owner).get(FlowEventBus::class.java)
         .post(
             eventName = eventName,
             value = event,

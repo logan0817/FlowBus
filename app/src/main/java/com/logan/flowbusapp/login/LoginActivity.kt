@@ -4,13 +4,11 @@ import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
-import com.logan.flowbusapp.login.event.LoginComponent
+import com.logan.flowbusapp.R
 import com.logan.flowbusapp.databinding.ActivityLoginBinding
+import com.logan.flowbusapp.login.event.LoginComponent
 
 class LoginActivity : AppCompatActivity() {
-    companion object {
-        val TAG = "TestActivityTAG"
-    }
 
     private var _binding: ActivityLoginBinding? = null
     private val binding get() = _binding!!
@@ -39,14 +37,24 @@ class LoginActivity : AppCompatActivity() {
     }
 
     fun login() {
-        val userName = binding.userName.text.toString()
-        val password = binding.password.text.toString()
+        val userName = binding.userName.text.toString().trim()
+        val password = binding.password.text.toString().trim()
+        if (userName.isBlank() || password.isBlank()) {
+            printLog(getString(R.string.login_failed))
+            hideLoading()
+            return
+        }
         loginComponent.login(this, userName, password)
     }
 
     fun registerAndLogin() {
-        val userName = binding.userName.text.toString()
-        val password = binding.password.text.toString()
+        val userName = binding.userName.text.toString().trim()
+        val password = binding.password.text.toString().trim()
+        if (userName.isBlank() || password.isBlank()) {
+            printLog(getString(R.string.register_failed))
+            hideLoading()
+            return
+        }
         loginComponent.registerAndLogin(this, userName, password)
     }
 

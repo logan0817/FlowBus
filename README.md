@@ -85,9 +85,10 @@ implementation("io.github.logan0817:flowbus-core:<latest-version>")
 
 1. Android 用户先看 [`library-android/README.md`](./library-android/README.md)。
 2. 先只记住最短路径：发送 `postEvent(...)`，接收 `onEvent<T> { ... }`。
-3. 需要限制在某个 Activity / Fragment / NavBackStackEntry 作用域内，再看 owner 版本。
-4. 同一类型需要多个通道时，再引入 `eventChannel<T>("name")`。
-5. 只有当你需要多实例、显式 scope 生命周期或非 Android 使用时，再继续下沉到 `flowbus-core`。
+3. 如果你需要感知 best-effort 发送是否成功，使用 `tryPostEvent(...)` / `tryPostEventTo(...)`。
+4. 需要限制在某个 Activity / Fragment / NavBackStackEntry 作用域内，再看 owner 版本。
+5. 同一类型需要多个通道时，再引入 `eventChannel<T>("name")`。
+6. 只有当你需要多实例、显式 scope 生命周期或非 Android 使用时，再继续下沉到 `flowbus-core`。
 
 ## 3 分钟上手
 
@@ -195,22 +196,22 @@ scope.launch {
 
 ## API 选择速记
 
-### 发到哪里
-
-- 发到全局：`postEvent(...)` / `emitEvent(...)`
-- 发到某个 owner：`postEventTo(owner, ...)` 或 `owner.postEvent(...)`
-- 发到命名 channel：`eventChannel<T>("name")` + `channel.post(...)`
-- 发到 core scope：`scope.post(...)` / `scope.emit(...)`
-
-### 怎么接收
-
-- 想最短一行监听：`onEvent(...)`
-- 想先拿到 `Flow` 再自己组合：`eventFlow<T>()` / `owner.eventFlow<T>()`
-- 想让任意 `Flow` 跟随生命周期安全收集：`collectEvent(flow) { ... }`
+| 需求 | 推荐 API |
+| --- | --- |
+| 全局发送 | `postEvent(...)` |
+| 想知道 best-effort 是否成功 | `tryPostEvent(...)` |
+| 必须保证写入成功 | `emitEvent(...)` |
+| 发送到某个 owner | `postEventTo(owner, ...)` / `owner.postEvent(...)` |
+| 命名通道 | `eventChannel<T>("name")` + `channel.post(...)` |
+| 最短一行监听 | `onEvent(...)` |
+| 先拿到 `Flow` 自己组合 | `eventFlow<T>()` / `owner.eventFlow<T>()` |
+| 生命周期安全收集任意 `Flow` | `collectEvent(flow) { ... }` |
+| 非 Android / 多实例 / scope 生命周期 | `flowbus-core` |
 
 ### `post` 和 `emit` 怎么选
 
 - `post*`：非挂起，best-effort，写法最轻
+- `tryPost*`：非挂起，但会返回当前调用是否已被总线接收
 - `emit*`：挂起直到成功写入，适合更关键的事件
 
 ### sticky event 什么时候用
@@ -269,7 +270,11 @@ viewLifecycleOwner.onEvent<MainUiEvent> { event ->
 
 <img src="GIF.gif" width="350" />
 
-Demo 源码位于 [`app`](./app) 模块，可直接运行或自行打包体验。
+Demo 源码位于 [`app`](./app) 模块，可直接运行。建议按这个顺序看：
+
+1. `MainActivity`：全局事件、owner 事件、非 UI demo 入口
+2. `TestFragmentActivity`：演示 Activity 作用域事件、`eventChannel`，以及 Activity / Fragment 在同一 owner 作用域内共享接收
+3. `LoginActivity`：owner 局部总线示例
 
 ## License
 

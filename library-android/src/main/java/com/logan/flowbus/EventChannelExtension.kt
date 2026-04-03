@@ -7,7 +7,14 @@ import androidx.lifecycle.ViewModelStoreOwner
  * 向 Android 全局总线发送普通事件。
  */
 fun <T : Any> EventChannel<T>.post(value: T, delayMillis: Long = 0L) {
-    GlobalViewModelStore.get(FlowEventBus::class.java)
+    tryPost(value = value, delayMillis = delayMillis)
+}
+
+/**
+ * 尝试向 Android 全局总线发送普通事件，并返回当前调用是否已被总线接收。
+ */
+fun <T : Any> EventChannel<T>.tryPost(value: T, delayMillis: Long = 0L): Boolean {
+    return GlobalViewModelStore.get(FlowEventBus::class.java)
         .post(eventName = name, value = value, valueType = valueType, delayMillis = delayMillis)
 }
 
@@ -23,7 +30,14 @@ suspend fun <T : Any> EventChannel<T>.emit(value: T, delayMillis: Long = 0L) {
  * 向 Android 全局总线发送粘性事件。
  */
 fun <T : Any> EventChannel<T>.postSticky(value: T, delayMillis: Long = 0L) {
-    GlobalViewModelStore.get(FlowEventBus::class.java)
+    tryPostSticky(value = value, delayMillis = delayMillis)
+}
+
+/**
+ * 尝试向 Android 全局总线发送粘性事件，并返回当前调用是否已被总线接收。
+ */
+fun <T : Any> EventChannel<T>.tryPostSticky(value: T, delayMillis: Long = 0L): Boolean {
+    return GlobalViewModelStore.get(FlowEventBus::class.java)
         .post(
             eventName = name,
             value = value,
@@ -83,7 +97,18 @@ fun <T : Any> EventChannel<T>.postTo(
     value: T,
     delayMillis: Long = 0L
 ) {
-    ViewModelProvider(owner).get(FlowEventBus::class.java)
+    tryPostTo(owner = owner, value = value, delayMillis = delayMillis)
+}
+
+/**
+ * 尝试向指定 [owner] 对应的局部总线发送普通事件，并返回当前调用是否已被总线接收。
+ */
+fun <T : Any> EventChannel<T>.tryPostTo(
+    owner: ViewModelStoreOwner,
+    value: T,
+    delayMillis: Long = 0L
+): Boolean {
+    return ViewModelProvider(owner).get(FlowEventBus::class.java)
         .post(eventName = name, value = value, valueType = valueType, delayMillis = delayMillis)
 }
 
@@ -107,7 +132,18 @@ fun <T : Any> EventChannel<T>.postStickyTo(
     value: T,
     delayMillis: Long = 0L
 ) {
-    ViewModelProvider(owner).get(FlowEventBus::class.java)
+    tryPostStickyTo(owner = owner, value = value, delayMillis = delayMillis)
+}
+
+/**
+ * 尝试向指定 [owner] 对应的局部总线发送粘性事件，并返回当前调用是否已被总线接收。
+ */
+fun <T : Any> EventChannel<T>.tryPostStickyTo(
+    owner: ViewModelStoreOwner,
+    value: T,
+    delayMillis: Long = 0L
+): Boolean {
+    return ViewModelProvider(owner).get(FlowEventBus::class.java)
         .post(
             eventName = name,
             value = value,

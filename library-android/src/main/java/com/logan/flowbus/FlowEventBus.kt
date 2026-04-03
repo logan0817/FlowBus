@@ -131,8 +131,12 @@ class FlowEventBus : ViewModel() {
     /**
      * 向当前总线发送事件。
      *
-     * 这是 best-effort 发送：如果底层缓冲无法立即接收，当前调用不会挂起等待，
-     * 而是记录一条 warning。需要严格遵循背压时请改用 [emit]。
+     * 这是 best-effort 发送：如果底层缓冲无法立即接收，当前调用不会挂起等待。
+     * 返回 `true` 表示事件已被当前总线接收；返回 `false` 表示事件被丢弃并记录 warning。
+     * 需要严格遵循背压时请改用 [emit]。
+     *
+     * 当 [delayMillis] 大于 0 时，事件会通过异步任务延迟发送。此时当前调用只表示“已成功安排发送任务”，
+     * 因而会直接返回 `true`；真正的发送结果会在延迟结束后由日志反映。
      *
      * @param eventName 事件名。
      * @param value 事件数据。
@@ -146,17 +150,17 @@ class FlowEventBus : ViewModel() {
         valueType: KClass<T>,
         isSticky: Boolean = false,
         delayMillis: Long = 0
-    ) {
+    ): Boolean {
         val eventKey = eventKey(name = eventName, valueType = valueType)
         if (delayMillis > 0) {
             viewModelScope.launch {
                 delay(delayMillis)
                 postOrWarn(eventKey = eventKey, value = value, isSticky = isSticky)
             }
-            return
+            return true
         }
 
-        postOrWarn(eventKey = eventKey, value = value, isSticky = isSticky)
+        return postOrWarn(eventKey = eventKey, value = value, isSticky = isSticky)
     }
 
     /**
@@ -197,7 +201,7 @@ class FlowEventBus : ViewModel() {
         bus.clearSticky(eventKey(name = eventName, valueType = valueType))
     }
 
-    private fun <T : Any> postOrWarn(eventKey: EventKey<T>, value: T, isSticky: Boolean) {
+    private fun <T : Any> postOrWarn(eventKey: EventKey<T>, value: T, isSticky: Boolean): Boolean {
         val accepted = if (isSticky) {
             bus.postSticky(eventKey, value)
         } else {
@@ -210,5 +214,6 @@ class FlowEventBus : ViewModel() {
                 message = "Dropped event '${eventKey.name}' because the buffer is full. Use emitEvent(...) for guaranteed delivery."
             )
         }
+        return accepted
     }
 }

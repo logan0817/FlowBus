@@ -1,9 +1,12 @@
 package com.logan.flowbus.core
 
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -149,6 +152,22 @@ class DefaultFlowBusTest {
         DefaultFlowBus.configure(config)
 
         assertEquals(config, DefaultFlowBus.raw().config)
+    }
+
+    @Test
+    fun `concurrent scoped access reuses the same store`() = runBlocking {
+        val bus = FlowBus()
+
+        val scopedFlows = withContext(Dispatchers.Default) {
+            List(32) {
+                async {
+                    bus.scoped("shared-scope").flow<String>()
+                }
+            }.awaitAll()
+        }
+
+        val firstFlow = scopedFlows.first()
+        assertTrue(scopedFlows.all { it === firstFlow })
     }
 
     @Test
