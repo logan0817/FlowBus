@@ -35,13 +35,13 @@ class EventChannelExtensionTest {
     }
 
     @Test
-    fun `owner centric channel api reads and writes owner scoped events`() = runBlocking {
+    fun `scoped owner channel api reads and writes owner scoped events`() = runBlocking {
         val owner = TestOwner()
-        val flow = owner.eventFlow(ownerChannel) as MutableSharedFlow<String>
+        val flow = owner.scopedEventFlow(ownerChannel) as MutableSharedFlow<String>
         val received = async { flow.first() }
 
         flow.subscriptionCount.first { it > 0 }
-        owner.postEvent(ownerChannel, "scoped")
+        owner.postScopedEvent(ownerChannel, "scoped")
 
         assertEquals("scoped", received.await())
         ownerChannel.removeStickyFrom(owner)

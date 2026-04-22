@@ -7,19 +7,21 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
-import com.logan.flowbus.eventChannel
-import com.logan.flowbus.onEvent
-import com.logan.flowbus.tryPostEventTo
-import com.logan.flowbus.tryPostTo
+import com.logan.flowbus.collectEvent
+import com.logan.flowbus.postScopedEvent
+import com.logan.flowbus.scopedEventFlow
 import com.logan.flowbusapp.databinding.ActivityTestFragmentBinding
 import com.logan.flowbusapp.event.ActivityEvent
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
-val activityToastChannel = eventChannel<String>("demo.activity.toast")
-
 class TestFragmentActivity : AppCompatActivity() {
+
+    companion object {
+        const val EVENT_ACTIVITY_TOOLBAR_REFRESH = "activity-toolbar-refresh"
+        const val EVENT_FRAGMENT_TO_HOST = "fragment-to-host"
+    }
 
     private var _binding: ActivityTestFragmentBinding? = null
     private val binding get() = _binding!!
@@ -31,46 +33,66 @@ class TestFragmentActivity : AppCompatActivity() {
         setContentView(binding.root)
         setupInsets()
         initView()
+        renderInitialState()
         setListeners()
         subscribeScopeEvents()
     }
 
     private fun initView() {
-        if (supportFragmentManager.findFragmentById(R.id.content) == null) {
+        if (supportFragmentManager.findFragmentById(R.id.fragmentContainer) == null) {
             supportFragmentManager.beginTransaction()
-                .replace(R.id.content, TestFragment())
-                .commit()
+                .replace(R.id.fragmentContainer, TestFragment())
+                .commitNow()
         }
     }
 
     private fun setupInsets() {
-        ViewCompat.setOnApplyWindowInsetsListener(binding.toolbar) { view, windowInsets ->
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, windowInsets ->
             val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.updatePadding(top = insets.top)
+            binding.toolbar.updatePadding(top = insets.top)
+            binding.scrollScopeContent.updatePadding(bottom = insets.bottom)
             WindowInsetsCompat.CONSUMED
         }
         setSupportActionBar(binding.toolbar)
-        supportActionBar?.title = TestFragmentActivity::class.java.simpleName
+        supportActionBar?.title = getString(R.string.scope_case_title)
+    }
+
+    private fun renderInitialState() {
+        binding.tvHostToolbarState.text = getString(R.string.scope_host_state_waiting)
+        binding.tvHostLog.text = getString(R.string.scope_host_log_waiting)
+        binding.tvHostScopeHint.text = getString(R.string.scope_host_hint_waiting)
     }
 
     @SuppressLint("SetTextI18n")
     private fun subscribeScopeEvents() {
-        onEvent<ActivityEvent> {
-            binding.tvHostLog.text = "${getCurrentTime()}-host activity event: ${it.message}"
-        }
-        onEvent(from = this, channel = activityToastChannel) { message ->
-            binding.tvHostLog.text = "${getCurrentTime()}-host channel: $message"
+        collectEvent(scopedEventFlow<ActivityEvent>()) { event ->
+            when (event.message) {
+                EVENT_ACTIVITY_TOOLBAR_REFRESH -> renderHostActivityRefresh()
+                EVENT_FRAGMENT_TO_HOST -> renderFragmentMessageArrived()
+            }
         }
     }
 
-    @SuppressLint("SetTextI18n")
     private fun setListeners() {
-        binding.btnSendActivityEvent.setOnClickListener {
-            tryPostEventTo(owner = this, event = ActivityEvent(getString(R.string.activity_scope_message)))
+        binding.btnNotifyActivityToolbar.setOnClickListener {
+            postScopedEvent(ActivityEvent(EVENT_ACTIVITY_TOOLBAR_REFRESH))
         }
-        binding.btnSendChannelEvent.setOnClickListener {
-            activityToastChannel.tryPostTo(this, getString(R.string.activity_channel_message))
-        }
+    }
+
+    private fun renderHostActivityRefresh() {
+        binding.tvHostToolbarState.text = withTimestamp(getString(R.string.scope_host_state_toolbar_refreshed))
+        binding.tvHostLog.text = withTimestamp(getString(R.string.scope_host_log_activity_refreshed))
+        binding.tvHostScopeHint.text = withTimestamp(getString(R.string.scope_host_hint_activity_event))
+    }
+
+    private fun renderFragmentMessageArrived() {
+        binding.tvHostToolbarState.text = withTimestamp(getString(R.string.scope_host_state_fragment_message))
+        binding.tvHostLog.text = withTimestamp(getString(R.string.scope_host_log_fragment_message))
+        binding.tvHostScopeHint.text = withTimestamp(getString(R.string.scope_host_hint_fragment_message))
+    }
+
+    private fun withTimestamp(message: String): String {
+        return "${getCurrentTime()} $message"
     }
 
     private fun getCurrentTime(): String {

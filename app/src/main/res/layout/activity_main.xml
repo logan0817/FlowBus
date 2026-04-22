@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:animateLayoutChanges="true"
+    android:background="#FFF8F1"
     tools:context="com.logan.flowbusapp.MainActivity">
 
     <androidx.appcompat.widget.Toolbar
@@ -17,175 +17,319 @@
         app:theme="@style/AppTheme.Toolbar"
         app:titleTextColor="@android:color/white" />
 
-    <LinearLayout
-        android:id="@+id/llGlobalEvent"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="20dp"
-        android:orientation="vertical"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/toolbar">
+    <ScrollView
+        android:id="@+id/scrollHomeContent"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toolbar">
 
-        <Button
-            android:id="@+id/btnSendGlobalEvent"
-            style="@style/Widget.AppCompat.Button.Colored"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/autumn_wave"
-            android:text="@string/sendGlobalEvent"
-            android:textAllCaps="false"
-            android:textColor="@color/white"
-            android:textSize="18sp" />
+            android:orientation="vertical"
+            android:padding="20dp">
 
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/tvGlobalEvent01"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/default_placeholder_log_text" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/home_headline"
+                android:textColor="#2C1A0B"
+                android:textSize="26sp"
+                android:textStyle="bold" />
 
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/tvGlobalEvent02"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/default_placeholder_log_text" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:lineSpacingExtra="2dp"
+                android:text="@string/home_subtitle"
+                android:textColor="#5A4638"
+                android:textSize="15sp" />
 
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/tvGlobalEvent03"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/default_placeholder_log_text" />
-    </LinearLayout>
+            <TextView
+                android:id="@+id/tvGuideWhat"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:background="#FFF1E0"
+                android:padding="16dp"
+                android:text="@string/home_intro_what"
+                android:textColor="#5A4638"
+                android:textSize="14sp" />
 
-    <LinearLayout
-        android:id="@+id/llActivityEvent"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="20dp"
-        android:orientation="vertical"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/llGlobalEvent">
+            <TextView
+                android:id="@+id/tvGuideHowToUse"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="#FFF1E0"
+                android:padding="16dp"
+                android:text="@string/home_intro_when"
+                android:textColor="#5A4638"
+                android:textSize="14sp" />
 
-        <Button
-            android:id="@+id/btnSendActivityEvent"
-            style="@style/Widget.AppCompat.Button.Colored"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@color/autumn_wave"
-            android:text="@string/sendActivityEvent"
-            android:textAllCaps="false"
-            android:textColor="@color/white"
-            android:textSize="18sp"
-            app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/llActivityEvent" />
+            <TextView
+                android:id="@+id/tvGuideWhatYouSee"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="#FFF1E0"
+                android:padding="16dp"
+                android:text="@string/home_intro_demo"
+                android:textColor="#5A4638"
+                android:textSize="14sp" />
 
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/tvActivityEvent1"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/default_placeholder_log_text" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="@string/home_module_section_title"
+                android:textColor="#2C1A0B"
+                android:textSize="18sp"
+                android:textStyle="bold" />
 
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/tvActivityEvent2"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/default_placeholder_log_text" />
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:lineSpacingExtra="2dp"
+                android:text="@string/home_module_section_hint"
+                android:textColor="#5A4638"
+                android:textSize="14sp" />
 
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/tvActivityEvent3"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/default_placeholder_log_text" />
-    </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cardGlobalCase"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="#FFF1E0"
+                android:orientation="vertical"
+                android:padding="16dp">
 
-    <LinearLayout
-        android:id="@+id/llNonUiEvent"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="20dp"
-        android:orientation="vertical"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/llActivityEvent">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/home_global_title"
+                    android:textColor="#2C1A0B"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
 
-        <Button
-            android:id="@+id/btnRunNonUiDemo"
-            style="@style/Widget.AppCompat.Button.Colored"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@color/autumn_wave"
-            android:text="@string/runNonUiDemo"
-            android:textAllCaps="false"
-            android:textColor="@color/white"
-            android:textSize="18sp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/home_global_desc"
+                    android:textColor="#5A4638"
+                    android:textSize="14sp" />
 
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/tvViewModelEvent"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/default_placeholder_log_text" />
+                <Button
+                    android:id="@+id/btnOpenGlobalCase"
+                    style="@style/Widget.AppCompat.Button.Colored"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@color/autumn_wave"
+                    android:text="@string/home_global_action"
+                    android:textAllCaps="false"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp" />
+            </LinearLayout>
 
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/tvRepositoryEvent"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/default_placeholder_log_text" />
+            <LinearLayout
+                android:id="@+id/cardScopeCase"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="#FFF1E0"
+                android:orientation="vertical"
+                android:padding="16dp">
 
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/tvWorkerEvent"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/default_placeholder_log_text" />
-    </LinearLayout>
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/home_scope_title"
+                    android:textColor="#2C1A0B"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
 
-    <Button
-        android:id="@+id/btnJumpNextPage"
-        style="@style/Widget.AppCompat.Button.Colored"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="20dp"
-        android:layout_marginVertical="20dp"
-        android:background="@color/autumn_wave"
-        android:text="@string/jumpNextPage1"
-        android:textAllCaps="false"
-        android:textColor="@color/white"
-        android:textSize="18sp"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/llNonUiEvent" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/home_scope_desc"
+                    android:textColor="#5A4638"
+                    android:textSize="14sp" />
 
-    <Button
-        android:id="@+id/btnJumpNextFragmentPage"
-        style="@style/Widget.AppCompat.Button.Colored"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="20dp"
-        android:layout_marginVertical="20dp"
-        android:background="@color/autumn_wave"
-        android:text="@string/jumpNextPage2"
-        android:textAllCaps="false"
-        android:textColor="@color/white"
-        android:textSize="18sp"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/btnJumpNextPage" />
+                <Button
+                    android:id="@+id/btnOpenScopeCase"
+                    style="@style/Widget.AppCompat.Button.Colored"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@color/autumn_wave"
+                    android:text="@string/home_scope_action"
+                    android:textAllCaps="false"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp" />
+            </LinearLayout>
 
-    <Button
-        android:id="@+id/btnJumpLoginActivity"
-        style="@style/Widget.AppCompat.Button.Colored"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="20dp"
-        android:layout_marginVertical="20dp"
-        android:background="@color/autumn_wave"
-        android:text="@string/jumpNextPage3"
-        android:textAllCaps="false"
-        android:textColor="@color/white"
-        android:textSize="18sp"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/btnJumpNextFragmentPage" />
+            <LinearLayout
+                android:id="@+id/cardStickyCase"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="#FFF1E0"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/home_sticky_title"
+                    android:textColor="#2C1A0B"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/home_sticky_desc"
+                    android:textColor="#5A4638"
+                    android:textSize="14sp" />
+
+                <Button
+                    android:id="@+id/btnOpenStickyCase"
+                    style="@style/Widget.AppCompat.Button.Colored"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@color/autumn_wave"
+                    android:text="@string/home_sticky_action"
+                    android:textAllCaps="false"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/cardChannelCase"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="#FFF1E0"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/home_channel_title"
+                    android:textColor="#2C1A0B"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/home_channel_desc"
+                    android:textColor="#5A4638"
+                    android:textSize="14sp" />
+
+                <Button
+                    android:id="@+id/btnOpenChannelCase"
+                    style="@style/Widget.AppCompat.Button.Colored"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@color/autumn_wave"
+                    android:text="@string/home_channel_action"
+                    android:textAllCaps="false"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/cardNonUiCase"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="#FFF1E0"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/home_non_ui_title"
+                    android:textColor="#2C1A0B"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/home_non_ui_desc"
+                    android:textColor="#5A4638"
+                    android:textSize="14sp" />
+
+                <Button
+                    android:id="@+id/btnOpenNonUiCase"
+                    style="@style/Widget.AppCompat.Button.Colored"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@color/autumn_wave"
+                    android:text="@string/home_non_ui_action"
+                    android:textAllCaps="false"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/cardDecisionGuide"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="8dp"
+                android:background="#FFF7EE"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/home_decision_title"
+                    android:textColor="#2C1A0B"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/home_decision_desc"
+                    android:textColor="#5A4638"
+                    android:textSize="14sp" />
+
+                <Button
+                    android:id="@+id/btnOpenDecisionGuide"
+                    style="@style/Widget.AppCompat.Button.Colored"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="#A65D2E"
+                    android:text="@string/home_decision_action"
+                    android:textAllCaps="false"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp" />
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

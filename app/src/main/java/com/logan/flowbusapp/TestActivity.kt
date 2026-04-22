@@ -1,30 +1,29 @@
 package com.logan.flowbusapp
 
-import android.annotation.SuppressLint
 import android.os.Bundle
-import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
 import com.logan.flowbus.collectEvent
-import com.logan.flowbus.eventFlowFrom
-import com.logan.flowbus.postStickyEventTo
+import com.logan.flowbus.postScopedStickyEvent
 import com.logan.flowbus.removeStickyEvent
+import com.logan.flowbus.scopedStickyEventFlow
 import com.logan.flowbusapp.databinding.ActivityTestBinding
 import com.logan.flowbusapp.event.ActivityEvent
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import java.util.Locale
 
 class TestActivity : AppCompatActivity() {
-    companion object {
-        val TAG = "TestActivityTAG"
+
+    private enum class StickyEventSource {
+        LIVE,
+        REPLAYED
     }
 
     private var _binding: ActivityTestBinding? = null
     private val binding get() = _binding!!
+
+    private var awaitingLiveSticky = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,6 +31,7 @@ class TestActivity : AppCompatActivity() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         setContentView(binding.root)
         setupInsets()
+        renderInitialState()
         setListeners()
         subscribeStickyEvents()
     }
@@ -43,38 +43,70 @@ class TestActivity : AppCompatActivity() {
             WindowInsetsCompat.CONSUMED
         }
         setSupportActionBar(binding.toolbar)
-        supportActionBar?.title = TestActivity::class.java.simpleName
+        supportActionBar?.title = getString(R.string.sticky_case_title)
     }
 
-    @SuppressLint("SetTextI18n")
+    private fun renderInitialState() {
+        binding.tvStickyLatestState.text = getString(R.string.sticky_case_state_waiting)
+        binding.tvStickyReplayHint.text = getString(R.string.sticky_case_hint_waiting)
+        binding.tvStickyCaseLog.text = getString(R.string.sticky_case_log_waiting)
+    }
+
     private fun subscribeStickyEvents() {
-        collectEvent(eventFlowFrom<ActivityEvent>(owner = this, isSticky = true)) {
-            Log.d(TAG, "onReceived:${it.message}")
-            val string = "${binding.tvEventText.text} \r\n"
-            binding.tvEventText.text = "${string}${getCurrentTime()}-onReceived:${it.message}"
+        collectEvent(scopedStickyEventFlow<ActivityEvent>()) { event ->
+            val eventSource = if (awaitingLiveSticky) {
+                StickyEventSource.LIVE
+            } else {
+                StickyEventSource.REPLAYED
+            }
+            awaitingLiveSticky = false
+            renderStickyState(message = event.message, eventSource = eventSource)
         }
     }
 
-    @SuppressLint("SetTextI18n")
     private fun setListeners() {
-        binding.btnSendCustomEvent.setOnClickListener {
-            postStickyEventTo(owner = this, event = ActivityEvent("Latest activity state"))
+        binding.btnRememberLatestToolbarState.setOnClickListener {
+            awaitingLiveSticky = true
+            postScopedStickyEvent(ActivityEvent(getString(R.string.sticky_case_toolbar_ready_message)))
         }
-        binding.btnSendDelayCustomEvent.setOnClickListener {
-            postStickyEventTo(owner = this, event = ActivityEvent("Latest activity state after delay"), delayMillis = 1000)
+        binding.btnRecreateStickyCase.setOnClickListener {
+            recreate()
         }
-        binding.btnSendManyEvent.setOnClickListener {
-            (1..200).forEach { index ->
-                postStickyEventTo(owner = this, event = ActivityEvent(message = "Latest activity state #$index"))
+        binding.btnClearLatestToolbarState.setOnClickListener {
+            awaitingLiveSticky = false
+            removeStickyEvent<ActivityEvent>(owner = this)
+            renderInitialState()
+        }
+    }
+
+    private fun renderStickyState(message: String, eventSource: StickyEventSource) {
+        binding.tvStickyLatestState.text = describeToolbarState(message)
+        when (eventSource) {
+            StickyEventSource.LIVE -> {
+                binding.tvStickyReplayHint.text = getString(R.string.sticky_case_hint_live)
+                binding.tvStickyCaseLog.text = getString(R.string.sticky_case_log_live)
+            }
+
+            StickyEventSource.REPLAYED -> {
+                binding.tvStickyReplayHint.text = getString(R.string.sticky_case_hint_replayed)
+                binding.tvStickyCaseLog.text = getString(R.string.sticky_case_log_replayed)
             }
         }
     }
 
-    fun getCurrentTime() = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault()).format(Calendar.getInstance().time)
+    private fun describeToolbarState(message: String): String {
+        return if (message == getString(R.string.sticky_case_toolbar_ready_message)) {
+            getString(R.string.sticky_case_state_toolbar_ready)
+        } else {
+            getString(R.string.sticky_case_state_other, message)
+        }
+    }
 
     override fun onDestroy() {
-        super.onDestroy()
+        if (isFinishing) {
+            removeStickyEvent<ActivityEvent>(owner = this)
+        }
         _binding = null
-        removeStickyEvent<ActivityEvent>(owner = this)
+        super.onDestroy()
     }
 }

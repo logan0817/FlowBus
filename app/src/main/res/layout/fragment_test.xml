@@ -1,145 +1,59 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:animateLayoutChanges="true"
-    tools:context="com.logan.flowbusapp.MainActivity">
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    tools:context="com.logan.flowbusapp.TestFragment">
 
-    <LinearLayout
-        android:id="@+id/llGlobalEvent01"
+    <Button
+        android:id="@+id/btnRefreshCurrentPanel"
+        style="@style/Widget.AppCompat.Button.Colored"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="20dp"
-        android:orientation="vertical"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        android:background="@color/autumn_wave"
+        android:text="@string/scope_refresh_fragment_action"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="16sp" />
 
-        <Button
-            android:id="@+id/btnSendGlobalEvent"
-            style="@style/Widget.AppCompat.Button.Colored"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@color/autumn_wave"
-            android:text="@string/sendGlobalEvent"
-            android:textAllCaps="false"
-            android:textColor="@color/white"
-            android:textSize="18sp"
-            app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/llGlobalEvent01" />
-
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/tvGlobalEvent01"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/default_placeholder_log_text" />
-
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/tvGlobalEvent02"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/default_placeholder_log_text"
-            app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/tvGlobalEvent01" />
-
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/tvGlobalEvent03"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/default_placeholder_log_text"
-            app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/tvGlobalEvent02" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/llActivityEvent"
+    <Button
+        android:id="@+id/btnSendLocalMessageToHost"
+        style="@style/Widget.AppCompat.Button.Colored"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="20dp"
-        android:orientation="vertical"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/llGlobalEvent01">
+        android:layout_marginTop="12dp"
+        android:background="@color/autumn_wave"
+        android:text="@string/scope_send_fragment_to_host_action"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="16sp" />
 
-        <Button
-            android:id="@+id/btnSendActivityEvent"
-            style="@style/Widget.AppCompat.Button.Colored"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@color/autumn_wave"
-            android:text="@string/sendActivityEvent"
-            android:textAllCaps="false"
-            android:textColor="@color/white"
-            android:textSize="18sp"
-            app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/llActivityEvent" />
-
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/tvActivityEvent1"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/default_placeholder_log_text" />
-
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/tvActivityEvent2"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/default_placeholder_log_text" />
-
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/tvActivityEvent3"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/default_placeholder_log_text" />
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/llFragmentEvent"
+    <TextView
+        android:id="@+id/tvFragmentPanelState"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="20dp"
-        android:orientation="vertical"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/llActivityEvent">
+        android:layout_marginTop="12dp"
+        android:textColor="#2C1A0B"
+        android:textSize="15sp"
+        tools:text="@string/scope_fragment_state_refreshed" />
 
-        <Button
-            android:id="@+id/btnSendFragmentEvent"
-            style="@style/Widget.AppCompat.Button.Colored"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@color/autumn_wave"
-            android:text="@string/sendFragmentEvent"
-            android:textAllCaps="false"
-            android:textColor="@color/white"
-            android:textSize="18sp"
-            app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/llFragmentEvent" />
+    <TextView
+        android:id="@+id/tvFragmentLog"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:textColor="#5A4638"
+        android:textSize="14sp"
+        tools:text="@string/scope_fragment_log_refreshed" />
 
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/tvFragmentEvent1"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/default_placeholder_log_text" />
+    <TextView
+        android:id="@+id/tvFragmentScopeHint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:textColor="#5A4638"
+        android:textSize="14sp"
+        tools:text="@string/scope_fragment_hint_fragment_event" />
 
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/tvFragmentEvent2"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/default_placeholder_log_text" />
-
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/tvFragmentEvent3"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/default_placeholder_log_text" />
-    </LinearLayout>
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+</LinearLayout>

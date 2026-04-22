@@ -6,8 +6,10 @@
 
 Gradle 模块目录名是 `library-android`，对外发布的依赖坐标是：
 
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
+
 ```gradle
-implementation("io.github.logan0817:flowbus:<latest-version>")
+implementation("io.github.logan0817:flowbus:1.0.5")  // 替换为上方徽章显示的最新版本
 ```
 
 如果你是 Android 项目接入 FlowBus，通常就从这个模块开始，不需要先研究 `flowbus-core`。
@@ -38,7 +40,7 @@ Android 项目里最常见的使用方式是：
 ## 先记住这 5 句话
 
 1. `postEvent(...)` / `emitEvent(...)` 发的是全局事件，整个 app 都能订阅。
-2. `postEventTo(owner, ...)` / `owner.postEvent(...)` 发的是局部事件，只在这个 `owner` 对应的总线里流动。
+2. `postEventTo(owner, ...)` / `owner.postScopedEvent(...)` 发的是局部事件，只在这个 `owner` 对应的总线里流动。
 3. 默认按“事件类型”分发；如果同一类型要拆成多个业务通道，就用 `eventChannel<T>("name")`。
 4. `post*` 是立即尝试发送，`tryPost*` 会额外返回是否已被当前总线接收，`emit*` 是挂起直到成功写入。
 5. `onEvent(...)` 是推荐的 UI 最短路径；`collectEvent(flow)` 更适合你已经拿到了 `Flow`。
@@ -46,9 +48,10 @@ Android 项目里最常见的使用方式是：
 ## 3 分钟上手
 
 ### 1. 添加依赖
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:<latest-version>")
+implementation("io.github.logan0817:flowbus:1.0.5")  // 替换为上方徽章显示的最新版本
 ```
 
 ### 2. 定义一个事件类型
@@ -122,7 +125,7 @@ viewLifecycleOwner.onEvent<SyncFinishedEvent> { event ->
 ```kotlin
 data object ReloadToolbarEvent
 
-requireActivity().postEvent(ReloadToolbarEvent)
+requireActivity().postScopedEvent(ReloadToolbarEvent)
 
 viewLifecycleOwner.onEvent<ReloadToolbarEvent>(from = requireActivity()) {
     renderToolbar()
@@ -135,9 +138,9 @@ viewLifecycleOwner.onEvent<ReloadToolbarEvent>(from = requireActivity()) {
 如果你更喜欢 owner 在前的写法，也可以这样：
 
 ```kotlin
-requireActivity().postEvent(ReloadToolbarEvent)
+requireActivity().postScopedEvent(ReloadToolbarEvent)
 
-viewLifecycleOwner.collectEvent(requireActivity().eventFlow<ReloadToolbarEvent>()) {
+viewLifecycleOwner.collectEvent(requireActivity().scopedEventFlow<ReloadToolbarEvent>()) {
     renderToolbar()
 }
 ```
@@ -214,7 +217,7 @@ class UploadFragment : Fragment() {
 如果你只想通知当前 Activity 相关页面，而不是全 app，就把发送改成：
 
 ```kotlin
-requireActivity().postEvent(UploadFinishedEvent(taskId = taskId))
+requireActivity().postScopedEvent(UploadFinishedEvent(taskId = taskId))
 ```
 
 接收时改成：
@@ -270,7 +273,7 @@ postEventTo(owner = requireActivity(), event = ReloadToolbarEvent)
 ```
 
 ```kotlin
-requireActivity().postEvent(ReloadToolbarEvent)
+requireActivity().postScopedEvent(ReloadToolbarEvent)
 ```
 
 ### 发到命名 channel
@@ -310,7 +313,7 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 owner 版本：
 
 ```kotlin
-viewLifecycleOwner.collectEvent(requireActivity().eventFlow<ReloadToolbarEvent>()) {
+viewLifecycleOwner.collectEvent(requireActivity().scopedEventFlow<ReloadToolbarEvent>()) {
     renderToolbar()
 }
 ```
@@ -464,7 +467,7 @@ viewLifecycleOwner.onEvent<RefreshHomeEvent> { render(it) }
 ### Activity 局部事件
 
 ```kotlin
-requireActivity().postEvent(ReloadToolbarEvent)
+requireActivity().postScopedEvent(ReloadToolbarEvent)
 viewLifecycleOwner.onEvent<ReloadToolbarEvent>(from = requireActivity()) { renderToolbar() }
 ```
 

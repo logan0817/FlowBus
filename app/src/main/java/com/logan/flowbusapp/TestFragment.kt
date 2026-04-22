@@ -2,28 +2,18 @@ package com.logan.flowbusapp
 
 import android.annotation.SuppressLint
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.Lifecycle
 import com.logan.flowbus.collectEvent
-import com.logan.flowbus.eventFlow
 import com.logan.flowbus.eventFlowFrom
-import com.logan.flowbus.onEvent
-import com.logan.flowbus.postEvent
 import com.logan.flowbus.postEventTo
-import com.logan.flowbus.postStickyEvent
-import com.logan.flowbus.postStickyEventTo
-import com.logan.flowbus.stickyEventFlow
-import com.logan.flowbus.stickyEventFlowFrom
-import com.logan.flowbus.tryPostTo
+import com.logan.flowbus.postScopedEvent
+import com.logan.flowbus.scopedEventFlow
 import com.logan.flowbusapp.databinding.FragmentTestBinding
 import com.logan.flowbusapp.event.ActivityEvent
 import com.logan.flowbusapp.event.FragmentEvent
-import com.logan.flowbusapp.event.GlobalEvent
-import kotlinx.coroutines.Dispatchers
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -31,11 +21,10 @@ import java.util.Locale
 class TestFragment : Fragment() {
 
     companion object {
-        private const val TAG = "TestFragmentTAG"
+        private const val EVENT_FRAGMENT_PANEL_REFRESH = "fragment-panel-refresh"
     }
 
     private var _binding: FragmentTestBinding? = null
-
     private val binding get() = _binding!!
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -45,96 +34,65 @@ class TestFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        renderInitialState()
         setListeners()
-        subscribeGlobalEvents()
         subscribeScopeEvents()
     }
 
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
+    private fun renderInitialState() {
+        binding.tvFragmentPanelState.text = getString(R.string.scope_fragment_state_waiting)
+        binding.tvFragmentLog.text = getString(R.string.scope_fragment_log_waiting)
+        binding.tvFragmentScopeHint.text = getString(R.string.scope_fragment_hint_waiting)
     }
 
     private fun setListeners() {
-        binding.btnSendGlobalEvent.setOnClickListener {
-            postEvent(GlobalEvent("Refresh app from fragment"))
-            postStickyEvent(GlobalEvent("Latest global state"))
+        binding.btnRefreshCurrentPanel.setOnClickListener {
+            postScopedEvent(FragmentEvent(EVENT_FRAGMENT_PANEL_REFRESH))
         }
-        binding.btnSendActivityEvent.setOnClickListener {
-            postEventTo(owner = requireActivity(), event = ActivityEvent("Refresh activity widgets from fragment"))
-            postStickyEventTo(owner = requireActivity(), event = ActivityEvent("Latest activity widgets"))
-        }
-        binding.btnSendFragmentEvent.setOnClickListener {
-            postEventTo(owner = this@TestFragment, event = FragmentEvent("Refresh fragment widgets"))
-            postStickyEventTo(owner = this@TestFragment, event = FragmentEvent("Latest fragment state"))
-            activityToastChannel.tryPostTo(requireActivity(), "Fragment sent eventChannel message")
-        }
-    }
-
-    fun getCurrentTime() = SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault()).format(Calendar.getInstance().time)
-
-    @SuppressLint("SetTextI18n")
-    private fun subscribeGlobalEvents() {
-        viewLifecycleOwner.onEvent<GlobalEvent> {
-            Log.d(TAG, "TestFragment received GlobalEvent 1:${it.message}")
-            binding.tvGlobalEvent01.text = "${getCurrentTime()}-onEvent:${it.message}"
-        }
-        viewLifecycleOwner.collectEvent(
-            flow = eventFlow<GlobalEvent>(),
-            dispatcher = Dispatchers.Main,
-            minLifecycleState = Lifecycle.State.RESUMED
-        ) {
-            Log.d(TAG, "TestFragment received GlobalEvent 2 RESUMED:${it.message}")
-            binding.tvGlobalEvent02.text = "${getCurrentTime()}-onReceived0-2 RESUMED:${it.message} "
-        }
-        viewLifecycleOwner.collectEvent(stickyEventFlow<GlobalEvent>()) {
-            Log.d(TAG, "TestFragment received GlobalEvent 3 isSticky:${it.message}")
-            binding.tvGlobalEvent03.text = "${getCurrentTime()}-onReceived0-3 isSticky:${it.message} "
+        binding.btnSendLocalMessageToHost.setOnClickListener {
+            binding.tvFragmentPanelState.text = withTimestamp(getString(R.string.scope_fragment_state_message_sent))
+            binding.tvFragmentLog.text = withTimestamp(getString(R.string.scope_fragment_log_message_sent))
+            binding.tvFragmentScopeHint.text = withTimestamp(getString(R.string.scope_fragment_hint_fragment_to_host))
+            postEventTo(owner = requireActivity(), event = ActivityEvent(TestFragmentActivity.EVENT_FRAGMENT_TO_HOST))
         }
     }
 
     @SuppressLint("SetTextI18n")
     private fun subscribeScopeEvents() {
-        viewLifecycleOwner.collectEvent(eventFlowFrom<ActivityEvent>(owner = requireActivity())) {
-            Log.d(TAG, "received ActivityEvent1:${it.message}")
-            binding.tvActivityEvent1.text = "${getCurrentTime()}-onReceived1:${it.message} "
-        }
-        viewLifecycleOwner.collectEvent(
-            flow = eventFlowFrom<ActivityEvent>(owner = requireActivity()),
-            dispatcher = Dispatchers.Main,
-            minLifecycleState = Lifecycle.State.RESUMED
-        ) {
-            Log.d(TAG, "received ActivityEvent2 RESUMED:${it.message}")
-            binding.tvActivityEvent2.text = "${getCurrentTime()}-onReceived2 RESUMED:${it.message} "
-        }
-        viewLifecycleOwner.collectEvent(stickyEventFlowFrom<ActivityEvent>(owner = requireActivity())) {
-            Log.d(TAG, "received ActivityEvent3 isSticky:${it.message}")
-            binding.tvActivityEvent3.text = "${getCurrentTime()}-onReceived3 isSticky:${it.message} "
-        }
-        viewLifecycleOwner.onEvent(from = requireActivity(), channel = activityToastChannel) { message ->
-            Log.d(TAG, "received activity channel:$message")
-            binding.tvActivityEvent3.text = "${getCurrentTime()}-channel:${message}"
+        viewLifecycleOwner.collectEvent(eventFlowFrom<ActivityEvent>(owner = requireActivity())) { event ->
+            when (event.message) {
+                TestFragmentActivity.EVENT_ACTIVITY_TOOLBAR_REFRESH -> {
+                    binding.tvFragmentScopeHint.text =
+                        withTimestamp(getString(R.string.scope_fragment_hint_activity_event))
+                }
+
+                TestFragmentActivity.EVENT_FRAGMENT_TO_HOST -> {
+                    binding.tvFragmentScopeHint.text =
+                        withTimestamp(getString(R.string.scope_fragment_hint_fragment_to_host))
+                }
+            }
         }
 
-        viewLifecycleOwner.collectEvent(eventFlowFrom<FragmentEvent>(owner = this@TestFragment)) {
-            Log.d(TAG, "received FragmentEvent1:${it.message}")
-            binding.tvFragmentEvent1.text = "${getCurrentTime()}-onReceived1:${it.message} "
+        viewLifecycleOwner.collectEvent(scopedEventFlow<FragmentEvent>()) { event ->
+            if (event.message != EVENT_FRAGMENT_PANEL_REFRESH) {
+                return@collectEvent
+            }
+            binding.tvFragmentPanelState.text = withTimestamp(getString(R.string.scope_fragment_state_refreshed))
+            binding.tvFragmentLog.text = withTimestamp(getString(R.string.scope_fragment_log_refreshed))
+            binding.tvFragmentScopeHint.text = withTimestamp(getString(R.string.scope_fragment_hint_fragment_event))
         }
-        viewLifecycleOwner.collectEvent(
-            flow = eventFlowFrom<FragmentEvent>(owner = this@TestFragment),
-            dispatcher = Dispatchers.Main,
-            minLifecycleState = Lifecycle.State.RESUMED
-        ) {
-            Log.d(TAG, "received FragmentEvent2 RESUMED:${it.message}")
-            binding.tvFragmentEvent2.text = "${getCurrentTime()}-onReceived2 RESUMED:${it.message} "
-        }
-        viewLifecycleOwner.collectEvent(stickyEventFlowFrom<FragmentEvent>(owner = this@TestFragment)) {
-            Log.d(TAG, "received FragmentEvent3 isSticky:${it.message}")
-            binding.tvFragmentEvent3.text = "${getCurrentTime()}-onReceived3 isSticky:${it.message} "
-        }
+    }
+
+    private fun withTimestamp(message: String): String {
+        return "${getCurrentTime()} $message"
+    }
+
+    private fun getCurrentTime(): String {
+        return SimpleDateFormat("HH:mm:ss.SSS", Locale.getDefault()).format(Calendar.getInstance().time)
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
     }
 }

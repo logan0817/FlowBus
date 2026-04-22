@@ -38,7 +38,7 @@ It is not a good fit for:
 ## Remember these 5 rules first
 
 1. `postEvent(...)` / `emitEvent(...)` send global events, so the whole app can subscribe.
-2. `postEventTo(owner, ...)` / `owner.postEvent(...)` send local events that only flow inside the bus attached to that `owner`.
+2. `postEventTo(owner, ...)` / `owner.postScopedEvent(...)` send local events that only flow inside the bus attached to that `owner`.
 3. By default, events are routed by event type. If one payload type needs multiple channels, use `eventChannel<T>("name")`.
 4. `post*` tries immediately, `tryPost*` also tells you whether the current call was accepted, and `emit*` suspends until delivery succeeds.
 5. `onEvent(...)` is the recommended shortest UI API; `collectEvent(flow)` is better when you already have a `Flow`.
@@ -120,7 +120,7 @@ Good for:
 ```kotlin
 data object ReloadToolbarEvent
 
-requireActivity().postEvent(ReloadToolbarEvent)
+requireActivity().postScopedEvent(ReloadToolbarEvent)
 
 viewLifecycleOwner.onEvent<ReloadToolbarEvent>(from = requireActivity()) {
     renderToolbar()
@@ -191,7 +191,7 @@ class UploadFragment : Fragment() {
 If this should only notify the current Activity tree instead of the whole app, send to the owner scope:
 
 ```kotlin
-requireActivity().postEvent(UploadFinishedEvent(taskId = taskId))
+requireActivity().postScopedEvent(UploadFinishedEvent(taskId = taskId))
 ```
 
 Receive it with:
@@ -247,7 +247,7 @@ postEventTo(owner = requireActivity(), event = ReloadToolbarEvent)
 ```
 
 ```kotlin
-requireActivity().postEvent(ReloadToolbarEvent)
+requireActivity().postScopedEvent(ReloadToolbarEvent)
 ```
 
 ### Send through a named channel
@@ -287,7 +287,7 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 Owner-based version:
 
 ```kotlin
-viewLifecycleOwner.collectEvent(requireActivity().eventFlow<ReloadToolbarEvent>()) {
+viewLifecycleOwner.collectEvent(requireActivity().scopedEventFlow<ReloadToolbarEvent>()) {
     renderToolbar()
 }
 ```

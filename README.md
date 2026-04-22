@@ -43,29 +43,32 @@ FlowBus 是一个基于 Kotlin Coroutines / Flow 的 Flow-first 事件框架。
 
 直接从这个依赖开始：
 
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
+
 ```gradle
-implementation("io.github.logan0817:flowbus:<latest-version>")
+implementation("io.github.logan0817:flowbus:1.0.5")  // 替换为上方徽章显示的最新版本
 ```
 
 适合你如果你需要：
 
 - 全局事件广播
 - 基于 `ViewModelStoreOwner` 的局部事件作用域
-- `eventFlow<T>()` / `owner.eventFlow<T>()`
+- `eventFlow<T>()` / `owner.scopedEventFlow<T>()`
 - `eventChannel<T>("...")` 命名事件句柄
 - 生命周期安全的 `collectEvent(...)` / `onEvent(...)`
 
 文档入口：
 
-- 本地文档：[`library-android/README.md`](./library-android/README.md)
-- GitHub 地址：[library-android README](https://github.com/logan0817/FlowBus/blob/main/library-android/README.md)
+- 文档：[`library-android/README.md`](./library-android/README.md)
 
 ### 如果你是纯 Kotlin / Coroutines / 非 Android 场景
 
 从这个依赖开始：
 
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
+
 ```gradle
-implementation("io.github.logan0817:flowbus-core:<latest-version>")
+implementation("io.github.logan0817:flowbus-core:1.0.4")  // 替换为上方徽章显示的最新版本
 ```
 
 适合你如果你需要：
@@ -78,8 +81,7 @@ implementation("io.github.logan0817:flowbus-core:<latest-version>")
 
 文档入口：
 
-- 本地文档：[`flowbus-core/README.md`](./flowbus-core/README.md)
-- GitHub 地址：[flowbus-core README](https://github.com/logan0817/flowbus-core/blob/main/README.md)
+- 文档：[`flowbus-core/README.md`](./flowbus-core/README.md)
 
 ## 仓库结构
 
@@ -152,7 +154,7 @@ viewLifecycleOwner.onEvent<SyncFinishedEvent> { event ->
 ```kotlin
 data object ReloadToolbarEvent
 
-requireActivity().postEvent(ReloadToolbarEvent)
+requireActivity().postScopedEvent(ReloadToolbarEvent)
 
 viewLifecycleOwner.onEvent<ReloadToolbarEvent>(from = requireActivity()) {
     renderToolbar()
@@ -207,10 +209,10 @@ scope.launch {
 | 全局发送 | `postEvent(...)` |
 | 想知道 best-effort 是否成功 | `tryPostEvent(...)` |
 | 必须保证写入成功 | `emitEvent(...)` |
-| 发送到某个 owner | `postEventTo(owner, ...)` / `owner.postEvent(...)` |
+| 发送到某个 owner | `postEventTo(owner, ...)` / `owner.postScopedEvent(...)` |
 | 命名通道 | `eventChannel<T>("name")` + `channel.post(...)` |
 | 最短一行监听 | `onEvent(...)` |
-| 先拿到 `Flow` 自己组合 | `eventFlow<T>()` / `owner.eventFlow<T>()` |
+| 先拿到 `Flow` 自己组合 | `eventFlow<T>()` / `owner.scopedEventFlow<T>()` |
 | 生命周期安全收集任意 `Flow` | `collectEvent(flow) { ... }` |
 | 非 Android / 多实例 / scope 生命周期 | `flowbus-core` |
 
@@ -275,6 +277,8 @@ viewLifecycleOwner.onEvent<MainUiEvent> { event ->
 ## Demo
 
 <img src="GIF.gif" width="350" />
+
+可下载 [Demo APK](https://raw.githubusercontent.com/logan0817/FlowBus/master/app/apk/app-debug.apk) 体验。
 
 Demo 源码位于 [`app`](./app) 模块，可直接运行。建议按这个顺序看：
 

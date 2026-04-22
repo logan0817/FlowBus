@@ -46,24 +46,24 @@ class EventFlowExtensionTest {
     }
 
     @Test
-    fun `owner centric api reads and writes owner scoped events`() = runBlocking {
+    fun `scoped owner api reads and writes owner scoped events`() = runBlocking {
         val owner = TestOwner()
-        val flow = owner.eventFlow<String>(eventName = "owner.named") as MutableSharedFlow<String>
+        val flow = owner.scopedEventFlow<String>(eventName = "owner.named") as MutableSharedFlow<String>
         val received = async { flow.first() }
 
         flow.subscriptionCount.first { it > 0 }
-        owner.postEvent(event = "owner-value", eventName = "owner.named")
+        owner.postScopedEvent(event = "owner-value", eventName = "owner.named")
 
         assertEquals("owner-value", received.await())
         owner.viewModelStore.clear()
     }
 
     @Test
-    fun `stickyEventFlowFrom supports custom ViewModelStoreOwner`() = runBlocking {
+    fun `scoped sticky owner api supports custom ViewModelStoreOwner`() = runBlocking {
         val owner = TestOwner()
-        owner.postStickyEvent(event = "owner-sticky", eventName = "owner.sticky")
+        owner.postScopedStickyEvent(event = "owner-sticky", eventName = "owner.sticky")
 
-        assertEquals("owner-sticky", owner.stickyEventFlow<String>(eventName = "owner.sticky").first())
+        assertEquals("owner-sticky", owner.scopedStickyEventFlow<String>(eventName = "owner.sticky").first())
 
         clearStickyEvent<String>(owner = owner, eventName = "owner.sticky")
         owner.viewModelStore.clear()

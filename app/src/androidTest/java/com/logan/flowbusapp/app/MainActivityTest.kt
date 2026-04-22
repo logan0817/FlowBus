@@ -1,17 +1,23 @@
 package com.logan.flowbusapp.app
 
+import android.app.Activity
+import android.widget.Button
 import androidx.test.espresso.Espresso.onView
-import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withId
-import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.rules.activityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.test.platform.app.InstrumentationRegistry
+import com.logan.flowbusapp.ChannelCaseActivity
+import com.logan.flowbusapp.DecisionGuideActivity
+import com.logan.flowbusapp.GlobalCaseActivity
 import com.logan.flowbusapp.MainActivity
+import com.logan.flowbusapp.NonUiCaseActivity
 import com.logan.flowbusapp.R
-import org.hamcrest.Matchers.containsString
-import org.hamcrest.Matchers.not
+import com.logan.flowbusapp.TestActivity
+import com.logan.flowbusapp.TestFragmentActivity
+import org.junit.Assert.assertNotNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -23,21 +29,30 @@ class MainActivityTest {
     val rule = activityScenarioRule<MainActivity>()
 
     @Test
-    fun clickSendGlobalEvent_updatesGlobalEventViews() {
-        onView(withId(R.id.btnSendGlobalEvent)).perform(click())
+    fun scenarioCards_existAndOpenExpectedActivities() {
+        onView(withId(R.id.cardGlobalCase)).check(matches(isDisplayed()))
 
-        onView(withId(R.id.tvGlobalEvent01)).check(matches(withText(containsString("Main GlobalEvent"))))
-        onView(withId(R.id.tvGlobalEvent02)).check(matches(withText(containsString("MainGlobalEvent"))))
-        onView(withId(R.id.tvGlobalEvent03)).check(matches(withText(containsString("Main GlobalEvent"))))
+        assertLaunchesActivity(R.id.btnOpenGlobalCase, GlobalCaseActivity::class.java)
+        assertLaunchesActivity(R.id.btnOpenScopeCase, TestFragmentActivity::class.java)
+        assertLaunchesActivity(R.id.btnOpenStickyCase, TestActivity::class.java)
+        assertLaunchesActivity(R.id.btnOpenChannelCase, ChannelCaseActivity::class.java)
+        assertLaunchesActivity(R.id.btnOpenNonUiCase, NonUiCaseActivity::class.java)
+        assertLaunchesActivity(R.id.btnOpenDecisionGuide, DecisionGuideActivity::class.java)
     }
 
-    @Test
-    fun clickSendActivityEvent_updatesActivityScopedViews() {
-        onView(withId(R.id.btnSendActivityEvent)).perform(click())
+    private fun assertLaunchesActivity(triggerViewId: Int, activityClass: Class<out Activity>) {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val monitor = instrumentation.addMonitor(activityClass.name, null, false)
 
-        onView(withId(R.id.tvActivityEvent1)).check(matches(withText(containsString("Main ActivityEvent"))))
-        onView(withId(R.id.tvActivityEvent3)).check(matches(withText(containsString("Main ActivityEvent"))))
-        onView(withId(R.id.tvActivityEvent2)).check(matches(not(withText(R.string.default_placeholder_log_text))))
-        onView(withId(R.id.tvActivityEvent2)).check(matches(isDisplayed()))
+        try {
+            rule.scenario.onActivity { activity ->
+                activity.findViewById<Button>(triggerViewId).performClick()
+            }
+            val launchedActivity = instrumentation.waitForMonitorWithTimeout(monitor, 3_000)
+            assertNotNull("Expected ${activityClass.simpleName} to launch", launchedActivity)
+            launchedActivity?.finish()
+        } finally {
+            instrumentation.removeMonitor(monitor)
+        }
     }
 }

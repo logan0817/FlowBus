@@ -1,7 +1,7 @@
 package com.logan.flowbusapp.login.event
 
 import com.logan.flowbus.onEvent
-import com.logan.flowbus.postEventTo
+import com.logan.flowbus.postScopedEvent
 import com.logan.flowbusapp.R
 import com.logan.flowbusapp.login.LoginActivity
 
@@ -14,7 +14,7 @@ class LoginComponent {
         showLoading()
         printLog(getString(R.string.login_requesting))
         // 这里只是演示事件驱动解耦，不是推荐把真实登录请求直接建模成事件总线请求-响应。
-        postEventTo(owner = this, event = LoginEvent(userName, password), delayMillis = 1200)
+        postScopedEvent(LoginEvent(userName, password), delayMillis = 1200)
     }
 
     /**
@@ -23,7 +23,7 @@ class LoginComponent {
     fun registerAndLogin(activity: LoginActivity, userName: String, password: String) = with(activity) {
         showLoading()
         printLog(getString(R.string.register_requesting))
-        postEventTo(owner = this, event = RegisterEvent(userName, password), delayMillis = 1200)
+        postScopedEvent(RegisterEvent(userName, password), delayMillis = 1200)
     }
 
     fun subscribe(activity: LoginActivity) = with(activity) {

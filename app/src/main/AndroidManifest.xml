@@ -20,8 +20,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name="com.logan.flowbusapp.GlobalCaseActivity" />
+        <activity android:name="com.logan.flowbusapp.DecisionGuideActivity" />
         <activity android:name="com.logan.flowbusapp.TestActivity" />
         <activity android:name="com.logan.flowbusapp.TestFragmentActivity" />
+        <activity android:name="com.logan.flowbusapp.ChannelCaseActivity" />
+        <activity android:name="com.logan.flowbusapp.NonUiCaseActivity" />
         <activity android:name="com.logan.flowbusapp.login.LoginActivity" />
     </application>
 

@@ -16,6 +16,7 @@ activity_version = "1.9.2"
 fragment_version = "1.8.3"
 lifecycle_version = "2.6.2"
 constraint_layout_version = "2.2.1"
+flowbus_version = "1.0.5"
 
 [libraries]
 agp = { module = "com.android.tools.build:gradle", version.ref = "agp" }
@@ -36,6 +37,7 @@ lifecycle_livedata = { module = "androidx.lifecycle:lifecycle-livedata-ktx", ver
 androidx_constraint_layout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraint_layout_version" }
 kotlinx_coroutines_core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx_coroutines" }
 kotlinx_coroutines_test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinx_coroutines" }
+flowbus = { module = "io.github.logan0817:flowbus", version.ref = "flowbus_version" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

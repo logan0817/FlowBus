@@ -51,14 +51,13 @@ Use it when you need:
 
 - global event broadcast
 - `ViewModelStoreOwner`-scoped events
-- `eventFlow<T>()` / `owner.eventFlow<T>()`
+- `eventFlow<T>()` / `owner.scopedEventFlow<T>()`
 - reusable named handles with `eventChannel<T>("...")`
 - lifecycle-safe collection through `collectEvent(...)` / `onEvent(...)`
 
 Docs:
 
-- local doc: [`library-android/README_EN.md`](./library-android/README_EN.md)
-- GitHub URL: [library-android README](https://github.com/logan0817/FlowBus/blob/main/library-android/README_EN.md)
+-  doc: [`library-android/README_EN.md`](./library-android/README_EN.md)
 
 ### If you need pure Kotlin / Coroutines / non-Android usage
 
@@ -78,8 +77,7 @@ Use it when you need:
 
 Docs:
 
-- local doc: [`flowbus-core/README_EN.md`](./flowbus-core/README_EN.md)
-- GitHub URL: [flowbus-core README](https://github.com/logan0817/flowbus-core/blob/main/README_EN.md)
+doc: [`flowbus-core/README_EN.md`](./flowbus-core/README_EN.md)
 
 ## Repository Layout
 
@@ -152,7 +150,7 @@ Good for:
 ```kotlin
 data object ReloadToolbarEvent
 
-requireActivity().postEvent(ReloadToolbarEvent)
+requireActivity().postScopedEvent(ReloadToolbarEvent)
 
 viewLifecycleOwner.onEvent<ReloadToolbarEvent>(from = requireActivity()) {
     renderToolbar()
@@ -207,10 +205,10 @@ See [`flowbus-core/README_EN.md`](./flowbus-core/README_EN.md) for details.
 | Send globally | `postEvent(...)` |
 | Know whether best-effort was accepted | `tryPostEvent(...)` |
 | Guarantee delivery | `emitEvent(...)` |
-| Send to an owner scope | `postEventTo(owner, ...)` / `owner.postEvent(...)` |
+| Send to an owner scope | `postEventTo(owner, ...)` / `owner.postScopedEvent(...)` |
 | Named channel | `eventChannel<T>("name")` + `channel.post(...)` |
 | Shortest one-line subscription | `onEvent(...)` |
-| Get `Flow` first and compose it yourself | `eventFlow<T>()` / `owner.eventFlow<T>()` |
+| Get `Flow` first and compose it yourself | `eventFlow<T>()` / `owner.scopedEventFlow<T>()` |
 | Lifecycle-safe collection of any `Flow` | `collectEvent(flow) { ... }` |
 | Non-Android / multi-instance / scope lifecycle | `flowbus-core` |
 
@@ -275,6 +273,8 @@ viewLifecycleOwner.onEvent<MainUiEvent> { event ->
 ## Demo
 
 <img src="GIF.gif" width="350" />
+
+Downloadable [Demo APK](https://raw.githubusercontent.com/logan0817/FlowBus/master/app/apk/app-debug.apk) Experience.
 
 The demo source lives in the [`app`](./app) module. A good reading order is:
 

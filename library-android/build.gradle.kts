@@ -6,6 +6,8 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     id("com.android.library")
     kotlin("android")
+
+    id("signing")
     alias(libs.plugins.vanniktech.maven.publish)
 }
 
@@ -67,20 +69,21 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext.junit)
 }
 
-mavenPublishing {
-    configure(
-        AndroidSingleVariantLibrary(
-            variant = "release",
-            sourcesJar = true,
-            publishJavadocJar = true,
-        )
-    )
+signing {
+    // 强制使用 GPG 命令行工具，这会使插件去 gradle.properties 中查找
+    // signing.keyId 和 signing.password
+    useGpgCmd()
+}
 
+mavenPublishing {
     coordinates(
         providers.gradleProperty("GROUP").get(),
         "flowbus",
         providers.gradleProperty("VERSION_NAME").get()
     )
+
+    publishToMavenCentral(true)
+    signAllPublications() // <-- 关键！这个方法会自动找到并签名 Publication
 
     pom {
         name.set("FlowBus")
@@ -106,10 +109,5 @@ mavenPublishing {
             connection.set(providers.gradleProperty("POM_SCM_CONNECTION"))
             developerConnection.set(providers.gradleProperty("POM_SCM_DEV_CONNECTION"))
         }
-    }
-
-    publishToMavenCentral()
-    if (hasSigningKey) {
-        signAllPublications()
     }
 }

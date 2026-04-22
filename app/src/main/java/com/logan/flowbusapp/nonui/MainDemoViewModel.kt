@@ -3,44 +3,36 @@ package com.logan.flowbusapp.nonui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.logan.flowbus.core.DefaultFlowBus
-import com.logan.flowbus.core.flow
+import com.logan.flowbus.core.flowBusOwner
 import com.logan.flowbus.core.post
-import kotlinx.coroutines.launch
 
 class MainDemoViewModel : ViewModel() {
-    private val demoScope = DefaultFlowBus.openScope(owner = NON_UI_DEMO_OWNER, closeWhen = viewModelScope)
+    private val demoOwner = flowBusOwner("$NON_UI_DEMO_SCOPE.${System.identityHashCode(this)}")
+    private val demoScope = DefaultFlowBus.openScope(owner = demoOwner, closeWhen = viewModelScope)
     private val repository = DemoRepository(owner = demoScope)
     private val worker = DemoWorker(owner = demoScope)
 
     init {
         repository.start()
         worker.start()
+    }
 
+    fun runNonUiDemo(trigger: String) {
+        val requestId = System.currentTimeMillis()
         DefaultFlowBus.post(
             ViewModelDemoLog(
-                message = "Opened flowbus-core scope '${demoScope.scopeName}'"
+                message = "ViewModel started sync #$requestId from $trigger via scope '${demoScope.scopeName}'"
             )
         )
-
-        viewModelScope.launch {
-            demoScope.flow<NonUiDemoCommand>().collect { command ->
-                DefaultFlowBus.post(
-                    ViewModelDemoLog(
-                        message = "ViewModel received #${command.requestId} from ${command.trigger} in scoped bus '${demoScope.scopeName}' on ${Thread.currentThread().name}"
-                    )
-                )
-            }
-        }
-    }
-
-    fun runNonUiDemo() {
         demoScope.post(
             NonUiDemoCommand(
-                requestId = System.currentTimeMillis(),
-                trigger = "MainActivity button"
+                requestId = requestId,
+                trigger = trigger
             )
         )
     }
+
+    fun currentScopeName(): String = demoScope.scopeName
 
     override fun onCleared() {
         repository.close()
