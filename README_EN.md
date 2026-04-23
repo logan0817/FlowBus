@@ -94,6 +94,53 @@ doc: [`flowbus-core/README_EN.md`](./flowbus-core/README_EN.md)
 5. When one payload type needs multiple semantic channels, introduce `eventChannel<T>("name")`.
 6. Only move down to `flowbus-core` when you need multiple bus instances, explicit scope lifecycle, or non-Android usage.
 
+## What is the relationship between `onEvent(...)` and `collectEvent(eventFlow(...))`
+
+This is the most common source of confusion when reading the demo:
+
+- the docs usually show `onEvent<T> { ... }`
+- some demo pages use `collectEvent(eventFlow<T>()) { ... }`
+
+They are not two different systems. They listen to the same event stream, but at different abstraction levels:
+
+- `onEvent(...)`: the shortest UI-facing subscription API
+- `eventFlow(...)` / `scopedEventFlow(...)` / `channel.flow()`: get the event as a `Flow` first
+- `collectEvent(flow)`: collect any `Flow` with `LifecycleOwner` safety
+
+For the simplest global event, these two can be understood as:
+
+```kotlin
+viewLifecycleOwner.onEvent<AddCartEvent> { event ->
+    render(event)
+}
+```
+
+```kotlin
+viewLifecycleOwner.collectEvent(eventFlow<AddCartEvent>()) { event ->
+    render(event)
+}
+```
+
+The same mapping applies to owner-scoped events:
+
+```kotlin
+viewLifecycleOwner.onEvent<ReloadToolbarEvent>(from = requireActivity()) {
+    renderToolbar()
+}
+```
+
+```kotlin
+viewLifecycleOwner.collectEvent(requireActivity().scopedEventFlow<ReloadToolbarEvent>()) {
+    renderToolbar()
+}
+```
+
+How to choose:
+
+- if the page just needs to receive an event, use `onEvent(...)`
+- if you want to `map`, `filter`, `debounce`, or `combine`, get the `Flow` first and use `collectEvent(...)`
+- the demo intentionally shows both styles, so readers can understand both the shortest path and the “get Flow first” style
+
 ## 3-minute quick start
 
 This is the shortest Android path and the best place for most first-time users to begin.

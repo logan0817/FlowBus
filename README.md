@@ -98,6 +98,53 @@ implementation("io.github.logan0817:flowbus-core:1.0.4")  // 替换为上方徽�
 5. 同一类型需要多个通道时，再引入 `eventChannel<T>("name")`。
 6. 只有当你需要多实例、显式 scope 生命周期或非 Android 使用时，再继续下沉到 `flowbus-core`。
 
+## `onEvent(...)` 和 `collectEvent(eventFlow(...))` 是什么关系
+
+第一次看 demo 时，最容易疑惑的点就是这里：
+
+- 文档里更常写 `onEvent<T> { ... }`
+- demo 里有时会写 `collectEvent(eventFlow<T>()) { ... }`
+
+它们不是两套不同体系，监听的是同一条事件流，只是展开层级不同：
+
+- `onEvent(...)`：UI 层最短写法，适合大多数页面监听
+- `eventFlow(...)` / `scopedEventFlow(...)` / `channel.flow()`：先把事件拿成 `Flow`
+- `collectEvent(flow)`：把任意 `Flow` 绑定到 `LifecycleOwner` 安全收集
+
+最简单的全局事件，这两种写法可以理解成：
+
+```kotlin
+viewLifecycleOwner.onEvent<AddCartEvent> { event ->
+    render(event)
+}
+```
+
+```kotlin
+viewLifecycleOwner.collectEvent(eventFlow<AddCartEvent>()) { event ->
+    render(event)
+}
+```
+
+owner 作用域也是同样关系：
+
+```kotlin
+viewLifecycleOwner.onEvent<ReloadToolbarEvent>(from = requireActivity()) {
+    renderToolbar()
+}
+```
+
+```kotlin
+viewLifecycleOwner.collectEvent(requireActivity().scopedEventFlow<ReloadToolbarEvent>()) {
+    renderToolbar()
+}
+```
+
+建议你这样记：
+
+- 页面里只是想“收一个事件”，优先 `onEvent(...)`
+- 你还想自己做 `map`、`filter`、`debounce`、`combine`，就先拿 `eventFlow(...)` 再配合 `collectEvent(...)`
+- demo 里同时出现这两种写法，是为了把“最短监听路径”和“先拿 Flow 再组合”都演示出来，不代表事件来源不同
+
 ## 3 分钟上手
 
 下面是 Android 最短示例，也是大多数人第一次接入时最有帮助的路径。

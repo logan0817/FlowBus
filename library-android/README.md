@@ -45,6 +45,48 @@ Android 项目里最常见的使用方式是：
 4. `post*` 是立即尝试发送，`tryPost*` 会额外返回是否已被当前总线接收，`emit*` 是挂起直到成功写入。
 5. `onEvent(...)` 是推荐的 UI 最短路径；`collectEvent(flow)` 更适合你已经拿到了 `Flow`。
 
+## 为什么文档常写 `onEvent(...)`，demo 里有时会写 `collectEvent(eventFlow(...))`
+
+这两个写法不是对立关系，而是同一套能力的两个入口层级：
+
+- `onEvent(...)`：直接帮你订阅 FlowBus 事件，适合大多数 UI 页面
+- `eventFlow(...)` / `scopedEventFlow(...)` / `channel.flow()`：先把事件拿成 `Flow`
+- `collectEvent(flow)`：把这个 `Flow` 绑定到 `LifecycleOwner` 安全收集
+
+所以最简单的全局事件，下面两种写法可以理解成“效果等价，只是展开层级不同”：
+
+```kotlin
+viewLifecycleOwner.onEvent<AddCartEvent> { event ->
+    render(event)
+}
+```
+
+```kotlin
+viewLifecycleOwner.collectEvent(eventFlow<AddCartEvent>()) { event ->
+    render(event)
+}
+```
+
+如果是 owner 作用域，也是一一对应的：
+
+```kotlin
+viewLifecycleOwner.onEvent<ReloadToolbarEvent>(from = requireActivity()) {
+    renderToolbar()
+}
+```
+
+```kotlin
+viewLifecycleOwner.collectEvent(requireActivity().scopedEventFlow<ReloadToolbarEvent>()) {
+    renderToolbar()
+}
+```
+
+建议你这样记：
+
+- 页面里只是想“收一个事件”，优先 `onEvent(...)`
+- 你还想自己做 `map`、`filter`、`debounce`、`combine`，就用 `eventFlow(...) + collectEvent(...)`
+- demo 同时出现这两种写法，是为了把“最短路径”和“先拿 Flow 再组合”都演示出来，不代表它们的事件来源不同
+
 ## 3 分钟上手
 
 ### 1. 添加依赖

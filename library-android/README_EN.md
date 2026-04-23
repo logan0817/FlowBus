@@ -43,6 +43,48 @@ It is not a good fit for:
 4. `post*` tries immediately, `tryPost*` also tells you whether the current call was accepted, and `emit*` suspends until delivery succeeds.
 5. `onEvent(...)` is the recommended shortest UI API; `collectEvent(flow)` is better when you already have a `Flow`.
 
+## Why do the docs often use `onEvent(...)`, while the demo sometimes uses `collectEvent(eventFlow(...))`
+
+These are not competing APIs. They are the same capability shown at different levels:
+
+- `onEvent(...)`: subscribe directly to FlowBus events, best for most UI code
+- `eventFlow(...)` / `scopedEventFlow(...)` / `channel.flow()`: get the event as a `Flow` first
+- `collectEvent(flow)`: collect that `Flow` with `LifecycleOwner` safety
+
+So for a simple global event, the two examples below can be understood as “same effect, different level of expansion”:
+
+```kotlin
+viewLifecycleOwner.onEvent<AddCartEvent> { event ->
+    render(event)
+}
+```
+
+```kotlin
+viewLifecycleOwner.collectEvent(eventFlow<AddCartEvent>()) { event ->
+    render(event)
+}
+```
+
+The same mapping applies to owner-scoped events:
+
+```kotlin
+viewLifecycleOwner.onEvent<ReloadToolbarEvent>(from = requireActivity()) {
+    renderToolbar()
+}
+```
+
+```kotlin
+viewLifecycleOwner.collectEvent(requireActivity().scopedEventFlow<ReloadToolbarEvent>()) {
+    renderToolbar()
+}
+```
+
+Recommended rule of thumb:
+
+- if the page just needs to receive an event, use `onEvent(...)`
+- if you want to `map`, `filter`, `debounce`, or `combine`, get the `Flow` first and use `collectEvent(...)`
+- the demo shows both styles on purpose, so readers can understand both the shortest path and the “get Flow first” style
+
 ## 3-minute quick start
 
 ### 1. Add the dependency
