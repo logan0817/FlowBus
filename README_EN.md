@@ -77,7 +77,7 @@ Use it when you need:
 
 Docs:
 
-doc: [`flowbus-core/README_EN.md`](./flowbus-core/README_EN.md)
+doc: [`flowbus-core/README_EN.md`](https://github.com/logan0817/FlowBus/blob/main/library-android/README.md)
 
 ## Repository Layout
 
@@ -243,7 +243,7 @@ scope.launch {
 }
 ```
 
-See [`flowbus-core/README_EN.md`](./flowbus-core/README_EN.md) for details.
+See [`flowbus-core/README_EN.md`](https://github.com/logan0817/FlowBus/blob/main/library-android/README.md) for details.
 
 ## API selection cheat sheet
 
@@ -308,7 +308,7 @@ viewLifecycleOwner.onEvent<MainUiEvent> { event ->
 ## Documentation map
 
 - Android integration and scenarios: [`library-android/README_EN.md`](./library-android/README_EN.md)
-- Core capabilities and multi-instance / scope usage: [`flowbus-core/README_EN.md`](./flowbus-core/README_EN.md)
+- Core capabilities and multi-instance / scope usage: [`flowbus-core/README_EN.md`](https://github.com/logan0817/FlowBus/blob/main/library-android/README.md)
 - Chinese document: [`README.md`](./README.md)
 
 ## Repository layout
