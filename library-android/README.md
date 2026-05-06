@@ -544,8 +544,6 @@ FlowBusAndroid.configure(
 - 需要 `FlowBusScope`、`EventKey`、`DefaultFlowBus` 这些更底层能力
 
 文档入口：
-
-- 本地文档：[`../flowbus-core/README.md`](../flowbus-core/README.md)
 - GitHub 地址：[flowbus-core README](https://github.com/logan0817/FlowBus/blob/master/flowbus-core/README.md)
 
 ## 仓库链接
