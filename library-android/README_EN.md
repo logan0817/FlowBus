@@ -422,12 +422,10 @@ FlowBusAndroid.configure(
 - logger / error handler / buffer configuration
 
 If you need those lower-level APIs directly, see:
-
-- local core doc: [`../flowbus-core/README_EN.md`](../flowbus-core/README_EN.md)
-- GitHub URL: [flowbus-core README](https://github.com/logan0817/FlowBus/blob/master/flowbus-core/README_EN.md)
+- GitHub URL: [flowbus-core README](https://github.com/logan0817/flowbus-core/blob/main/README.md)
 
 ## Repository links
 
 - repository root: [FlowBus](https://github.com/logan0817/FlowBus)
-- core module: [flowbus-core](https://github.com/logan0817/FlowBus/tree/master/flowbus-core)
+- core module: [flowbus-core](https://github.com/logan0817/flowbus-core)
 - demo module: [app](https://github.com/logan0817/FlowBus/tree/master/app)
