@@ -81,7 +81,7 @@ implementation("io.github.logan0817:flowbus-core:1.0.4")  // 替换为上方徽�
 
 文档入口：
 
-- 文档：[`flowbus-core/README.md`](./flowbus-core/README.md)
+- 文档：[`flowbus-core/README.md`](https://github.com/logan0817/FlowBus/blob/main/library-android/README.md)
 
 ## 仓库结构
 
@@ -247,7 +247,7 @@ scope.launch {
 }
 ```
 
-更详细说明见 [`flowbus-core/README.md`](./flowbus-core/README.md)。
+更详细说明见- [`flowbus-core/README.md`](https://github.com/logan0817/FlowBus/blob/main/library-android/README.md)。
 
 ## API 选择速记
 
@@ -312,7 +312,7 @@ viewLifecycleOwner.onEvent<MainUiEvent> { event ->
 ## 文档导航
 
 - Android 接入与场景说明：[`library-android/README.md`](./library-android/README.md)
-- Core 能力与多实例 / scope 用法：[`flowbus-core/README.md`](./flowbus-core/README.md)
+- Core 能力与多实例 / scope 用法：[`flowbus-core/README.md`](https://github.com/logan0817/FlowBus/blob/main/library-android/README.md)
 - 英文文档：[`README_EN.md`](./README_EN.md)
 
 ## 仓库结构
