@@ -2,154 +2,48 @@
 
 # FlowBus
 
-FlowBus 是一个基于 Kotlin Coroutines / Flow 的 Flow-first 事件框架。
+FlowBus 是一个基于 Kotlin Coroutines / Flow 的 Flow-first 事件框架，用于处理 Android 和 Kotlin 项目里的事件广播、命名通道、作用域事件和 sticky 最近值。
 
-它主要解决的是“事件广播”问题，不是状态管理框架，也不是对直接函数调用的替代品。
+它解决的是“一个地方发通知，多个地方可能响应”的问题；它不是状态管理框架，也不是直接函数调用、请求-响应或可靠队列的替代品。
 
-当前仓库包含两个对外模块：
+## 功能点
 
-- `flowbus-core`：平台无关的核心模块
-- `flowbus`（仓库目录 `library-android`）：Android 推荐接入模块
+| 能力 | 用法入口 | 适合场景 |
+| --- | --- | --- |
+| 全局事件广播 | `postEvent(...)` / `onEvent<T> { ... }` | 登录成功、后台同步完成、多个页面刷新 |
+| owner 局部事件 | `postEventTo(owner, ...)` / `owner.postScopedEvent(...)` | Fragment 通知 Activity、NavBackStackEntry 内部通信 |
+| 命名通道 | `eventChannel<T>("name")` | 同样是 `String`，但要区分 Toast、SnackBar、导航命令 |
+| Flow-first 订阅 | `eventFlow<T>()` / `collectEvent(flow)` | 先拿到 `Flow`，再做 `map`、`filter`、`debounce`、`combine` |
+| sticky 最近值 | `postStickyEvent(...)` / `onEvent<T>(isSticky = true)` | 页面恢复后需要先拿最近一次初始化结果 |
+| 发送诊断 | `tryPostEventResult(...)` | 排查订阅数、溢出策略、底层 `tryEmit` 是否拒绝 |
+| core 多实例和 scope | `flowbus-core` / `DefaultFlowBus.openScope(...)` | 非 Android、Repository / Worker / Session 级别隔离 |
 
-## FlowBus 是做什么的
+## 直接安装
 
-如果你经常会遇到这些问题，FlowBus 就会比较顺手：
-
-- 页面 A 想通知页面 B 刷新，但不想直接持有引用
-- Fragment 需要通知 Activity 执行某个动作
-- ViewModel / Repository / Worker 想异步通知 UI
-- 同一个事件需要被多个观察者同时收到
-- 你想把事件当成 `Flow` 来订阅、组合、过滤
-
-它更像一个“按类型或命名 channel 分发的广播系统”。
-
-## 它不适合做什么
-
-这些场景通常不建议用 FlowBus：
-
-- 页面内部状态管理：优先 `StateFlow`
-- 明确的一对一调用：优先直接方法调用 / use case
-- 严格请求-响应：优先返回值、挂起函数、专用 channel
-- 长期共享状态：优先状态容器，而不是一次性事件
-
-简单理解：
-
-- “一个地方发通知，很多地方可能要响应” -> 可以考虑 FlowBus
-- “A 调 B 拿结果” -> 通常不该用 FlowBus
-
-## 先选哪个模块
-
-### 如果你是 Android 项目
-
-直接从这个依赖开始：
+Android 项目优先使用 `flowbus`：
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.0.5")  // 替换为上方徽章显示的最新版本
+implementation("io.github.logan0817:flowbus:1.0.6")  // 发布后可使用 1.0.6，实际 latest 以 Maven Central 徽章为准
 ```
 
-适合你如果你需要：
-
-- 全局事件广播
-- 基于 `ViewModelStoreOwner` 的局部事件作用域
-- `eventFlow<T>()` / `owner.scopedEventFlow<T>()`
-- `eventChannel<T>("...")` 命名事件句柄
-- 生命周期安全的 `collectEvent(...)` / `onEvent(...)`
-
-文档入口：
-
-- 文档：[`library-android/README.md`](./library-android/README.md)
-
-### 如果你是纯 Kotlin / Coroutines / 非 Android 场景
-
-从这个依赖开始：
+纯 Kotlin / Coroutines / 非 Android 场景使用 `flowbus-core`：
 
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.0.4")  // 替换为上方徽章显示的最新版本
+implementation("io.github.logan0817:flowbus-core:1.0.6")  // 发布后可使用 1.0.6，实际 latest 以 Maven Central 徽章为准
 ```
 
-适合你如果你需要：
+模块选择：
 
-- 自己管理 `FlowBus` 实例
-- root bus + scoped bus
-- `FlowBusScope` 生命周期绑定
-- `EventKey`、`eventChannel(...)`、sticky event
-- 非 Android 环境或自己封装上层适配
+1. Android 页面、ViewModel、Fragment、Activity 通信：先看 [`library-android/README.md`](./library-android/README.md)。
+2. 非 Android、多实例、显式 scope 生命周期：再看 [`flowbus-core/README.md`](./flowbus-core/README.md)。
 
-文档入口：
+## 5 分钟上手
 
-- 文档：[`flowbus-core/README.md`](https://github.com/logan0817/FlowBus/blob/main/library-android/README.md)
-
-## 仓库结构
-
-- 主仓库 `FlowBus` 继续维护 Android 模块、Demo 和整体集成。
-- `flowbus-core` 现在作为 git submodule 挂载在当前目录下，同时拥有自己的独立仓库。
-- 首次拉取主仓库时请使用 `git clone --recurse-submodules ...`，或在已有工作区执行 `git submodule update --init --recursive`。
-
-## 第一次接触，建议这样开始
-
-1. Android 用户先看 [`library-android/README.md`](./library-android/README.md)。
-2. 先只记住最短路径：发送 `postEvent(...)`，接收 `onEvent<T> { ... }`。
-3. 如果你需要感知 best-effort 发送是否成功，使用 `tryPostEvent(...)` / `tryPostEventTo(...)`。
-4. 需要限制在某个 Activity / Fragment / NavBackStackEntry 作用域内，再看 owner 版本。
-5. 同一类型需要多个通道时，再引入 `eventChannel<T>("name")`。
-6. 只有当你需要多实例、显式 scope 生命周期或非 Android 使用时，再继续下沉到 `flowbus-core`。
-
-## `onEvent(...)` 和 `collectEvent(eventFlow(...))` 是什么关系
-
-第一次看 demo 时，最容易疑惑的点就是这里：
-
-- 文档里更常写 `onEvent<T> { ... }`
-- demo 里有时会写 `collectEvent(eventFlow<T>()) { ... }`
-
-它们不是两套不同体系，监听的是同一条事件流，只是展开层级不同：
-
-- `onEvent(...)`：UI 层最短写法，适合大多数页面监听
-- `eventFlow(...)` / `scopedEventFlow(...)` / `channel.flow()`：先把事件拿成 `Flow`
-- `collectEvent(flow)`：把任意 `Flow` 绑定到 `LifecycleOwner` 安全收集
-
-最简单的全局事件，这两种写法可以理解成：
-
-```kotlin
-viewLifecycleOwner.onEvent<AddCartEvent> { event ->
-    render(event)
-}
-```
-
-```kotlin
-viewLifecycleOwner.collectEvent(eventFlow<AddCartEvent>()) { event ->
-    render(event)
-}
-```
-
-owner 作用域也是同样关系：
-
-```kotlin
-viewLifecycleOwner.onEvent<ReloadToolbarEvent>(from = requireActivity()) {
-    renderToolbar()
-}
-```
-
-```kotlin
-viewLifecycleOwner.collectEvent(requireActivity().scopedEventFlow<ReloadToolbarEvent>()) {
-    renderToolbar()
-}
-```
-
-建议你这样记：
-
-- 页面里只是想“收一个事件”，优先 `onEvent(...)`
-- 你还想自己做 `map`、`filter`、`debounce`、`combine`，就先拿 `eventFlow(...)` 再配合 `collectEvent(...)`
-- demo 里同时出现这两种写法，是为了把“最短监听路径”和“先拿 Flow 再组合”都演示出来，不代表事件来源不同
-
-## 3 分钟上手
-
-下面是 Android 最短示例，也是大多数人第一次接入时最有帮助的路径。
-
-### 1. 定义一个事件
+### 1. 定义事件
 
 ```kotlin
 data class RefreshHomeEvent(val source: String)
@@ -169,16 +63,13 @@ viewLifecycleOwner.onEvent<RefreshHomeEvent> { event ->
 }
 ```
 
-这三步就已经够你在项目里开始试用了。
+这就是最短 Android 接入路径。先记住：发送用 `postEvent(...)`，页面接收用 `onEvent<T> { ... }`。
 
-## 最常见的 4 个使用场景
+## 常用场景
 
 ### 场景 1：全局刷新通知
 
-适合：
-
-- 登录成功后多个页面都要刷新
-- 后台同步完成后多个观察者都要更新
+适合登录成功、配置更新、后台同步完成后通知多个页面。
 
 ```kotlin
 data class SyncFinishedEvent(val successCount: Int)
@@ -192,11 +83,7 @@ viewLifecycleOwner.onEvent<SyncFinishedEvent> { event ->
 
 ### 场景 2：Fragment 通知 Activity
 
-适合：
-
-- 刷新标题栏
-- 请求 Activity 导航
-- 当前页面树内部通信，但不想污染全局
+适合刷新标题栏、请求导航、当前 Activity 内部页面通信。
 
 ```kotlin
 data object ReloadToolbarEvent
@@ -208,14 +95,11 @@ viewLifecycleOwner.onEvent<ReloadToolbarEvent>(from = requireActivity()) {
 }
 ```
 
+这里的 `requireActivity()` 表示事件挂在哪个 owner 作用域，不表示监听者。
+
 ### 场景 3：同一类型多个命名通道
 
-适合：
-
-- `Toast`
-- `SnackBar`
-- 导航命令
-- 同样都是 `String`，但业务语义不同
+适合同样都是 `String`，但业务语义不同的事件。
 
 ```kotlin
 val toastChannel = eventChannel<String>("ui.toast")
@@ -227,13 +111,9 @@ viewLifecycleOwner.onEvent(toastChannel) { message ->
 }
 ```
 
-### 场景 4：非 Android 或更底层的作用域控制
+### 场景 4：非 Android 或底层 scope 控制
 
-适合：
-
-- Repository / Worker / Session 级别隔离
-- 需要多个 bus 实例
-- 需要 scope 生命周期跟随 `CoroutineScope` / `Job`
+适合 Repository / Worker / Session 级别隔离，或需要多个 `FlowBus` 实例。
 
 ```kotlin
 val syncScope = DefaultFlowBus.openScope("sync-task", closeWhen = scope)
@@ -247,91 +127,95 @@ scope.launch {
 }
 ```
 
-更详细说明见- [`flowbus-core/README.md`](https://github.com/logan0817/FlowBus/blob/main/library-android/README.md)。
-
 ## API 选择速记
 
-| 需求 | 推荐 API |
-| --- | --- |
-| 全局发送 | `postEvent(...)` |
-| 想知道 best-effort 是否成功 | `tryPostEvent(...)` |
-| 必须保证写入成功 | `emitEvent(...)` |
-| 发送到某个 owner | `postEventTo(owner, ...)` / `owner.postScopedEvent(...)` |
-| 命名通道 | `eventChannel<T>("name")` + `channel.post(...)` |
-| 最短一行监听 | `onEvent(...)` |
-| 先拿到 `Flow` 自己组合 | `eventFlow<T>()` / `owner.scopedEventFlow<T>()` |
-| 生命周期安全收集任意 `Flow` | `collectEvent(flow) { ... }` |
-| 非 Android / 多实例 / scope 生命周期 | `flowbus-core` |
+| 场景 | 推荐入口 | 是否挂起 | sticky replay | 结果边界 |
+| --- | --- | --- | --- | --- |
+| 全局轻量广播 | `postEvent(...)` | 否 | 否 | best-effort，极端情况下可能发送失败 |
+| 只想知道 `tryEmit` 有没有被拒绝 | `tryPostEvent(...)` | 否 | 否 | 返回 `Boolean`，不代表业务处理成功 |
+| 需要发送诊断结果 | `tryPostEventResult(...)` | 否 | 普通 / sticky 都可用 | 返回订阅数、sticky replay 数、溢出策略和结果分类 |
+| 必须等待写入成功 | `emitEvent(...)` | 是 | 普通 / sticky 都可用 | 按背压规则等待底层流接收 |
+| 发送到某个 owner | `postEventTo(owner, ...)` / `owner.postScopedEvent(...)` | 否 | 否 | 事件只进入该 owner 对应的局部总线 |
+| 命名通道 | `eventChannel<T>("name")` + `channel.post(...)` | 否 | 普通 / sticky 都可用 | 适合长期复用的业务通道 |
+| 最短一行监听 | `onEvent(...)` | 否 | 由 `isSticky` 决定 | 自动绑定 `LifecycleOwner` |
+| 先拿到 `Flow` 自己组合 | `eventFlow<T>()` / `owner.scopedEventFlow<T>()` | 否 | 由 `isSticky` 决定 | 适合 `map`、`filter`、`debounce` 等操作 |
+| 生命周期安全收集任意 `Flow` | `collectEvent(flow) { ... }` | 否 | 取决于传入的 `Flow` | 不只限于 FlowBus |
+| 非 Android / 多实例 / scope 生命周期 | `flowbus-core` | 取决于 API | 普通 / sticky 都可用 | 自行管理 `FlowBus`、scope 和协程生命周期 |
 
-### `post` 和 `emit` 怎么选
-
-- `post*`：非挂起，best-effort，写法最轻
-- `tryPost*`：非挂起，但会返回当前调用是否已被总线接收
-- `emit*`：挂起直到成功写入，适合更关键的事件
-
-### sticky event 什么时候用
-
-适合：
-
-- 最新配置
-- 最近一次初始化结果
-- 后来订阅的人也需要拿到最近一次值
-
-不适合：
-
-- Toast
-- 导航
-- 一次性点击动作
-
-### 事件类型怎么建模
-
-推荐顺序：
-
-1. 单个动作：`data class` / `data object`
-2. 同一业务域多个动作：`sealed interface` / `sealed class`
-3. 只有值真的很简单时，才直接发 `String` / `Int`
-
-如果你用 `sealed interface` 把多个子事件放进同一个通道，发送时记得显式指定父类型：
+`onEvent(...)` 和 `collectEvent(eventFlow(...))` 不是两套体系。前者是 UI 最短写法，后者是先拿 `Flow` 再交给生命周期安全收集；它们监听的是同一条事件流。
 
 ```kotlin
-sealed interface MainUiEvent {
-    data object Refresh : MainUiEvent
-    data class ShowToast(val message: String) : MainUiEvent
+viewLifecycleOwner.onEvent<RefreshHomeEvent> { event ->
+    render(event)
 }
 
-postEvent<MainUiEvent>(MainUiEvent.Refresh)
-
-viewLifecycleOwner.onEvent<MainUiEvent> { event ->
-    when (event) {
-        MainUiEvent.Refresh -> refresh()
-        is MainUiEvent.ShowToast -> showToast(event.message)
-    }
+viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
+    render(event)
 }
 ```
 
+## 边界说明
+
+1. 页面内部长期状态优先用 `StateFlow`，不要把 FlowBus 当状态容器。
+2. 明确的一对一调用优先直接方法调用、use case 或挂起函数。
+3. `tryPost*Result.accepted = true` 只说明底层 `tryEmit` 没有拒绝，不代表订阅者已经处理完成。
+4. `DROP_OLDEST` / `DROP_LATEST` 不是可靠队列策略，关键链路应使用 `emit*`、业务队列或状态机。
+5. sticky event 只保留最近值，适合初始化结果和页面恢复，不适合替代长期状态管理。
+6. `consumeStickyLatestEvent(...)` 只读取并清空当前 sticky replay，不会阻止其他线程后续写入新的 sticky 值。
+7. 日志里的 `eventName`、`scopeName` 不要包含手机号、token、订单号、用户 ID 等敏感信息。
+
+## 兼容与发布状态
+
+当前文档对应 `1.0.6`。远端 Maven Central 的实际可用版本以徽章和 Central 页面为准。
+
+| 项目 | 版本 |
+| --- | --- |
+| Kotlin | `1.9.25` |
+| Android Gradle Plugin | `8.6.1` |
+| Gradle | `8.7` |
+| Gradle 运行 JDK | `17` |
+| 发布字节码 | Java 8 |
+| Android SDK | `minSdk=21`，`compileSdk=35`，`targetSdk=35` |
+
+发布前门禁：
+
+1. `apiCheck` 保护公开 API。
+2. `:flowbus-core:test`、`:library-android:testDebugUnitTest` 和 `:app:testDebugUnitTest` 覆盖核心、Android 包装和示例单测。
+3. `:library-android:lintRelease`、`:app:lintRelease`、`:app:assembleDebug`、`:app:assembleRelease` 覆盖库和示例应用 release 构建质量。
+4. `:library-android:connectedDebugAndroidTest :app:connectedReleaseAndroidTest` 覆盖设备回归，`app` 走 release R8/minify。
+5. `verifyMavenLocalArtifacts` 校验本地 Maven 产物、POM、module metadata、license 和 developer 元数据。
+6. `verifyMavenLocalCoreConsumer` 编译真实 Kotlin/JVM consumer，验证 `flowbus-core` 坐标可被独立消费。
+7. `verifyMavenLocalConsumer` 构建真实 Android consumer，验证 `flowbus` 坐标和 release shrink。
+8. `releaseToMavenCentral --dry-run` 只检查远程发布任务图，不会真实上传。
+
 ## 文档导航
 
-- Android 接入与场景说明：[`library-android/README.md`](./library-android/README.md)
-- Core 能力与多实例 / scope 用法：[`flowbus-core/README.md`](https://github.com/logan0817/FlowBus/blob/main/library-android/README.md)
-- 英文文档：[`README_EN.md`](./README_EN.md)
+1. Android 接入与完整场景：[`library-android/README.md`](./library-android/README.md)
+2. Core 能力、多实例和 scope 生命周期：[`flowbus-core/README.md`](./flowbus-core/README.md)
+3. 发布清单：[`docs/release-checklist.md`](./docs/release-checklist.md)
+4. 发布说明：[`docs/release-notes-1.0.6.md`](./docs/release-notes-1.0.6.md)
+5. 版本记录：[`CHANGELOG.md`](./CHANGELOG.md)
+6. 英文文档：[`README_EN.md`](./README_EN.md)
 
 ## 仓库结构
 
-- `flowbus-core`：核心框架模块
-- `library-android`：Android 适配模块
-- `app`：demo app
+| 目录 | 作用 |
+| --- | --- |
+| `flowbus-core` | 平台无关核心模块，对外坐标 `io.github.logan0817:flowbus-core`；`flowbus-core` 由 FlowBus 主仓库直接维护 |
+| `library-android` | Android 适配模块，对外坐标 `io.github.logan0817:flowbus`；依赖主仓库内的 `flowbus-core` |
+| `app` | 示例应用和集成验证入口 |
+| `docs` | 发布清单和发布说明 |
 
-## Demo
+## 示例应用
 
 <img src="GIF.gif" width="350" />
 
-可下载 [Demo APK](https://raw.githubusercontent.com/logan0817/FlowBus/master/app/apk/app-debug.apk) 体验。
+示例源码位于 [`app`](./app) 模块，可直接运行或按当前 debug 配置本地构建；仓库不提交生成的 APK 产物，避免把调试包误当正式渠道分发包。建议按这个顺序看：
 
-Demo 源码位于 [`app`](./app) 模块，可直接运行。建议按这个顺序看：
-
-1. `MainActivity`：全局事件、owner 事件、非 UI demo 入口
-2. `TestFragmentActivity`：演示 Activity 作用域事件、`eventChannel`，以及 Activity / Fragment 在同一 owner 作用域内共享接收
-3. `LoginActivity`：owner 局部总线示例
+1. `MainActivity`：全局事件、owner 事件、非 UI 案例入口。
+2. `ScopeCaseActivity`：Activity 作用域事件、`eventChannel`，以及 Activity / Fragment 在同一 owner 作用域内共享接收。
+3. `StickyCaseActivity`：同一 owner 内的 sticky 最近状态回放。
+4. `LoginActivity`：owner 局部总线示例，表单密码只做本地校验，不进入事件 payload。
 
 ## License
 

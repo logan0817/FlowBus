@@ -1,0 +1,487 @@
+public final class com/logan/flowbus/core/DefaultFlowBus {
+	public static final field INSTANCE Lcom/logan/flowbus/core/DefaultFlowBus;
+	public final fun clearSticky (Lcom/logan/flowbus/core/EventKey;)V
+	public final fun collect (Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun collect$default (Lcom/logan/flowbus/core/DefaultFlowBus;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun collectSticky (Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun collectSticky$default (Lcom/logan/flowbus/core/DefaultFlowBus;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun configure (Lcom/logan/flowbus/core/FlowBusConfig;)V
+	public final fun consumeStickyLatest (Lcom/logan/flowbus/core/EventKey;)Ljava/lang/Object;
+	public final fun emit (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun emitSticky (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun flow (Lcom/logan/flowbus/core/EventKey;)Lkotlinx/coroutines/flow/Flow;
+	public final fun inspect ()Lcom/logan/flowbus/core/FlowBusSnapshot;
+	public final fun inspectScope (Ljava/lang/String;)Lcom/logan/flowbus/core/FlowBusScopeSnapshot;
+	public final fun inspector ()Lcom/logan/flowbus/core/FlowBusInspector;
+	public final fun install (Lcom/logan/flowbus/core/FlowBus;)V
+	public final fun openScope (Lcom/logan/flowbus/core/FlowBusOwner;)Lcom/logan/flowbus/core/FlowBusScope;
+	public final fun openScope (Lcom/logan/flowbus/core/FlowBusOwner;Lkotlinx/coroutines/CoroutineScope;)Lcom/logan/flowbus/core/FlowBusScope;
+	public final fun openScope (Lcom/logan/flowbus/core/FlowBusOwner;Lkotlinx/coroutines/Job;)Lcom/logan/flowbus/core/FlowBusScope;
+	public final fun openScope (Ljava/lang/String;)Lcom/logan/flowbus/core/FlowBusScope;
+	public final fun openScope (Ljava/lang/String;Lkotlinx/coroutines/CoroutineScope;)Lcom/logan/flowbus/core/FlowBusScope;
+	public final fun openScope (Ljava/lang/String;Lkotlinx/coroutines/Job;)Lcom/logan/flowbus/core/FlowBusScope;
+	public final fun post (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;)Z
+	public final fun postSticky (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;)Z
+	public final fun raw ()Lcom/logan/flowbus/core/FlowBus;
+	public final fun removeEvent (Lcom/logan/flowbus/core/EventKey;)V
+	public final fun removeScope (Lcom/logan/flowbus/core/FlowBusOwner;)V
+	public final fun removeScope (Ljava/lang/String;)V
+	public final fun removeSticky (Lcom/logan/flowbus/core/EventKey;)V
+	public final fun scope (Lcom/logan/flowbus/core/FlowBusOwner;)Lcom/logan/flowbus/core/ScopedFlowBus;
+	public final fun scope (Ljava/lang/String;)Lcom/logan/flowbus/core/ScopedFlowBus;
+	public final fun scoped (Lcom/logan/flowbus/core/FlowBusOwner;)Lcom/logan/flowbus/core/ScopedFlowBus;
+	public final fun scoped (Ljava/lang/String;)Lcom/logan/flowbus/core/ScopedFlowBus;
+	public final fun stickyFlow (Lcom/logan/flowbus/core/EventKey;)Lkotlinx/coroutines/flow/Flow;
+	public final fun tryPostResult (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;)Lcom/logan/flowbus/core/FlowBusPostResult;
+	public final fun tryPostStickyResult (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;)Lcom/logan/flowbus/core/FlowBusPostResult;
+}
+
+public final class com/logan/flowbus/core/EventChannel {
+	public final fun asEventKey ()Lcom/logan/flowbus/core/EventKey;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getName ()Ljava/lang/String;
+	public final fun getValueType ()Lkotlin/reflect/KClass;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/logan/flowbus/core/EventChannelExtensionsKt {
+	public static final fun clearSticky (Lcom/logan/flowbus/core/EventChannel;)V
+	public static final fun clearStickyOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBus;)V
+	public static final fun clearStickyOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBusScope;)V
+	public static final fun clearStickyOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/ScopedFlowBus;)V
+	public static final fun collect (Lcom/logan/flowbus/core/EventChannel;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun collect$default (Lcom/logan/flowbus/core/EventChannel;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static final fun collectOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBus;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun collectOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBusScope;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun collectOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/ScopedFlowBus;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun collectOn$default (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBus;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun collectOn$default (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBusScope;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun collectOn$default (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/ScopedFlowBus;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static final fun collectSticky (Lcom/logan/flowbus/core/EventChannel;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun collectSticky$default (Lcom/logan/flowbus/core/EventChannel;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static final fun collectStickyOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBus;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun collectStickyOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBusScope;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun collectStickyOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/ScopedFlowBus;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun collectStickyOn$default (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBus;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun collectStickyOn$default (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBusScope;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static synthetic fun collectStickyOn$default (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/ScopedFlowBus;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static final fun consumeStickyLatest (Lcom/logan/flowbus/core/EventChannel;)Ljava/lang/Object;
+	public static final fun consumeStickyLatestOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBus;)Ljava/lang/Object;
+	public static final fun consumeStickyLatestOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBusScope;)Ljava/lang/Object;
+	public static final fun consumeStickyLatestOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/ScopedFlowBus;)Ljava/lang/Object;
+	public static final fun emit (Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun emitOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBus;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun emitOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBusScope;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun emitOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/ScopedFlowBus;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun emitSticky (Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun emitStickyOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBus;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun emitStickyOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBusScope;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun emitStickyOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/ScopedFlowBus;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static final fun flow (Lcom/logan/flowbus/core/EventChannel;)Lkotlinx/coroutines/flow/Flow;
+	public static final fun flowOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBus;)Lkotlinx/coroutines/flow/Flow;
+	public static final fun flowOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBusScope;)Lkotlinx/coroutines/flow/Flow;
+	public static final fun flowOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/ScopedFlowBus;)Lkotlinx/coroutines/flow/Flow;
+	public static final fun post (Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;)Z
+	public static final fun postOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBus;Ljava/lang/Object;)Z
+	public static final fun postOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBusScope;Ljava/lang/Object;)Z
+	public static final fun postOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/ScopedFlowBus;Ljava/lang/Object;)Z
+	public static final fun postSticky (Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;)Z
+	public static final fun postStickyOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBus;Ljava/lang/Object;)Z
+	public static final fun postStickyOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBusScope;Ljava/lang/Object;)Z
+	public static final fun postStickyOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/ScopedFlowBus;Ljava/lang/Object;)Z
+	public static final fun removeEvent (Lcom/logan/flowbus/core/EventChannel;)V
+	public static final fun removeEventOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBus;)V
+	public static final fun removeEventOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBusScope;)V
+	public static final fun removeEventOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/ScopedFlowBus;)V
+	public static final fun removeSticky (Lcom/logan/flowbus/core/EventChannel;)V
+	public static final fun removeStickyOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBus;)V
+	public static final fun removeStickyOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBusScope;)V
+	public static final fun removeStickyOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/ScopedFlowBus;)V
+	public static final fun stickyFlow (Lcom/logan/flowbus/core/EventChannel;)Lkotlinx/coroutines/flow/Flow;
+	public static final fun stickyFlowOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBus;)Lkotlinx/coroutines/flow/Flow;
+	public static final fun stickyFlowOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBusScope;)Lkotlinx/coroutines/flow/Flow;
+	public static final fun stickyFlowOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/ScopedFlowBus;)Lkotlinx/coroutines/flow/Flow;
+	public static final fun tryPostResult (Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;)Lcom/logan/flowbus/core/FlowBusPostResult;
+	public static final fun tryPostResultOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBus;Ljava/lang/Object;)Lcom/logan/flowbus/core/FlowBusPostResult;
+	public static final fun tryPostResultOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBusScope;Ljava/lang/Object;)Lcom/logan/flowbus/core/FlowBusPostResult;
+	public static final fun tryPostResultOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/ScopedFlowBus;Ljava/lang/Object;)Lcom/logan/flowbus/core/FlowBusPostResult;
+	public static final fun tryPostStickyResult (Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;)Lcom/logan/flowbus/core/FlowBusPostResult;
+	public static final fun tryPostStickyResultOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBus;Ljava/lang/Object;)Lcom/logan/flowbus/core/FlowBusPostResult;
+	public static final fun tryPostStickyResultOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBusScope;Ljava/lang/Object;)Lcom/logan/flowbus/core/FlowBusPostResult;
+	public static final fun tryPostStickyResultOn (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/ScopedFlowBus;Ljava/lang/Object;)Lcom/logan/flowbus/core/FlowBusPostResult;
+}
+
+public final class com/logan/flowbus/core/EventChannelKt {
+	public static final fun asEventChannel (Lcom/logan/flowbus/core/EventKey;)Lcom/logan/flowbus/core/EventChannel;
+	public static final fun eventChannel (Ljava/lang/String;Ljava/lang/Class;)Lcom/logan/flowbus/core/EventChannel;
+	public static final fun eventChannel (Ljava/lang/String;Lkotlin/reflect/KClass;)Lcom/logan/flowbus/core/EventChannel;
+}
+
+public final class com/logan/flowbus/core/EventKey {
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getName ()Ljava/lang/String;
+	public final fun getValueType ()Lkotlin/reflect/KClass;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/logan/flowbus/core/EventKeyKt {
+	public static final fun eventKey (Ljava/lang/String;Ljava/lang/Class;)Lcom/logan/flowbus/core/EventKey;
+	public static final fun eventKey (Ljava/lang/String;Lkotlin/reflect/KClass;)Lcom/logan/flowbus/core/EventKey;
+}
+
+public abstract interface annotation class com/logan/flowbus/core/ExperimentalFlowBusApi : java/lang/annotation/Annotation {
+}
+
+public final class com/logan/flowbus/core/FlowBus {
+	public fun <init> ()V
+	public fun <init> (Lcom/logan/flowbus/core/FlowBusConfig;)V
+	public synthetic fun <init> (Lcom/logan/flowbus/core/FlowBusConfig;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun clearSticky (Lcom/logan/flowbus/core/EventKey;)V
+	public final fun collect (Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun collect$default (Lcom/logan/flowbus/core/FlowBus;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun collectSticky (Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun collectSticky$default (Lcom/logan/flowbus/core/FlowBus;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun consumeStickyLatest (Lcom/logan/flowbus/core/EventKey;)Ljava/lang/Object;
+	public final fun emit (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun emitSticky (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun flow (Lcom/logan/flowbus/core/EventKey;)Lkotlinx/coroutines/flow/Flow;
+	public final fun getConfig ()Lcom/logan/flowbus/core/FlowBusConfig;
+	public final fun inspect ()Lcom/logan/flowbus/core/FlowBusSnapshot;
+	public final fun inspectScope (Ljava/lang/String;)Lcom/logan/flowbus/core/FlowBusScopeSnapshot;
+	public final fun inspector ()Lcom/logan/flowbus/core/FlowBusInspector;
+	public final fun openScope (Lcom/logan/flowbus/core/FlowBusOwner;)Lcom/logan/flowbus/core/FlowBusScope;
+	public final fun openScope (Lcom/logan/flowbus/core/FlowBusOwner;Lkotlinx/coroutines/CoroutineScope;)Lcom/logan/flowbus/core/FlowBusScope;
+	public final fun openScope (Lcom/logan/flowbus/core/FlowBusOwner;Lkotlinx/coroutines/Job;)Lcom/logan/flowbus/core/FlowBusScope;
+	public final fun openScope (Ljava/lang/String;)Lcom/logan/flowbus/core/FlowBusScope;
+	public final fun openScope (Ljava/lang/String;Lkotlinx/coroutines/CoroutineScope;)Lcom/logan/flowbus/core/FlowBusScope;
+	public final fun openScope (Ljava/lang/String;Lkotlinx/coroutines/Job;)Lcom/logan/flowbus/core/FlowBusScope;
+	public final fun post (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;)Z
+	public final fun postSticky (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;)Z
+	public final fun removeEvent (Lcom/logan/flowbus/core/EventKey;)V
+	public final fun removeScope (Lcom/logan/flowbus/core/FlowBusOwner;)V
+	public final fun removeScope (Ljava/lang/String;)V
+	public final fun removeSticky (Lcom/logan/flowbus/core/EventKey;)V
+	public final fun scoped (Lcom/logan/flowbus/core/FlowBusOwner;)Lcom/logan/flowbus/core/ScopedFlowBus;
+	public final fun scoped (Ljava/lang/String;)Lcom/logan/flowbus/core/ScopedFlowBus;
+	public final fun stickyFlow (Lcom/logan/flowbus/core/EventKey;)Lkotlinx/coroutines/flow/Flow;
+	public final fun tryPostResult (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;)Lcom/logan/flowbus/core/FlowBusPostResult;
+	public final fun tryPostStickyResult (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;)Lcom/logan/flowbus/core/FlowBusPostResult;
+}
+
+public final class com/logan/flowbus/core/FlowBusCloseOutcome : java/lang/Enum {
+	public static final field AlreadyClosed Lcom/logan/flowbus/core/FlowBusCloseOutcome;
+	public static final field Closed Lcom/logan/flowbus/core/FlowBusCloseOutcome;
+	public static final field ClosingInProgress Lcom/logan/flowbus/core/FlowBusCloseOutcome;
+	public static final field Timeout Lcom/logan/flowbus/core/FlowBusCloseOutcome;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/logan/flowbus/core/FlowBusCloseOutcome;
+	public static fun values ()[Lcom/logan/flowbus/core/FlowBusCloseOutcome;
+}
+
+public final class com/logan/flowbus/core/FlowBusCloseResult {
+	public fun <init> (Ljava/lang/String;ZLcom/logan/flowbus/core/FlowBusCloseOutcome;I)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Z
+	public final fun component3 ()Lcom/logan/flowbus/core/FlowBusCloseOutcome;
+	public final fun component4 ()I
+	public final fun copy (Ljava/lang/String;ZLcom/logan/flowbus/core/FlowBusCloseOutcome;I)Lcom/logan/flowbus/core/FlowBusCloseResult;
+	public static synthetic fun copy$default (Lcom/logan/flowbus/core/FlowBusCloseResult;Ljava/lang/String;ZLcom/logan/flowbus/core/FlowBusCloseOutcome;IILjava/lang/Object;)Lcom/logan/flowbus/core/FlowBusCloseResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getClosed ()Z
+	public final fun getInFlightOperationCount ()I
+	public final fun getOutcome ()Lcom/logan/flowbus/core/FlowBusCloseOutcome;
+	public final fun getScopeName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/logan/flowbus/core/FlowBusCollectorKt {
+	public static final fun collectFlowBusSequentially (Lkotlinx/coroutines/flow/Flow;Lcom/logan/flowbus/core/EventKey;Ljava/lang/String;ZLkotlinx/coroutines/CoroutineDispatcher;Lcom/logan/flowbus/core/FlowBusLogger;Lcom/logan/flowbus/core/FlowBusErrorHandler;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun collectFlowBusSequentially$default (Lkotlinx/coroutines/flow/Flow;Lcom/logan/flowbus/core/EventKey;Ljava/lang/String;ZLkotlinx/coroutines/CoroutineDispatcher;Lcom/logan/flowbus/core/FlowBusLogger;Lcom/logan/flowbus/core/FlowBusErrorHandler;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+}
+
+public final class com/logan/flowbus/core/FlowBusConfig {
+	public fun <init> ()V
+	public fun <init> (IIILkotlinx/coroutines/channels/BufferOverflow;Lcom/logan/flowbus/core/FlowBusLogger;Lcom/logan/flowbus/core/FlowBusErrorHandler;)V
+	public synthetic fun <init> (IIILkotlinx/coroutines/channels/BufferOverflow;Lcom/logan/flowbus/core/FlowBusLogger;Lcom/logan/flowbus/core/FlowBusErrorHandler;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()I
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()Lkotlinx/coroutines/channels/BufferOverflow;
+	public final fun component5 ()Lcom/logan/flowbus/core/FlowBusLogger;
+	public final fun component6 ()Lcom/logan/flowbus/core/FlowBusErrorHandler;
+	public final fun copy (IIILkotlinx/coroutines/channels/BufferOverflow;Lcom/logan/flowbus/core/FlowBusLogger;Lcom/logan/flowbus/core/FlowBusErrorHandler;)Lcom/logan/flowbus/core/FlowBusConfig;
+	public static synthetic fun copy$default (Lcom/logan/flowbus/core/FlowBusConfig;IIILkotlinx/coroutines/channels/BufferOverflow;Lcom/logan/flowbus/core/FlowBusLogger;Lcom/logan/flowbus/core/FlowBusErrorHandler;ILjava/lang/Object;)Lcom/logan/flowbus/core/FlowBusConfig;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getErrorHandler ()Lcom/logan/flowbus/core/FlowBusErrorHandler;
+	public final fun getLogger ()Lcom/logan/flowbus/core/FlowBusLogger;
+	public final fun getNormalBufferCapacity ()I
+	public final fun getOverflowPolicy ()Lkotlinx/coroutines/channels/BufferOverflow;
+	public final fun getStickyExtraBufferCapacity ()I
+	public final fun getStickyReplay ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/logan/flowbus/core/FlowBusConfigSnapshot {
+	public fun <init> (IIILkotlinx/coroutines/channels/BufferOverflow;)V
+	public final fun component1 ()I
+	public final fun component2 ()I
+	public final fun component3 ()I
+	public final fun component4 ()Lkotlinx/coroutines/channels/BufferOverflow;
+	public final fun copy (IIILkotlinx/coroutines/channels/BufferOverflow;)Lcom/logan/flowbus/core/FlowBusConfigSnapshot;
+	public static synthetic fun copy$default (Lcom/logan/flowbus/core/FlowBusConfigSnapshot;IIILkotlinx/coroutines/channels/BufferOverflow;ILjava/lang/Object;)Lcom/logan/flowbus/core/FlowBusConfigSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getNormalBufferCapacity ()I
+	public final fun getOverflowPolicy ()Lkotlinx/coroutines/channels/BufferOverflow;
+	public final fun getStickyExtraBufferCapacity ()I
+	public final fun getStickyReplay ()I
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/logan/flowbus/core/FlowBusErrorContext {
+	public fun <init> (Ljava/lang/String;Lkotlin/reflect/KClass;Lkotlin/reflect/KClass;ZLjava/lang/String;Lcom/logan/flowbus/core/FlowBusErrorPhase;Ljava/lang/String;)V
+	public synthetic fun <init> (Ljava/lang/String;Lkotlin/reflect/KClass;Lkotlin/reflect/KClass;ZLjava/lang/String;Lcom/logan/flowbus/core/FlowBusErrorPhase;Ljava/lang/String;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Lkotlin/reflect/KClass;
+	public final fun component3 ()Lkotlin/reflect/KClass;
+	public final fun component4 ()Z
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Lcom/logan/flowbus/core/FlowBusErrorPhase;
+	public final fun component7 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;Lkotlin/reflect/KClass;Lkotlin/reflect/KClass;ZLjava/lang/String;Lcom/logan/flowbus/core/FlowBusErrorPhase;Ljava/lang/String;)Lcom/logan/flowbus/core/FlowBusErrorContext;
+	public static synthetic fun copy$default (Lcom/logan/flowbus/core/FlowBusErrorContext;Ljava/lang/String;Lkotlin/reflect/KClass;Lkotlin/reflect/KClass;ZLjava/lang/String;Lcom/logan/flowbus/core/FlowBusErrorPhase;Ljava/lang/String;ILjava/lang/Object;)Lcom/logan/flowbus/core/FlowBusErrorContext;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getActualValueType ()Lkotlin/reflect/KClass;
+	public final fun getDispatcher ()Ljava/lang/String;
+	public final fun getEventName ()Ljava/lang/String;
+	public final fun getExpectedValueType ()Lkotlin/reflect/KClass;
+	public final fun getPhase ()Lcom/logan/flowbus/core/FlowBusErrorPhase;
+	public final fun getScopeName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public final fun isSticky ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public abstract interface class com/logan/flowbus/core/FlowBusErrorHandler {
+	public static final field Companion Lcom/logan/flowbus/core/FlowBusErrorHandler$Companion;
+	public abstract fun handle (Lcom/logan/flowbus/core/FlowBusErrorContext;Ljava/lang/Throwable;)V
+}
+
+public final class com/logan/flowbus/core/FlowBusErrorHandler$Companion {
+	public final fun fromThrowableHandler (Lkotlin/jvm/functions/Function1;)Lcom/logan/flowbus/core/FlowBusErrorHandler;
+	public final fun getIgnore ()Lcom/logan/flowbus/core/FlowBusErrorHandler;
+	public final fun getRethrow ()Lcom/logan/flowbus/core/FlowBusErrorHandler;
+}
+
+public final class com/logan/flowbus/core/FlowBusErrorPhase : java/lang/Enum {
+	public static final field SubscriberCallback Lcom/logan/flowbus/core/FlowBusErrorPhase;
+	public static final field ValueCast Lcom/logan/flowbus/core/FlowBusErrorPhase;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/logan/flowbus/core/FlowBusErrorPhase;
+	public static fun values ()[Lcom/logan/flowbus/core/FlowBusErrorPhase;
+}
+
+public final class com/logan/flowbus/core/FlowBusEventMetricsSnapshot {
+	public fun <init> (JJLjava/lang/Long;Lcom/logan/flowbus/core/FlowBusPostOutcome;)V
+	public final fun component1 ()J
+	public final fun component2 ()J
+	public final fun component3 ()Ljava/lang/Long;
+	public final fun component4 ()Lcom/logan/flowbus/core/FlowBusPostOutcome;
+	public final fun copy (JJLjava/lang/Long;Lcom/logan/flowbus/core/FlowBusPostOutcome;)Lcom/logan/flowbus/core/FlowBusEventMetricsSnapshot;
+	public static synthetic fun copy$default (Lcom/logan/flowbus/core/FlowBusEventMetricsSnapshot;JJLjava/lang/Long;Lcom/logan/flowbus/core/FlowBusPostOutcome;ILjava/lang/Object;)Lcom/logan/flowbus/core/FlowBusEventMetricsSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAcceptedPostCount ()J
+	public final fun getLastPostTimeMillis ()Ljava/lang/Long;
+	public final fun getLastRejectedReason ()Lcom/logan/flowbus/core/FlowBusPostOutcome;
+	public final fun getRejectedPostCount ()J
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/logan/flowbus/core/FlowBusEventSnapshot {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;ZZI)V
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;ZZIILcom/logan/flowbus/core/FlowBusEventMetricsSnapshot;Lcom/logan/flowbus/core/FlowBusEventMetricsSnapshot;Lcom/logan/flowbus/core/FlowBusEventMetricsSnapshot;)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/lang/String;ZZIILcom/logan/flowbus/core/FlowBusEventMetricsSnapshot;Lcom/logan/flowbus/core/FlowBusEventMetricsSnapshot;Lcom/logan/flowbus/core/FlowBusEventMetricsSnapshot;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Z
+	public final fun component4 ()Z
+	public final fun component5 ()I
+	public final fun component6 ()I
+	public final fun component7 ()Lcom/logan/flowbus/core/FlowBusEventMetricsSnapshot;
+	public final fun component8 ()Lcom/logan/flowbus/core/FlowBusEventMetricsSnapshot;
+	public final fun component9 ()Lcom/logan/flowbus/core/FlowBusEventMetricsSnapshot;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;ZZIILcom/logan/flowbus/core/FlowBusEventMetricsSnapshot;Lcom/logan/flowbus/core/FlowBusEventMetricsSnapshot;Lcom/logan/flowbus/core/FlowBusEventMetricsSnapshot;)Lcom/logan/flowbus/core/FlowBusEventSnapshot;
+	public static synthetic fun copy$default (Lcom/logan/flowbus/core/FlowBusEventSnapshot;Ljava/lang/String;Ljava/lang/String;ZZIILcom/logan/flowbus/core/FlowBusEventMetricsSnapshot;Lcom/logan/flowbus/core/FlowBusEventMetricsSnapshot;Lcom/logan/flowbus/core/FlowBusEventMetricsSnapshot;ILjava/lang/Object;)Lcom/logan/flowbus/core/FlowBusEventSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEventName ()Ljava/lang/String;
+	public final fun getHasNormalFlow ()Z
+	public final fun getHasStickyFlow ()Z
+	public final fun getMetrics ()Lcom/logan/flowbus/core/FlowBusEventMetricsSnapshot;
+	public final fun getNormalMetrics ()Lcom/logan/flowbus/core/FlowBusEventMetricsSnapshot;
+	public final fun getStickyMetrics ()Lcom/logan/flowbus/core/FlowBusEventMetricsSnapshot;
+	public final fun getStickyReplayCount ()I
+	public final fun getSubscriptionCount ()I
+	public final fun getValueTypeName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/logan/flowbus/core/FlowBusInspector {
+	public final fun snapshot ()Lcom/logan/flowbus/core/FlowBusSnapshot;
+}
+
+public abstract interface class com/logan/flowbus/core/FlowBusLogger {
+	public abstract fun warn (Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)V
+}
+
+public final class com/logan/flowbus/core/FlowBusLogger$DefaultImpls {
+	public static synthetic fun warn$default (Lcom/logan/flowbus/core/FlowBusLogger;Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;ILjava/lang/Object;)V
+}
+
+public final class com/logan/flowbus/core/FlowBusLogger$None : com/logan/flowbus/core/FlowBusLogger {
+	public static final field INSTANCE Lcom/logan/flowbus/core/FlowBusLogger$None;
+	public fun warn (Ljava/lang/String;Ljava/lang/String;Ljava/lang/Throwable;)V
+}
+
+public abstract interface class com/logan/flowbus/core/FlowBusOwner {
+	public abstract fun getBusScopeName ()Ljava/lang/String;
+}
+
+public final class com/logan/flowbus/core/FlowBusOwnerKt {
+	public static final fun flowBusOwner (Ljava/lang/String;)Lcom/logan/flowbus/core/FlowBusOwner;
+}
+
+public final class com/logan/flowbus/core/FlowBusPostOutcome : java/lang/Enum {
+	public static final field Accepted Lcom/logan/flowbus/core/FlowBusPostOutcome;
+	public static final field AcceptedWithDropLatestPolicy Lcom/logan/flowbus/core/FlowBusPostOutcome;
+	public static final field AcceptedWithDropOldestPolicy Lcom/logan/flowbus/core/FlowBusPostOutcome;
+	public static final field AcceptedWithoutActiveSubscriber Lcom/logan/flowbus/core/FlowBusPostOutcome;
+	public static final field RejectedByBuffer Lcom/logan/flowbus/core/FlowBusPostOutcome;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/logan/flowbus/core/FlowBusPostOutcome;
+	public static fun values ()[Lcom/logan/flowbus/core/FlowBusPostOutcome;
+}
+
+public final class com/logan/flowbus/core/FlowBusPostResult {
+	public fun <init> (Ljava/lang/String;Ljava/lang/String;ZZLcom/logan/flowbus/core/FlowBusPostOutcome;IILkotlinx/coroutines/channels/BufferOverflow;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/lang/String;
+	public final fun component3 ()Z
+	public final fun component4 ()Z
+	public final fun component5 ()Lcom/logan/flowbus/core/FlowBusPostOutcome;
+	public final fun component6 ()I
+	public final fun component7 ()I
+	public final fun component8 ()Lkotlinx/coroutines/channels/BufferOverflow;
+	public final fun copy (Ljava/lang/String;Ljava/lang/String;ZZLcom/logan/flowbus/core/FlowBusPostOutcome;IILkotlinx/coroutines/channels/BufferOverflow;)Lcom/logan/flowbus/core/FlowBusPostResult;
+	public static synthetic fun copy$default (Lcom/logan/flowbus/core/FlowBusPostResult;Ljava/lang/String;Ljava/lang/String;ZZLcom/logan/flowbus/core/FlowBusPostOutcome;IILkotlinx/coroutines/channels/BufferOverflow;ILjava/lang/Object;)Lcom/logan/flowbus/core/FlowBusPostResult;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getAccepted ()Z
+	public final fun getEventName ()Ljava/lang/String;
+	public final fun getOutcome ()Lcom/logan/flowbus/core/FlowBusPostOutcome;
+	public final fun getOverflowPolicy ()Lkotlinx/coroutines/channels/BufferOverflow;
+	public final fun getScopeName ()Ljava/lang/String;
+	public final fun getStickyReplayCount ()I
+	public final fun getSubscriptionCount ()I
+	public fun hashCode ()I
+	public final fun isSticky ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/logan/flowbus/core/FlowBusScope : com/logan/flowbus/core/FlowBusOwner, java/lang/AutoCloseable {
+	public final fun bindTo (Lkotlinx/coroutines/CoroutineScope;)Lcom/logan/flowbus/core/FlowBusScope;
+	public final fun bindTo (Lkotlinx/coroutines/Job;)Lcom/logan/flowbus/core/FlowBusScope;
+	public final fun clearSticky (Lcom/logan/flowbus/core/EventKey;)V
+	public fun close ()V
+	public final fun closeSuspending (Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun collect (Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun collect$default (Lcom/logan/flowbus/core/FlowBusScope;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun collectSticky (Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun collectSticky$default (Lcom/logan/flowbus/core/FlowBusScope;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun consumeStickyLatest (Lcom/logan/flowbus/core/EventKey;)Ljava/lang/Object;
+	public final fun emit (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun emitSticky (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun flow (Lcom/logan/flowbus/core/EventKey;)Lkotlinx/coroutines/flow/Flow;
+	public fun getBusScopeName ()Ljava/lang/String;
+	public final fun getScopeName ()Ljava/lang/String;
+	public final fun isClosed ()Z
+	public final fun post (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;)Z
+	public final fun postSticky (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;)Z
+	public final fun removeEvent (Lcom/logan/flowbus/core/EventKey;)V
+	public final fun removeSticky (Lcom/logan/flowbus/core/EventKey;)V
+	public final fun stickyFlow (Lcom/logan/flowbus/core/EventKey;)Lkotlinx/coroutines/flow/Flow;
+	public final fun tryClose (J)Lcom/logan/flowbus/core/FlowBusCloseResult;
+	public final fun tryPostResult (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;)Lcom/logan/flowbus/core/FlowBusPostResult;
+	public final fun tryPostStickyResult (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;)Lcom/logan/flowbus/core/FlowBusPostResult;
+}
+
+public final class com/logan/flowbus/core/FlowBusScopeSnapshot {
+	public fun <init> (Ljava/lang/String;Ljava/util/List;)V
+	public fun <init> (Ljava/lang/String;Ljava/util/List;ZZ)V
+	public synthetic fun <init> (Ljava/lang/String;Ljava/util/List;ZZILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun component2 ()Ljava/util/List;
+	public final fun component3 ()Z
+	public final fun component4 ()Z
+	public final fun copy (Ljava/lang/String;Ljava/util/List;ZZ)Lcom/logan/flowbus/core/FlowBusScopeSnapshot;
+	public static synthetic fun copy$default (Lcom/logan/flowbus/core/FlowBusScopeSnapshot;Ljava/lang/String;Ljava/util/List;ZZILjava/lang/Object;)Lcom/logan/flowbus/core/FlowBusScopeSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getEvents ()Ljava/util/List;
+	public final fun getHasOpenScopeHandle ()Z
+	public final fun getScopeName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public final fun isClosed ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/logan/flowbus/core/FlowBusSnapshot {
+	public fun <init> (Lcom/logan/flowbus/core/FlowBusConfigSnapshot;Lcom/logan/flowbus/core/FlowBusScopeSnapshot;Ljava/util/List;)V
+	public final fun component1 ()Lcom/logan/flowbus/core/FlowBusConfigSnapshot;
+	public final fun component2 ()Lcom/logan/flowbus/core/FlowBusScopeSnapshot;
+	public final fun component3 ()Ljava/util/List;
+	public final fun copy (Lcom/logan/flowbus/core/FlowBusConfigSnapshot;Lcom/logan/flowbus/core/FlowBusScopeSnapshot;Ljava/util/List;)Lcom/logan/flowbus/core/FlowBusSnapshot;
+	public static synthetic fun copy$default (Lcom/logan/flowbus/core/FlowBusSnapshot;Lcom/logan/flowbus/core/FlowBusConfigSnapshot;Lcom/logan/flowbus/core/FlowBusScopeSnapshot;Ljava/util/List;ILjava/lang/Object;)Lcom/logan/flowbus/core/FlowBusSnapshot;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getConfig ()Lcom/logan/flowbus/core/FlowBusConfigSnapshot;
+	public final fun getRoot ()Lcom/logan/flowbus/core/FlowBusScopeSnapshot;
+	public final fun getScopes ()Ljava/util/List;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/logan/flowbus/core/NamedFlowBusOwner : com/logan/flowbus/core/FlowBusOwner {
+	public fun <init> (Ljava/lang/String;)V
+	public final fun component1 ()Ljava/lang/String;
+	public final fun copy (Ljava/lang/String;)Lcom/logan/flowbus/core/NamedFlowBusOwner;
+	public static synthetic fun copy$default (Lcom/logan/flowbus/core/NamedFlowBusOwner;Ljava/lang/String;ILjava/lang/Object;)Lcom/logan/flowbus/core/NamedFlowBusOwner;
+	public fun equals (Ljava/lang/Object;)Z
+	public fun getBusScopeName ()Ljava/lang/String;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/logan/flowbus/core/ScopedFlowBus {
+	public final fun clearSticky (Lcom/logan/flowbus/core/EventKey;)V
+	public final fun collect (Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun collect$default (Lcom/logan/flowbus/core/ScopedFlowBus;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun collectSticky (Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun collectSticky$default (Lcom/logan/flowbus/core/ScopedFlowBus;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun consumeStickyLatest (Lcom/logan/flowbus/core/EventKey;)Ljava/lang/Object;
+	public final fun emit (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun emitSticky (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public final fun flow (Lcom/logan/flowbus/core/EventKey;)Lkotlinx/coroutines/flow/Flow;
+	public final fun getScopeName ()Ljava/lang/String;
+	public final fun post (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;)Z
+	public final fun postSticky (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;)Z
+	public final fun removeEvent (Lcom/logan/flowbus/core/EventKey;)V
+	public final fun removeScope ()V
+	public final fun removeSticky (Lcom/logan/flowbus/core/EventKey;)V
+	public final fun stickyFlow (Lcom/logan/flowbus/core/EventKey;)Lkotlinx/coroutines/flow/Flow;
+	public final fun tryPostResult (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;)Lcom/logan/flowbus/core/FlowBusPostResult;
+	public final fun tryPostStickyResult (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;)Lcom/logan/flowbus/core/FlowBusPostResult;
+}
+

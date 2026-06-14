@@ -31,6 +31,9 @@ inline fun <T> LifecycleOwner.collectEvent(
     minLifecycleState: Lifecycle.State = Lifecycle.State.STARTED,
     crossinline onReceived: (T) -> Unit
 ): Job {
+    require(minLifecycleState != Lifecycle.State.INITIALIZED) {
+        "Lifecycle.State.INITIALIZED is not supported by repeatOnLifecycle. Use CREATED, STARTED, or RESUMED."
+    }
     return lifecycleScope.launch {
         repeatOnLifecycle(minLifecycleState) {
             flow.collect { value ->

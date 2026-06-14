@@ -11,10 +11,6 @@ plugins {
     alias(libs.plugins.vanniktech.maven.publish)
 }
 
-val hasSigningKey = providers.gradleProperty("signingInMemoryKey").isPresent ||
-    providers.gradleProperty("signing.secretKeyRingFile").isPresent
-
-
 android {
     compileSdk = libs.versions.compile.sdk.version.get().toInt()
 
@@ -31,8 +27,12 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    testOptions {
+        animationsDisabled = true
     }
 
     buildTypes {
@@ -55,7 +55,7 @@ android {
 
 tasks.withType<KotlinCompile>().configureEach {
     compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
+        jvmTarget.set(JvmTarget.JVM_1_8)
     }
 }
 
@@ -64,6 +64,7 @@ dependencies {
     api(libs.lifecycle.runtime)
     api(libs.lifecycle.viewmodel)
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
 
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.androidx.test.ext.junit)
@@ -76,13 +77,21 @@ signing {
 }
 
 mavenPublishing {
+    configure(
+        AndroidSingleVariantLibrary(
+            variant = "release",
+            sourcesJar = true,
+            publishJavadocJar = true
+        )
+    )
+
     coordinates(
         providers.gradleProperty("GROUP").get(),
         "flowbus",
         providers.gradleProperty("VERSION_NAME").get()
     )
 
-    publishToMavenCentral(true)
+    publishToMavenCentral(false)
     signAllPublications() // <-- 关键！这个方法会自动找到并签名 Publication
 
     pom {
@@ -108,6 +117,10 @@ mavenPublishing {
             url.set(providers.gradleProperty("POM_SCM_URL"))
             connection.set(providers.gradleProperty("POM_SCM_CONNECTION"))
             developerConnection.set(providers.gradleProperty("POM_SCM_DEV_CONNECTION"))
+        }
+        issueManagement {
+            url.set(providers.gradleProperty("POM_ISSUE_URL"))
+            system.set(providers.gradleProperty("POM_ISSUE_SYSTEM"))
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.logan.flowbus
 
+import androidx.annotation.MainThread
 import androidx.lifecycle.ViewModelStoreOwner
 import com.logan.flowbus.core.defaultEventName
 
@@ -9,6 +10,7 @@ import com.logan.flowbus.core.defaultEventName
  * 这个扩展把 `eventFlowFrom(owner = ...)` 变成了更明确的
  * `owner.scopedEventFlow<T>()` 写法。
  */
+@MainThread
 inline fun <reified T : Any> ViewModelStoreOwner.scopedEventFlow(
     isSticky: Boolean = false,
     eventName: String = defaultEventName<T>()
@@ -17,6 +19,7 @@ inline fun <reified T : Any> ViewModelStoreOwner.scopedEventFlow(
 /**
  * 使用命名 [channel] 读取当前 [ViewModelStoreOwner] 作用域下的事件流。
  */
+@MainThread
 fun <T : Any> ViewModelStoreOwner.scopedEventFlow(
     channel: EventChannel<T>,
     isSticky: Boolean = false
@@ -25,6 +28,7 @@ fun <T : Any> ViewModelStoreOwner.scopedEventFlow(
 /**
  * 读取当前 [ViewModelStoreOwner] 作用域下的粘性事件流。
  */
+@MainThread
 inline fun <reified T : Any> ViewModelStoreOwner.scopedStickyEventFlow(
     eventName: String = defaultEventName<T>()
 ) = stickyEventFlowFrom<T>(owner = this, eventName = eventName)
@@ -32,6 +36,7 @@ inline fun <reified T : Any> ViewModelStoreOwner.scopedStickyEventFlow(
 /**
  * 使用命名 [channel] 读取当前 [ViewModelStoreOwner] 作用域下的粘性事件流。
  */
+@MainThread
 fun <T : Any> ViewModelStoreOwner.scopedStickyEventFlow(
     channel: EventChannel<T>
 ) = channel.stickyFlowFrom(owner = this)
@@ -39,6 +44,7 @@ fun <T : Any> ViewModelStoreOwner.scopedStickyEventFlow(
 /**
  * 以当前 [ViewModelStoreOwner] 作为事件作用域发送普通事件。
  */
+@MainThread
 inline fun <reified T : Any> ViewModelStoreOwner.postScopedEvent(
     event: T,
     delayMillis: Long = 0L,
@@ -50,6 +56,7 @@ inline fun <reified T : Any> ViewModelStoreOwner.postScopedEvent(
 /**
  * 使用命名 [channel] 向当前 [ViewModelStoreOwner] 作用域发送普通事件。
  */
+@MainThread
 fun <T : Any> ViewModelStoreOwner.postScopedEvent(
     channel: EventChannel<T>,
     event: T,
@@ -61,6 +68,7 @@ fun <T : Any> ViewModelStoreOwner.postScopedEvent(
 /**
  * 以当前 [ViewModelStoreOwner] 作为事件作用域挂起发送普通事件。
  */
+@MainThread
 suspend inline fun <reified T : Any> ViewModelStoreOwner.emitScopedEvent(
     event: T,
     delayMillis: Long = 0L,
@@ -72,6 +80,7 @@ suspend inline fun <reified T : Any> ViewModelStoreOwner.emitScopedEvent(
 /**
  * 使用命名 [channel] 向当前 [ViewModelStoreOwner] 作用域挂起发送普通事件。
  */
+@MainThread
 suspend fun <T : Any> ViewModelStoreOwner.emitScopedEvent(
     channel: EventChannel<T>,
     event: T,
@@ -83,6 +92,7 @@ suspend fun <T : Any> ViewModelStoreOwner.emitScopedEvent(
 /**
  * 以当前 [ViewModelStoreOwner] 作为事件作用域发送粘性事件。
  */
+@MainThread
 inline fun <reified T : Any> ViewModelStoreOwner.postScopedStickyEvent(
     event: T,
     delayMillis: Long = 0L,
@@ -94,6 +104,7 @@ inline fun <reified T : Any> ViewModelStoreOwner.postScopedStickyEvent(
 /**
  * 使用命名 [channel] 向当前 [ViewModelStoreOwner] 作用域发送粘性事件。
  */
+@MainThread
 fun <T : Any> ViewModelStoreOwner.postScopedStickyEvent(
     channel: EventChannel<T>,
     event: T,
@@ -105,6 +116,7 @@ fun <T : Any> ViewModelStoreOwner.postScopedStickyEvent(
 /**
  * 以当前 [ViewModelStoreOwner] 作为事件作用域挂起发送粘性事件。
  */
+@MainThread
 suspend inline fun <reified T : Any> ViewModelStoreOwner.emitScopedStickyEvent(
     event: T,
     delayMillis: Long = 0L,
@@ -116,6 +128,7 @@ suspend inline fun <reified T : Any> ViewModelStoreOwner.emitScopedStickyEvent(
 /**
  * 使用命名 [channel] 向当前 [ViewModelStoreOwner] 作用域挂起发送粘性事件。
  */
+@MainThread
 suspend fun <T : Any> ViewModelStoreOwner.emitScopedStickyEvent(
     channel: EventChannel<T>,
     event: T,

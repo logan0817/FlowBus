@@ -1,5 +1,6 @@
 package com.logan.flowbus
 
+import androidx.annotation.MainThread
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
 import com.logan.flowbus.core.defaultEventName
@@ -34,11 +35,16 @@ inline fun <reified T : Any> stickyEventFlow(
  * NavBackStackEntry，或者任意自定义 `ViewModelStoreOwner`。
  * 如果你要读取粘性事件，推荐直接使用 [stickyEventFlowFrom]。
  */
+@MainThread
 inline fun <reified T : Any> eventFlowFrom(
     owner: ViewModelStoreOwner,
     isSticky: Boolean = false,
     eventName: String = defaultEventName<T>()
-) = ViewModelProvider(owner).get(FlowEventBus::class.java)
+) = (if (owner === GlobalViewModelStore) {
+    GlobalViewModelStore.get(FlowEventBus::class.java)
+} else {
+    ViewModelProvider(owner).get(FlowEventBus::class.java)
+})
     .eventFlow(eventName = eventName, valueType = T::class, isSticky = isSticky)
 
 /**
@@ -47,6 +53,7 @@ inline fun <reified T : Any> eventFlowFrom(
  * 这是 [eventFlowFrom] 的显式粘性版本，等价于
  * `eventFlowFrom<T>(owner = owner, isSticky = true)`。
  */
+@MainThread
 inline fun <reified T : Any> stickyEventFlowFrom(
     owner: ViewModelStoreOwner,
     eventName: String = defaultEventName<T>()

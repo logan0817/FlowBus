@@ -40,21 +40,22 @@ java --version
 
 ## 4. `post*` 看起来“没反应”
 
-`post*` 是 best-effort 发送：如果底层缓冲已满，事件可能会被丢弃。
+`post*` 是 best-effort 发送。它会立即尝试写入，底层缓冲无法接收时，事件可能会被丢弃。
 
 建议：
 
-- 想确认是否发送成功：使用 `tryPostEvent(...)` / `tryPostEventTo(...)`
-- 想保证写入成功：使用 `emitEvent(...)` / `emitEventTo(...)`
-- 调试时关注日志中的 dropped event warning
+1. 想确认本次 `tryEmit` 有没有被底层流拒绝：使用 `tryPostEvent(...)` / `tryPostEventTo(...)`
+2. 想看订阅数和溢出策略：使用 `tryPostEventResult(...)`
+3. 想保证写入成功：使用 `emitEvent(...)` / `emitEventTo(...)`
+4. 调试时关注日志里的 dropped event warning
 
 ## 5. Fragment / Activity 作用域事件收不到
 
 先确认你是否把事件发到了正确的 owner：
 
-- `postEvent(...)`：发到全局总线
-- `postEventTo(owner, ...)`：发到指定 owner 对应的局部总线
-- `onEvent(from = owner)` / `eventFlowFrom(owner)`：从指定 owner 对应的局部总线接收
+1. `postEvent(...)`：发到全局总线
+2. `postEventTo(owner, ...)`：发到指定 owner 对应的局部总线
+3. `onEvent(from = owner)` / `eventFlowFrom(owner)`：从指定 owner 对应的局部总线接收
 
 常见误区不是“谁在监听”，而是“事件挂在哪个作用域上”。
 
@@ -66,21 +67,26 @@ sticky event 适合“后来订阅的人也应该拿到最近一次值”的场�
 
 另外请区分：
 
-- `clearSticky*`：只清 replay 缓存，保留 Flow
-- `removeSticky*`：连 sticky Flow 一起移除
+1. `clearSticky*`：只清 replay 缓存，保留 Flow
+2. `removeSticky*`：移除当前 store 里的 sticky 条目并清空 replay；已经拿到手的旧 Flow 引用不会被主动 cancel
 
-## 7. 拉主仓库后 `flowbus-core` 目录是空的
+## 7. `flowbus-core` 目录缺文件或无法编译
 
-`flowbus-core` 现在通过 git submodule 管理。
+flowbus-core 已由主仓库直接维护，正常拉取 FlowBus 主仓库后应该能直接看到源码、测试和 `build.gradle.kts`。
 
-如果你是第一次拉取主仓库，建议直接使用：
+如果目录缺文件，优先检查当前工作区是否残留旧子仓或嵌套 Git 元数据：
 
 ```bash
-git clone --recurse-submodules <repo-url>
+git status --short
+ls flowbus-core
 ```
 
-如果你已经有本地仓库，只需要补拉子模块：
+如果 `flowbus-core` 下仍有 `.git`、独立 `settings.gradle.kts`、独立 `gradlew` 或独立 `gradle.properties`，说明本地目录还停在旧结构。
+
+建议先备份本地改动，再重新拉取最新主仓库，或清理这些旧结构文件。
+
+主仓库内的正确验证入口是：
 
 ```bash
-git submodule update --init --recursive
+./gradlew :flowbus-core:test :library-android:testDebugUnitTest
 ```

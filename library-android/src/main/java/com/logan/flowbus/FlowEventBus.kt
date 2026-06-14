@@ -1,5 +1,6 @@
 package com.logan.flowbus
 
+import androidx.annotation.MainThread
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
@@ -8,6 +9,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewModelScope
 import com.logan.flowbus.core.EventKey
 import com.logan.flowbus.core.FlowBus
+import com.logan.flowbus.core.FlowBusPostResult
 import com.logan.flowbus.core.collectFlowBusSequentially
 import com.logan.flowbus.core.eventKey
 import kotlinx.coroutines.CoroutineDispatcher
@@ -44,6 +46,7 @@ class FlowEventBus : ViewModel() {
      * @param isSticky 是否订阅粘性事件。
      * @param onReceived 收到事件后的回调。
      */
+    @MainThread
     fun <T : Any> subscribeEvent(
         lifecycleOwner: LifecycleOwner,
         eventName: String,
@@ -53,6 +56,9 @@ class FlowEventBus : ViewModel() {
         isSticky: Boolean,
         onReceived: (T) -> Unit
     ): Job {
+        require(startState != Lifecycle.State.INITIALIZED) {
+            "Lifecycle.State.INITIALIZED is not supported by repeatOnLifecycle. Use CREATED, STARTED, or RESUMED."
+        }
         return lifecycleOwner.lifecycleScope.launch {
             lifecycleOwner.repeatOnLifecycle(startState) {
                 val eventKey = eventKey(name = eventName, valueType = valueType)
@@ -151,8 +157,14 @@ class FlowEventBus : ViewModel() {
         isSticky: Boolean = false,
         delayMillis: Long = 0
     ): Boolean {
+        requireDelayMillis(delayMillis)
         val eventKey = eventKey(name = eventName, valueType = valueType)
         if (delayMillis > 0) {
+            if (isSticky) {
+                bus.stickyFlow(eventKey)
+            } else {
+                bus.flow(eventKey)
+            }
             viewModelScope.launch {
                 delay(delayMillis)
                 postOrWarn(eventKey = eventKey, value = value, isSticky = isSticky)
@@ -161,6 +173,27 @@ class FlowEventBus : ViewModel() {
         }
 
         return postOrWarn(eventKey = eventKey, value = value, isSticky = isSticky)
+    }
+
+    /**
+     * 向当前总线发送事件，并返回总线层面的诊断结果。
+     *
+     * 该方法不提供延迟发送参数，避免把“已安排延迟任务”误读为“事件已被总线接收”。
+     */
+    fun <T : Any> postResult(
+        eventName: String,
+        value: T,
+        valueType: KClass<T>,
+        isSticky: Boolean = false
+    ): FlowBusPostResult {
+        val eventKey = eventKey(name = eventName, valueType = valueType)
+        val result = if (isSticky) {
+            bus.tryPostStickyResult(eventKey, value)
+        } else {
+            bus.tryPostResult(eventKey, value)
+        }
+        warnIfRejected(result)
+        return result
     }
 
     /**
@@ -175,6 +208,7 @@ class FlowEventBus : ViewModel() {
         isSticky: Boolean = false,
         delayMillis: Long = 0
     ) {
+        requireDelayMillis(delayMillis)
         val eventKey = eventKey(name = eventName, valueType = valueType)
         if (delayMillis > 0) {
             delay(delayMillis)
@@ -201,6 +235,17 @@ class FlowEventBus : ViewModel() {
         bus.clearSticky(eventKey(name = eventName, valueType = valueType))
     }
 
+    /**
+     * 读取当前总线中指定粘性事件的最新 replay 值，并清空该 sticky replay 缓存。
+     */
+    fun <T : Any> consumeStickyLatestEvent(eventName: String, valueType: KClass<T>): T? {
+        return bus.consumeStickyLatest(eventKey(name = eventName, valueType = valueType))
+    }
+
+    private fun requireDelayMillis(delayMillis: Long) {
+        require(delayMillis >= 0) { "delayMillis must be >= 0." }
+    }
+
     private fun <T : Any> postOrWarn(eventKey: EventKey<T>, value: T, isSticky: Boolean): Boolean {
         val accepted = if (isSticky) {
             bus.postSticky(eventKey, value)
@@ -215,5 +260,14 @@ class FlowEventBus : ViewModel() {
             )
         }
         return accepted
+    }
+
+    private fun warnIfRejected(result: FlowBusPostResult) {
+        if (!result.accepted) {
+            bus.config.logger.warn(
+                tag = "FlowBus",
+                message = "Dropped event '${result.eventName}' because the buffer is full. Use emitEvent(...) for guaranteed delivery."
+            )
+        }
     }
 }

@@ -39,10 +39,10 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, GlobalCaseActivity::class.java))
         }
         binding.btnOpenScopeCase.setOnClickListener {
-            startActivity(Intent(this, TestFragmentActivity::class.java))
+            startActivity(Intent(this, ScopeCaseActivity::class.java))
         }
         binding.btnOpenStickyCase.setOnClickListener {
-            startActivity(Intent(this, TestActivity::class.java))
+            startActivity(Intent(this, StickyCaseActivity::class.java))
         }
         binding.btnOpenChannelCase.setOnClickListener {
             startActivity(Intent(this, ChannelCaseActivity::class.java))

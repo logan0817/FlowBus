@@ -11,17 +11,21 @@ import com.logan.flowbus.core.FlowBusLogger
  * 如果你需要自定义 logger、错误处理策略或缓冲参数，请在首次调用
  * `postEvent`、`eventFlow`、`subscribeEvent` 之前完成配置。
  *
- * 注意：配置只会影响之后新创建的 [FlowEventBus]，不会回溯修改已经存在的实例。
+ * 配置只会影响之后新创建的 [FlowEventBus]，不会回溯修改已经存在的实例。为了避免静默使用
+ * 混合配置，只要已经创建过任意 [FlowEventBus]，后续 [configure] 就会被拒绝。
  */
 object FlowBusAndroid {
     @Volatile
     private var flowBusConfigFactory: () -> FlowBusConfig = ::builtInFlowBusConfig
 
+    @Volatile
+    private var hasCreatedFlowEventBus: Boolean = false
+
     /**
      * 使用固定配置替换 Android 层默认的 [FlowBusConfig]。
      */
     fun configure(config: FlowBusConfig) {
-        flowBusConfigFactory = { config }
+        configure { config }
     }
 
     /**
@@ -30,13 +34,28 @@ object FlowBusAndroid {
      * 适合需要在不同场景下动态构建配置的情况。
      */
     fun configure(configFactory: () -> FlowBusConfig) {
-        flowBusConfigFactory = configFactory
+        synchronized(this) {
+            check(!hasCreatedFlowEventBus) {
+                "FlowBusAndroid.configure(...) must be called before first global bus use or FlowEventBus creation."
+            }
+            flowBusConfigFactory = configFactory
+        }
     }
 
-    internal fun createFlowBusConfig(): FlowBusConfig = flowBusConfigFactory.invoke()
+    internal fun createFlowBusConfig(): FlowBusConfig {
+        synchronized(this) {
+            val config = flowBusConfigFactory.invoke()
+            hasCreatedFlowEventBus = true
+            return config
+        }
+    }
 
     internal fun resetForTests() {
-        flowBusConfigFactory = ::builtInFlowBusConfig
+        synchronized(this) {
+            flowBusConfigFactory = ::builtInFlowBusConfig
+            hasCreatedFlowEventBus = false
+        }
+        GlobalViewModelStore.clearForTests()
     }
 
     private fun builtInFlowBusConfig(): FlowBusConfig {
@@ -49,6 +68,14 @@ object FlowBusAndroid {
 
 private object AndroidFlowBusLogger : FlowBusLogger {
     override fun warn(tag: String, message: String, throwable: Throwable?) {
-        android.util.Log.w(tag, message, throwable)
+        android.util.Log.w(tag, sanitizedWarning(message, throwable))
+    }
+
+    private fun sanitizedWarning(message: String, throwable: Throwable?): String {
+        return if (throwable == null) {
+            message
+        } else {
+            "$message (${throwable::class.java.name})"
+        }
     }
 }

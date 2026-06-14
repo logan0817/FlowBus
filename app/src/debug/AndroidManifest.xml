@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application android:testOnly="true">
+        <activity
+            android:name="com.logan.flowbusapp.GlobalCaseActivity"
+            android:exported="true" />
+        <activity
+            android:name="com.logan.flowbusapp.DecisionGuideActivity"
+            android:exported="true" />
+        <activity
+            android:name="com.logan.flowbusapp.StickyCaseActivity"
+            android:exported="true" />
+        <activity
+            android:name="com.logan.flowbusapp.ScopeCaseActivity"
+            android:exported="true" />
+        <activity
+            android:name="com.logan.flowbusapp.ChannelCaseActivity"
+            android:exported="true" />
+        <activity
+            android:name="com.logan.flowbusapp.NonUiCaseActivity"
+            android:exported="true" />
+        <activity
+            android:name="com.logan.flowbusapp.login.LoginActivity"
+            android:exported="true" />
+    </application>
+
+</manifest>

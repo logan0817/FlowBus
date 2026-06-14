@@ -1,5 +1,6 @@
 package com.logan.flowbus
 
+import androidx.annotation.MainThread
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModelProvider
@@ -20,6 +21,7 @@ import kotlinx.coroutines.launch
  * @param eventName 事件通道名；默认使用事件类型全名。
  * @param onReceived 收到事件后的回调。
  */
+@MainThread
 inline fun <reified T : Any> LifecycleOwner.subscribeEvent(
     dispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
     minLifecycleState: Lifecycle.State = Lifecycle.State.STARTED,
@@ -42,6 +44,7 @@ inline fun <reified T : Any> LifecycleOwner.subscribeEvent(
 /**
  * 订阅全局总线中指定 [channel] 的事件，并由当前 [LifecycleOwner] 管理订阅生命周期。
  */
+@MainThread
 fun <T : Any> LifecycleOwner.subscribeEvent(
     channel: EventChannel<T>,
     dispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
@@ -70,6 +73,7 @@ fun <T : Any> LifecycleOwner.subscribeEvent(
  *
  * [owner] 不局限于 Activity / Fragment，只要实现了 `ViewModelStoreOwner` 即可。
  */
+@MainThread
 inline fun <reified T : Any> LifecycleOwner.subscribeEvent(
     owner: ViewModelStoreOwner,
     dispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
@@ -78,7 +82,11 @@ inline fun <reified T : Any> LifecycleOwner.subscribeEvent(
     eventName: String = defaultEventName<T>(),
     noinline onReceived: (T) -> Unit
 ): Job {
-    return ViewModelProvider(owner).get(FlowEventBus::class.java)
+    return (if (owner === GlobalViewModelStore) {
+        GlobalViewModelStore.get(FlowEventBus::class.java)
+    } else {
+        ViewModelProvider(owner).get(FlowEventBus::class.java)
+    })
         .subscribeEvent(
             lifecycleOwner = this,
             eventName = eventName,
@@ -93,6 +101,7 @@ inline fun <reified T : Any> LifecycleOwner.subscribeEvent(
 /**
  * 订阅指定 [owner] 局部总线中命名 [channel] 的事件，并由当前 [LifecycleOwner] 管理订阅生命周期。
  */
+@MainThread
 fun <T : Any> LifecycleOwner.subscribeEvent(
     owner: ViewModelStoreOwner,
     channel: EventChannel<T>,
@@ -101,7 +110,7 @@ fun <T : Any> LifecycleOwner.subscribeEvent(
     isSticky: Boolean = false,
     onReceived: (T) -> Unit
 ): Job {
-    return ViewModelProvider(owner).get(FlowEventBus::class.java)
+    return flowEventBusFor(owner)
         .subscribeEvent(
             lifecycleOwner = this,
             eventName = channel.name,
@@ -156,35 +165,45 @@ fun <T : Any> CoroutineScope.subscribeEvent(
  * - 当前 [CoroutineScope] 决定“订阅活多久”
  * - 参数 [owner] 决定“从哪个总线收”
  */
+@MainThread
 inline fun <reified T : Any> CoroutineScope.subscribeEventFrom(
     owner: ViewModelStoreOwner,
     isSticky: Boolean = false,
     eventName: String = defaultEventName<T>(),
     noinline onReceived: (T) -> Unit
-): Job = launch {
-    ViewModelProvider(owner).get(FlowEventBus::class.java)
-        .subscribeEvent(
+): Job {
+    val flowEventBus = if (owner === GlobalViewModelStore) {
+        GlobalViewModelStore.get(FlowEventBus::class.java)
+    } else {
+        ViewModelProvider(owner).get(FlowEventBus::class.java)
+    }
+    return launch {
+        flowEventBus.subscribeEvent(
             eventName = eventName,
             valueType = T::class,
             isSticky = isSticky,
             onReceived = onReceived
         )
+    }
 }
 
 /**
  * 在当前 [CoroutineScope] 中订阅指定 [owner] 局部总线里命名 [channel] 的事件。
  */
+@MainThread
 fun <T : Any> CoroutineScope.subscribeEventFrom(
     owner: ViewModelStoreOwner,
     channel: EventChannel<T>,
     isSticky: Boolean = false,
     onReceived: (T) -> Unit
-): Job = launch {
-    ViewModelProvider(owner).get(FlowEventBus::class.java)
-        .subscribeEvent(
+): Job {
+    val flowEventBus = flowEventBusFor(owner)
+    return launch {
+        flowEventBus.subscribeEvent(
             eventName = channel.name,
             valueType = channel.valueType,
             isSticky = isSticky,
             onReceived = onReceived
         )
+    }
 }

@@ -44,7 +44,7 @@ class LoginActivity : AppCompatActivity() {
             hideLoading()
             return
         }
-        loginComponent.login(this, userName, password)
+        loginComponent.login(this, userName)
     }
 
     fun registerAndLogin() {
@@ -55,7 +55,7 @@ class LoginActivity : AppCompatActivity() {
             hideLoading()
             return
         }
-        loginComponent.registerAndLogin(this, userName, password)
+        loginComponent.registerAndLogin(this, userName)
     }
 
     fun printLog(value: String) {

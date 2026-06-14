@@ -1,6 +1,6 @@
 package com.logan.flowbus
 
-import androidx.lifecycle.ViewModelProvider
+import androidx.annotation.MainThread
 import androidx.lifecycle.ViewModelStoreOwner
 
 /**
@@ -90,8 +90,17 @@ fun <T : Any> EventChannel<T>.clearSticky() {
 }
 
 /**
+ * 读取 Android 全局总线中该 channel 的最新 sticky replay 值，并清空 replay 缓存。
+ */
+fun <T : Any> EventChannel<T>.consumeStickyLatest(): T? {
+    return GlobalViewModelStore.get(FlowEventBus::class.java)
+        .consumeStickyLatestEvent(eventName = name, valueType = valueType)
+}
+
+/**
  * 向指定 [owner] 对应的局部总线发送普通事件。
  */
+@MainThread
 fun <T : Any> EventChannel<T>.postTo(
     owner: ViewModelStoreOwner,
     value: T,
@@ -103,30 +112,33 @@ fun <T : Any> EventChannel<T>.postTo(
 /**
  * 尝试向指定 [owner] 对应的局部总线发送普通事件，并返回当前调用是否已被总线接收。
  */
+@MainThread
 fun <T : Any> EventChannel<T>.tryPostTo(
     owner: ViewModelStoreOwner,
     value: T,
     delayMillis: Long = 0L
 ): Boolean {
-    return ViewModelProvider(owner).get(FlowEventBus::class.java)
+    return flowEventBusFor(owner)
         .post(eventName = name, value = value, valueType = valueType, delayMillis = delayMillis)
 }
 
 /**
  * 挂起直到普通事件成功发送到指定 [owner] 对应的局部总线。
  */
+@MainThread
 suspend fun <T : Any> EventChannel<T>.emitTo(
     owner: ViewModelStoreOwner,
     value: T,
     delayMillis: Long = 0L
 ) {
-    ViewModelProvider(owner).get(FlowEventBus::class.java)
+    flowEventBusFor(owner)
         .emit(eventName = name, value = value, valueType = valueType, delayMillis = delayMillis)
 }
 
 /**
  * 向指定 [owner] 对应的局部总线发送粘性事件。
  */
+@MainThread
 fun <T : Any> EventChannel<T>.postStickyTo(
     owner: ViewModelStoreOwner,
     value: T,
@@ -138,12 +150,13 @@ fun <T : Any> EventChannel<T>.postStickyTo(
 /**
  * 尝试向指定 [owner] 对应的局部总线发送粘性事件，并返回当前调用是否已被总线接收。
  */
+@MainThread
 fun <T : Any> EventChannel<T>.tryPostStickyTo(
     owner: ViewModelStoreOwner,
     value: T,
     delayMillis: Long = 0L
 ): Boolean {
-    return ViewModelProvider(owner).get(FlowEventBus::class.java)
+    return flowEventBusFor(owner)
         .post(
             eventName = name,
             value = value,
@@ -156,12 +169,13 @@ fun <T : Any> EventChannel<T>.tryPostStickyTo(
 /**
  * 挂起直到粘性事件成功发送到指定 [owner] 对应的局部总线。
  */
+@MainThread
 suspend fun <T : Any> EventChannel<T>.emitStickyTo(
     owner: ViewModelStoreOwner,
     value: T,
     delayMillis: Long = 0L
 ) {
-    ViewModelProvider(owner).get(FlowEventBus::class.java)
+    flowEventBusFor(owner)
         .emit(
             eventName = name,
             value = value,
@@ -174,30 +188,43 @@ suspend fun <T : Any> EventChannel<T>.emitStickyTo(
 /**
  * 返回指定 [owner] 对应局部总线上的普通事件流。
  */
+@MainThread
 fun <T : Any> EventChannel<T>.flowFrom(
     owner: ViewModelStoreOwner,
     isSticky: Boolean = false
-) = ViewModelProvider(owner).get(FlowEventBus::class.java)
+) = flowEventBusFor(owner)
     .eventFlow(eventName = name, valueType = valueType, isSticky = isSticky)
 
 /**
  * 返回指定 [owner] 对应局部总线上的粘性事件流。
  */
+@MainThread
 fun <T : Any> EventChannel<T>.stickyFlowFrom(owner: ViewModelStoreOwner) =
     flowFrom(owner = owner, isSticky = true)
 
 /**
  * 从指定 [owner] 对应的局部总线中彻底移除该 sticky 事件。
  */
+@MainThread
 fun <T : Any> EventChannel<T>.removeStickyFrom(owner: ViewModelStoreOwner) {
-    ViewModelProvider(owner).get(FlowEventBus::class.java)
+    flowEventBusFor(owner)
         .removeStickyEvent(eventName = name, valueType = valueType)
 }
 
 /**
  * 清空指定 [owner] 对应局部总线中该 sticky 事件的 replay 缓存。
  */
+@MainThread
 fun <T : Any> EventChannel<T>.clearStickyFrom(owner: ViewModelStoreOwner) {
-    ViewModelProvider(owner).get(FlowEventBus::class.java)
+    flowEventBusFor(owner)
         .clearStickyEvent(eventName = name, valueType = valueType)
+}
+
+/**
+ * 读取指定 [owner] 对应局部总线中该 channel 的最新 sticky replay 值，并清空 replay 缓存。
+ */
+@MainThread
+fun <T : Any> EventChannel<T>.consumeStickyLatestFrom(owner: ViewModelStoreOwner): T? {
+    return flowEventBusFor(owner)
+        .consumeStickyLatestEvent(eventName = name, valueType = valueType)
 }

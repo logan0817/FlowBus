@@ -1,0 +1,115 @@
+public final class com/logan/flowbus/CollectEventExtensionKt {
+	public static final fun collectEvent (Landroidx/lifecycle/LifecycleOwner;Lkotlinx/coroutines/flow/Flow;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;Lkotlin/jvm/functions/Function1;)Lkotlinx/coroutines/Job;
+	public static synthetic fun collectEvent$default (Landroidx/lifecycle/LifecycleOwner;Lkotlinx/coroutines/flow/Flow;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+}
+
+public final class com/logan/flowbus/EventChannelExtensionKt {
+	public static final fun clearSticky (Lcom/logan/flowbus/core/EventChannel;)V
+	public static final fun clearStickyFrom (Lcom/logan/flowbus/core/EventChannel;Landroidx/lifecycle/ViewModelStoreOwner;)V
+	public static final fun consumeStickyLatest (Lcom/logan/flowbus/core/EventChannel;)Ljava/lang/Object;
+	public static final fun consumeStickyLatestFrom (Lcom/logan/flowbus/core/EventChannel;Landroidx/lifecycle/ViewModelStoreOwner;)Ljava/lang/Object;
+	public static final fun emit (Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;JLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun emit$default (Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;JLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static final fun emitSticky (Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;JLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun emitSticky$default (Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;JLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static final fun emitStickyTo (Lcom/logan/flowbus/core/EventChannel;Landroidx/lifecycle/ViewModelStoreOwner;Ljava/lang/Object;JLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun emitStickyTo$default (Lcom/logan/flowbus/core/EventChannel;Landroidx/lifecycle/ViewModelStoreOwner;Ljava/lang/Object;JLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static final fun emitTo (Lcom/logan/flowbus/core/EventChannel;Landroidx/lifecycle/ViewModelStoreOwner;Ljava/lang/Object;JLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun emitTo$default (Lcom/logan/flowbus/core/EventChannel;Landroidx/lifecycle/ViewModelStoreOwner;Ljava/lang/Object;JLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static final fun flow (Lcom/logan/flowbus/core/EventChannel;Z)Lkotlinx/coroutines/flow/Flow;
+	public static synthetic fun flow$default (Lcom/logan/flowbus/core/EventChannel;ZILjava/lang/Object;)Lkotlinx/coroutines/flow/Flow;
+	public static final fun flowFrom (Lcom/logan/flowbus/core/EventChannel;Landroidx/lifecycle/ViewModelStoreOwner;Z)Lkotlinx/coroutines/flow/Flow;
+	public static synthetic fun flowFrom$default (Lcom/logan/flowbus/core/EventChannel;Landroidx/lifecycle/ViewModelStoreOwner;ZILjava/lang/Object;)Lkotlinx/coroutines/flow/Flow;
+	public static final fun post (Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;J)V
+	public static synthetic fun post$default (Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;JILjava/lang/Object;)V
+	public static final fun postSticky (Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;J)V
+	public static synthetic fun postSticky$default (Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;JILjava/lang/Object;)V
+	public static final fun postStickyTo (Lcom/logan/flowbus/core/EventChannel;Landroidx/lifecycle/ViewModelStoreOwner;Ljava/lang/Object;J)V
+	public static synthetic fun postStickyTo$default (Lcom/logan/flowbus/core/EventChannel;Landroidx/lifecycle/ViewModelStoreOwner;Ljava/lang/Object;JILjava/lang/Object;)V
+	public static final fun postTo (Lcom/logan/flowbus/core/EventChannel;Landroidx/lifecycle/ViewModelStoreOwner;Ljava/lang/Object;J)V
+	public static synthetic fun postTo$default (Lcom/logan/flowbus/core/EventChannel;Landroidx/lifecycle/ViewModelStoreOwner;Ljava/lang/Object;JILjava/lang/Object;)V
+	public static final fun removeSticky (Lcom/logan/flowbus/core/EventChannel;)V
+	public static final fun removeStickyFrom (Lcom/logan/flowbus/core/EventChannel;Landroidx/lifecycle/ViewModelStoreOwner;)V
+	public static final fun stickyFlow (Lcom/logan/flowbus/core/EventChannel;)Lkotlinx/coroutines/flow/Flow;
+	public static final fun stickyFlowFrom (Lcom/logan/flowbus/core/EventChannel;Landroidx/lifecycle/ViewModelStoreOwner;)Lkotlinx/coroutines/flow/Flow;
+	public static final fun tryPost (Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;J)Z
+	public static synthetic fun tryPost$default (Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;JILjava/lang/Object;)Z
+	public static final fun tryPostSticky (Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;J)Z
+	public static synthetic fun tryPostSticky$default (Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;JILjava/lang/Object;)Z
+	public static final fun tryPostStickyTo (Lcom/logan/flowbus/core/EventChannel;Landroidx/lifecycle/ViewModelStoreOwner;Ljava/lang/Object;J)Z
+	public static synthetic fun tryPostStickyTo$default (Lcom/logan/flowbus/core/EventChannel;Landroidx/lifecycle/ViewModelStoreOwner;Ljava/lang/Object;JILjava/lang/Object;)Z
+	public static final fun tryPostTo (Lcom/logan/flowbus/core/EventChannel;Landroidx/lifecycle/ViewModelStoreOwner;Ljava/lang/Object;J)Z
+	public static synthetic fun tryPostTo$default (Lcom/logan/flowbus/core/EventChannel;Landroidx/lifecycle/ViewModelStoreOwner;Ljava/lang/Object;JILjava/lang/Object;)Z
+}
+
+public final class com/logan/flowbus/EventChannelKt {
+	public static final fun eventChannel (Ljava/lang/String;Ljava/lang/Class;)Lcom/logan/flowbus/core/EventChannel;
+	public static final fun eventChannel (Ljava/lang/String;Lkotlin/reflect/KClass;)Lcom/logan/flowbus/core/EventChannel;
+}
+
+public final class com/logan/flowbus/FlowBusAndroid {
+	public static final field INSTANCE Lcom/logan/flowbus/FlowBusAndroid;
+	public final fun configure (Lcom/logan/flowbus/core/FlowBusConfig;)V
+	public final fun configure (Lkotlin/jvm/functions/Function0;)V
+}
+
+public final class com/logan/flowbus/FlowEventBus : androidx/lifecycle/ViewModel {
+	public fun <init> ()V
+	public final fun clearStickyEvent (Ljava/lang/String;Lkotlin/reflect/KClass;)V
+	public final fun consumeStickyLatestEvent (Ljava/lang/String;Lkotlin/reflect/KClass;)Ljava/lang/Object;
+	public final fun emit (Ljava/lang/String;Ljava/lang/Object;Lkotlin/reflect/KClass;ZJLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun emit$default (Lcom/logan/flowbus/FlowEventBus;Ljava/lang/String;Ljava/lang/Object;Lkotlin/reflect/KClass;ZJLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun eventFlow (Ljava/lang/String;Lkotlin/reflect/KClass;Z)Lkotlinx/coroutines/flow/Flow;
+	public static synthetic fun eventFlow$default (Lcom/logan/flowbus/FlowEventBus;Ljava/lang/String;Lkotlin/reflect/KClass;ZILjava/lang/Object;)Lkotlinx/coroutines/flow/Flow;
+	public final fun post (Ljava/lang/String;Ljava/lang/Object;Lkotlin/reflect/KClass;ZJ)Z
+	public static synthetic fun post$default (Lcom/logan/flowbus/FlowEventBus;Ljava/lang/String;Ljava/lang/Object;Lkotlin/reflect/KClass;ZJILjava/lang/Object;)Z
+	public final fun postResult (Ljava/lang/String;Ljava/lang/Object;Lkotlin/reflect/KClass;Z)Lcom/logan/flowbus/core/FlowBusPostResult;
+	public static synthetic fun postResult$default (Lcom/logan/flowbus/FlowEventBus;Ljava/lang/String;Ljava/lang/Object;Lkotlin/reflect/KClass;ZILjava/lang/Object;)Lcom/logan/flowbus/core/FlowBusPostResult;
+	public final fun removeStickyEvent (Ljava/lang/String;Lkotlin/reflect/KClass;)V
+	public final fun subscribeEvent (Landroidx/lifecycle/LifecycleOwner;Ljava/lang/String;Lkotlin/reflect/KClass;Landroidx/lifecycle/Lifecycle$State;Lkotlinx/coroutines/CoroutineDispatcher;ZLkotlin/jvm/functions/Function1;)Lkotlinx/coroutines/Job;
+	public final fun subscribeEvent (Ljava/lang/String;Lkotlin/reflect/KClass;ZLkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun subscribeEvent$default (Lcom/logan/flowbus/FlowEventBus;Landroidx/lifecycle/LifecycleOwner;Ljava/lang/String;Lkotlin/reflect/KClass;Landroidx/lifecycle/Lifecycle$State;Lkotlinx/coroutines/CoroutineDispatcher;ZLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+}
+
+public final class com/logan/flowbus/GlobalViewModelStore : androidx/lifecycle/ViewModelStoreOwner {
+	public static final field INSTANCE Lcom/logan/flowbus/GlobalViewModelStore;
+	public final fun get (Ljava/lang/Class;)Landroidx/lifecycle/ViewModel;
+	public fun getViewModelStore ()Landroidx/lifecycle/ViewModelStore;
+}
+
+public final class com/logan/flowbus/OnEventExtensionKt {
+	public static final fun onEvent (Landroidx/lifecycle/LifecycleOwner;Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function1;)Lkotlinx/coroutines/Job;
+	public static final fun onEvent (Landroidx/lifecycle/LifecycleOwner;Lcom/logan/flowbus/core/EventChannel;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function1;)Lkotlinx/coroutines/Job;
+	public static final fun onEvent (Lkotlinx/coroutines/CoroutineScope;Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;ZLkotlin/jvm/functions/Function1;)Lkotlinx/coroutines/Job;
+	public static final fun onEvent (Lkotlinx/coroutines/CoroutineScope;Lcom/logan/flowbus/core/EventChannel;ZLkotlin/jvm/functions/Function1;)Lkotlinx/coroutines/Job;
+	public static synthetic fun onEvent$default (Landroidx/lifecycle/LifecycleOwner;Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+	public static synthetic fun onEvent$default (Landroidx/lifecycle/LifecycleOwner;Lcom/logan/flowbus/core/EventChannel;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+	public static synthetic fun onEvent$default (Lkotlinx/coroutines/CoroutineScope;Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;ZLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+	public static synthetic fun onEvent$default (Lkotlinx/coroutines/CoroutineScope;Lcom/logan/flowbus/core/EventChannel;ZLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+}
+
+public final class com/logan/flowbus/OwnerEventExtensionKt {
+	public static final fun emitScopedEvent (Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;JLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun emitScopedEvent$default (Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;JLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static final fun emitScopedStickyEvent (Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;JLkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun emitScopedStickyEvent$default (Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;JLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public static final fun postScopedEvent (Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;J)V
+	public static synthetic fun postScopedEvent$default (Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;JILjava/lang/Object;)V
+	public static final fun postScopedStickyEvent (Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;J)V
+	public static synthetic fun postScopedStickyEvent$default (Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;JILjava/lang/Object;)V
+	public static final fun scopedEventFlow (Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;Z)Lkotlinx/coroutines/flow/Flow;
+	public static synthetic fun scopedEventFlow$default (Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;ZILjava/lang/Object;)Lkotlinx/coroutines/flow/Flow;
+	public static final fun scopedStickyEventFlow (Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;)Lkotlinx/coroutines/flow/Flow;
+}
+
+public final class com/logan/flowbus/SubscribeEventExtensionKt {
+	public static final fun subscribeEvent (Landroidx/lifecycle/LifecycleOwner;Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function1;)Lkotlinx/coroutines/Job;
+	public static final fun subscribeEvent (Landroidx/lifecycle/LifecycleOwner;Lcom/logan/flowbus/core/EventChannel;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function1;)Lkotlinx/coroutines/Job;
+	public static final fun subscribeEvent (Lkotlinx/coroutines/CoroutineScope;Lcom/logan/flowbus/core/EventChannel;ZLkotlin/jvm/functions/Function1;)Lkotlinx/coroutines/Job;
+	public static synthetic fun subscribeEvent$default (Landroidx/lifecycle/LifecycleOwner;Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+	public static synthetic fun subscribeEvent$default (Landroidx/lifecycle/LifecycleOwner;Lcom/logan/flowbus/core/EventChannel;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+	public static synthetic fun subscribeEvent$default (Lkotlinx/coroutines/CoroutineScope;Lcom/logan/flowbus/core/EventChannel;ZLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+	public static final fun subscribeEventFrom (Lkotlinx/coroutines/CoroutineScope;Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;ZLkotlin/jvm/functions/Function1;)Lkotlinx/coroutines/Job;
+	public static synthetic fun subscribeEventFrom$default (Lkotlinx/coroutines/CoroutineScope;Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;ZLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+}
+

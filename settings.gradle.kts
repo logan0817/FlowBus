@@ -1,7 +1,7 @@
 pluginManagement {
     plugins {
-        kotlin("android") version "1.9.23"
-        kotlin("jvm") version "1.9.23"
+        kotlin("android") version "1.9.25"
+        kotlin("jvm") version "1.9.25"
     }
 
     repositories {
@@ -12,6 +12,8 @@ pluginManagement {
 }
 
 dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+
     repositories {
         google()
         mavenCentral()

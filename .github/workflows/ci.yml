@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5.2.0
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle cache
+        uses: gradle/actions/setup-gradle@v6.1.0
+        with:
+          cache-read-only: false
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4.0.1
+
+      - name: Install Android SDK packages
+        run: sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Check submitted diff whitespace
+        run: |
+          API_SNAPSHOT_EXCLUDES=(-- . ':(exclude)flowbus-core/api/*.api' ':(exclude)library-android/api/*.api')
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git diff --check "origin/${{ github.base_ref }}"...HEAD "${API_SNAPSHOT_EXCLUDES[@]}"
+          elif git rev-parse HEAD~1 >/dev/null 2>&1; then
+            git diff --check HEAD~1..HEAD "${API_SNAPSHOT_EXCLUDES[@]}"
+          else
+            git diff --check "${API_SNAPSHOT_EXCLUDES[@]}"
+          fi
+
+      - name: Run unit tests
+        run: ./gradlew :flowbus-core:test :library-android:testDebugUnitTest :app:testDebugUnitTest --rerun-tasks --warning-mode=all
+
+      - name: Check public API compatibility
+        run: ./gradlew apiCheck --rerun-tasks --warning-mode=all
+
+      - name: Run Android release lint
+        run: ./gradlew :library-android:lintRelease :app:lintRelease --rerun-tasks --warning-mode=all
+
+      - name: Assemble sample APKs
+        run: ./gradlew :app:assembleDebug :app:assembleRelease --rerun-tasks --warning-mode=all
+
+      - name: Enable KVM for Android emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run Android instrumented tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          disable-animations: true
+          script: |
+            adb shell settings put global window_animation_scale 0
+            adb shell settings put global transition_animation_scale 0
+            adb shell settings put global animator_duration_scale 0
+            adb shell settings get global window_animation_scale
+            adb shell settings get global transition_animation_scale
+            adb shell settings get global animator_duration_scale
+            ./gradlew :library-android:connectedDebugAndroidTest :app:connectedReleaseAndroidTest --rerun-tasks --warning-mode=all
+
+      - name: Verify Maven local publication and artifacts
+        run: ./gradlew verifyMavenLocalArtifacts --rerun-tasks --warning-mode=all
+
+      - name: Verify Maven local minified consumer
+        run: ./gradlew verifyMavenLocalConsumer --rerun-tasks --warning-mode=all
+
+      - name: Verify Maven local core consumer
+        run: ./gradlew verifyMavenLocalCoreConsumer --rerun-tasks --warning-mode=all
+
+      - name: Verify Maven Central release task graph
+        run: ./gradlew releaseToMavenCentral --dry-run --warning-mode=all

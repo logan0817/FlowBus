@@ -1,8 +1,10 @@
 package com.logan.flowbus
 
+import androidx.annotation.MainThread
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
 import com.logan.flowbus.core.defaultEventName
+import com.logan.flowbus.core.FlowBusPostResult
 
 /**
  * 向全局总线发送事件。
@@ -39,6 +41,19 @@ inline fun <reified T : Any> tryPostEvent(
 }
 
 /**
+ * 尝试向全局总线发送事件，并返回总线层面的诊断结果。
+ *
+ * 该方法不支持延迟发送；如果需要延迟，请自行在协程中 delay 后调用本方法。
+ */
+inline fun <reified T : Any> tryPostEventResult(
+    event: T,
+    eventName: String = defaultEventName<T>()
+): FlowBusPostResult {
+    return GlobalViewModelStore.get(FlowEventBus::class.java)
+        .postResult(eventName = eventName, value = event, valueType = T::class)
+}
+
+/**
  * 向指定 [owner] 对应的局部总线发送事件。
  *
  * 这是 best-effort 发送；当底层缓冲已满时，事件可能不会被接收。
@@ -53,6 +68,7 @@ inline fun <reified T : Any> tryPostEvent(
  * @param delayMillis 延迟发送时间，单位毫秒。
  * @param eventName 事件通道名；默认使用事件类型全名。
  */
+@MainThread
 inline fun <reified T : Any> postEventTo(
     owner: ViewModelStoreOwner,
     event: T,
@@ -65,14 +81,36 @@ inline fun <reified T : Any> postEventTo(
 /**
  * 尝试向指定 [owner] 对应的局部总线发送事件，并返回当前调用是否已被总线接收。
  */
+@MainThread
 inline fun <reified T : Any> tryPostEventTo(
     owner: ViewModelStoreOwner,
     event: T,
     delayMillis: Long = 0L,
     eventName: String = defaultEventName<T>()
 ): Boolean {
-    return ViewModelProvider(owner = owner).get(FlowEventBus::class.java)
+    return (if (owner === GlobalViewModelStore) {
+        GlobalViewModelStore.get(FlowEventBus::class.java)
+    } else {
+        ViewModelProvider(owner = owner).get(FlowEventBus::class.java)
+    })
         .post(eventName = eventName, value = event, valueType = T::class, delayMillis = delayMillis)
+}
+
+/**
+ * 尝试向指定 [owner] 对应的局部总线发送事件，并返回总线层面的诊断结果。
+ */
+@MainThread
+inline fun <reified T : Any> tryPostEventResultTo(
+    owner: ViewModelStoreOwner,
+    event: T,
+    eventName: String = defaultEventName<T>()
+): FlowBusPostResult {
+    return (if (owner === GlobalViewModelStore) {
+        GlobalViewModelStore.get(FlowEventBus::class.java)
+    } else {
+        ViewModelProvider(owner = owner).get(FlowEventBus::class.java)
+    })
+        .postResult(eventName = eventName, value = event, valueType = T::class)
 }
 
 /**
@@ -90,13 +128,18 @@ suspend inline fun <reified T : Any> emitEvent(
 /**
  * 挂起直到指定 [owner] 对应的局部事件成功发送。
  */
+@MainThread
 suspend inline fun <reified T : Any> emitEventTo(
     owner: ViewModelStoreOwner,
     event: T,
     delayMillis: Long = 0L,
     eventName: String = defaultEventName<T>()
 ) {
-    ViewModelProvider(owner = owner).get(FlowEventBus::class.java)
+    (if (owner === GlobalViewModelStore) {
+        GlobalViewModelStore.get(FlowEventBus::class.java)
+    } else {
+        ViewModelProvider(owner = owner).get(FlowEventBus::class.java)
+    })
         .emit(eventName = eventName, value = event, valueType = T::class, delayMillis = delayMillis)
 }
 
@@ -134,8 +177,20 @@ inline fun <reified T : Any> tryPostStickyEvent(
 }
 
 /**
+ * 尝试向全局总线发送粘性事件，并返回总线层面的诊断结果。
+ */
+inline fun <reified T : Any> tryPostStickyEventResult(
+    event: T,
+    eventName: String = defaultEventName<T>()
+): FlowBusPostResult {
+    return GlobalViewModelStore.get(FlowEventBus::class.java)
+        .postResult(eventName = eventName, value = event, valueType = T::class, isSticky = true)
+}
+
+/**
  * 向指定 [owner] 对应的局部总线发送粘性事件。
  */
+@MainThread
 inline fun <reified T : Any> postStickyEventTo(
     owner: ViewModelStoreOwner,
     event: T,
@@ -148,13 +203,18 @@ inline fun <reified T : Any> postStickyEventTo(
 /**
  * 尝试向指定 [owner] 对应的局部总线发送粘性事件，并返回当前调用是否已被总线接收。
  */
+@MainThread
 inline fun <reified T : Any> tryPostStickyEventTo(
     owner: ViewModelStoreOwner,
     event: T,
     delayMillis: Long = 0L,
     eventName: String = defaultEventName<T>()
 ): Boolean {
-    return ViewModelProvider(owner = owner).get(FlowEventBus::class.java)
+    return (if (owner === GlobalViewModelStore) {
+        GlobalViewModelStore.get(FlowEventBus::class.java)
+    } else {
+        ViewModelProvider(owner = owner).get(FlowEventBus::class.java)
+    })
         .post(
             eventName = eventName,
             value = event,
@@ -162,6 +222,23 @@ inline fun <reified T : Any> tryPostStickyEventTo(
             isSticky = true,
             delayMillis = delayMillis
         )
+}
+
+/**
+ * 尝试向指定 [owner] 对应的局部总线发送粘性事件，并返回总线层面的诊断结果。
+ */
+@MainThread
+inline fun <reified T : Any> tryPostStickyEventResultTo(
+    owner: ViewModelStoreOwner,
+    event: T,
+    eventName: String = defaultEventName<T>()
+): FlowBusPostResult {
+    return (if (owner === GlobalViewModelStore) {
+        GlobalViewModelStore.get(FlowEventBus::class.java)
+    } else {
+        ViewModelProvider(owner = owner).get(FlowEventBus::class.java)
+    })
+        .postResult(eventName = eventName, value = event, valueType = T::class, isSticky = true)
 }
 
 /**
@@ -185,13 +262,18 @@ suspend inline fun <reified T : Any> emitStickyEvent(
 /**
  * 挂起直到指定 [owner] 对应的局部粘性事件成功发送。
  */
+@MainThread
 suspend inline fun <reified T : Any> emitStickyEventTo(
     owner: ViewModelStoreOwner,
     event: T,
     delayMillis: Long = 0L,
     eventName: String = defaultEventName<T>()
 ) {
-    ViewModelProvider(owner = owner).get(FlowEventBus::class.java)
+    (if (owner === GlobalViewModelStore) {
+        GlobalViewModelStore.get(FlowEventBus::class.java)
+    } else {
+        ViewModelProvider(owner = owner).get(FlowEventBus::class.java)
+    })
         .emit(
             eventName = eventName,
             value = event,

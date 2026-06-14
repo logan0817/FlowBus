@@ -12,10 +12,10 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.logan.flowbus.core.DefaultFlowBus
 import com.logan.flowbusapp.databinding.ActivityNonUiCaseBinding
-import com.logan.flowbusapp.nonui.MainDemoViewModel
-import com.logan.flowbusapp.nonui.RepositoryDemoLog
-import com.logan.flowbusapp.nonui.ViewModelDemoLog
-import com.logan.flowbusapp.nonui.WorkerDemoLog
+import com.logan.flowbusapp.nonui.NonUiCaseViewModel
+import com.logan.flowbusapp.nonui.RepositorySyncLog
+import com.logan.flowbusapp.nonui.ViewModelSyncLog
+import com.logan.flowbusapp.nonui.WorkerSyncLog
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -23,7 +23,7 @@ import java.util.Locale
 
 class NonUiCaseActivity : AppCompatActivity() {
 
-    private val viewModel by viewModels<MainDemoViewModel>()
+    private val viewModel by viewModels<NonUiCaseViewModel>()
 
     private var _binding: ActivityNonUiCaseBinding? = null
     private val binding get() = _binding!!
@@ -51,6 +51,7 @@ class NonUiCaseActivity : AppCompatActivity() {
     }
 
     private fun renderInitialState() {
+        binding.btnStartSyncFlow.isEnabled = false
         binding.tvUiResult.text = getString(R.string.non_ui_case_ui_result_waiting)
         binding.tvViewModelLog.text = getString(R.string.non_ui_case_view_model_waiting)
         binding.tvRepositoryLog.text = getString(R.string.non_ui_case_repository_waiting)
@@ -60,7 +61,7 @@ class NonUiCaseActivity : AppCompatActivity() {
     private fun setListeners() {
         binding.btnStartSyncFlow.setOnClickListener {
             binding.tvUiResult.text = withTimestamp(getString(R.string.non_ui_case_ui_result_running))
-            viewModel.runNonUiDemo(trigger = triggerSource())
+            viewModel.startSyncCase(trigger = triggerSource())
         }
     }
 
@@ -68,8 +69,16 @@ class NonUiCaseActivity : AppCompatActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch {
-                    DefaultFlowBus.flow<ViewModelDemoLog>().collect { event ->
-                        if (!event.message.contains(currentScopeName())) {
+                    viewModel.collectorsReady.collect { isReady ->
+                        if (isReady) {
+                            binding.btnStartSyncFlow.isEnabled = true
+                            binding.tvUiResult.text = getString(R.string.non_ui_case_ui_result_ready)
+                        }
+                    }
+                }
+                launch {
+                    DefaultFlowBus.flow<ViewModelSyncLog>().collect { event ->
+                        if (event.scopeName != currentScopeName()) {
                             return@collect
                         }
                         binding.tvViewModelLog.text =
@@ -77,8 +86,8 @@ class NonUiCaseActivity : AppCompatActivity() {
                     }
                 }
                 launch {
-                    DefaultFlowBus.flow<RepositoryDemoLog>().collect { event ->
-                        if (!event.message.contains(currentScopeName())) {
+                    DefaultFlowBus.flow<RepositorySyncLog>().collect { event ->
+                        if (event.scopeName != currentScopeName()) {
                             return@collect
                         }
                         binding.tvRepositoryLog.text =
@@ -86,8 +95,8 @@ class NonUiCaseActivity : AppCompatActivity() {
                     }
                 }
                 launch {
-                    DefaultFlowBus.flow<WorkerDemoLog>().collect { event ->
-                        if (!event.message.contains(currentScopeName())) {
+                    DefaultFlowBus.flow<WorkerSyncLog>().collect { event ->
+                        if (event.scopeName != currentScopeName()) {
                             return@collect
                         }
                         binding.tvWorkerLog.text =

@@ -22,17 +22,23 @@ android {
         versionCode = APP_VERSION_CODE.toInt()
         versionName = APP_VERSION_NAME
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testProguardFiles("proguard-android-test.pro")
     }
     buildFeatures {
         viewBinding = true
     }
+    testOptions {
+        animationsDisabled = true
+    }
+    testBuildType = "release"
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
     buildTypes {
         getByName("release") {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -46,6 +52,10 @@ android {
         disable.add("GradleDependency")
         // 忽略 AGP 版本检查，因为我们受限于 CI 环境
         disable.add("AndroidGradlePluginVersion")
+        // Demo app 会保留额外场景文案和页面背景，供手动探索。
+        disable.add("MissingTranslation")
+        disable.add("Overdraw")
+        disable.add("UnusedResources")
     }
 
     // Use this block to configure different flavors
@@ -64,7 +74,7 @@ android {
 
 tasks.withType<KotlinCompile>().configureEach {
     compilerOptions {
-        jvmTarget.set(JvmTarget.JVM_17)
+        jvmTarget.set(JvmTarget.JVM_1_8)
     }
 }
 

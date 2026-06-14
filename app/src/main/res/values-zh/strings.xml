@@ -1,16 +1,5 @@
 <resources>
     <string name="app_name">FlowBus</string>
-    <string name="sendGlobalEvent">发送全局事件</string>
-    <string name="sendActivityEvent">发送Activity事件</string>
-    <string name="sendFragmentEvent">发送Fragment事件</string>
-    <string name="runNonUiDemo">运行 ViewModel / Repository / Worker 示例</string>
-    <string name="jumpNextPage1">打开TestActivity</string>
-    <string name="jumpNextPage2">打开TestFragmentActivity</string>
-    <string name="jumpNextPage3">打开LoginActivity</string>
-    <string name="sendCustomEvent">发送 Activity Sticky 事件</string>
-    <string name="sendCustomEventDelay">发送延迟 Activity Sticky 事件</string>
-    <string name="sendManyEvent">发送 200 次 Activity Sticky 事件</string>
-    <string name="default_placeholder_log_text">----------------------------------------</string>
     <string name="login">登录</string>
     <string name="password">密码</string>
     <string name="account">账号</string>
@@ -146,6 +135,7 @@
     <string name="non_ui_case_main_action">启动后台同步并通知页面</string>
     <string name="non_ui_case_ui_result_title">页面结果</string>
     <string name="non_ui_case_ui_result_waiting">页面结果：等待后台同步通知</string>
+    <string name="non_ui_case_ui_result_ready">页面结果：Repository 和 Worker 已就绪，可以点击开始同步</string>
     <string name="non_ui_case_ui_result_running">页面结果：已启动同步，等待后台链路回传</string>
     <string name="non_ui_case_ui_result_done">页面结果：页面已收到后台同步完成通知</string>
     <string name="non_ui_case_process_title">非 UI 链路</string>
@@ -159,7 +149,7 @@
     <string name="non_ui_case_worker_waiting">Worker 面板：等待 Worker 完成</string>
     <string name="non_ui_case_worker_result">Worker 面板：已收到 Worker 通知。</string>
     <string name="non_ui_case_trigger_source">非 UI 案例页按钮</string>
-    <string name="non_ui_case_code">最小代码\nviewModel.runNonUiDemo()\nDefaultFlowBus.flow&lt;WorkerDemoLog&gt;().collect { event -&gt;\n    render(event.message)\n}</string>
+    <string name="non_ui_case_code">最小代码\nviewModel.startSyncCase()\nDefaultFlowBus.flow&lt;WorkerSyncLog&gt;().collect { event -&gt;\n    if (event.scopeName == viewModel.currentScopeName()) render(event.message)\n}</string>
     <string name="non_ui_case_anti_pattern">别这样用：事件总线适合发“通知”，不适合替代正常函数返回值、Repository 调用链和请求响应。能直接调用的地方，优先直接调用。</string>
     <string name="scope_case_title">作用域通信案例</string>
     <string name="scope_case_headline">为什么有些消息应该留在当前 owner 内？</string>

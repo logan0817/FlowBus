@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    tools:context="com.logan.flowbusapp.ScopeCaseFragment">
+
+    <Button
+        android:id="@+id/btnRefreshCurrentPanel"
+        style="@style/Widget.AppCompat.Button.Colored"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/autumn_wave"
+        android:text="@string/scope_refresh_fragment_action"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="16sp" />
+
+    <Button
+        android:id="@+id/btnSendLocalMessageToHost"
+        style="@style/Widget.AppCompat.Button.Colored"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:background="@color/autumn_wave"
+        android:text="@string/scope_send_fragment_to_host_action"
+        android:textAllCaps="false"
+        android:textColor="@color/white"
+        android:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/tvFragmentPanelState"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:textColor="#2C1A0B"
+        android:textSize="15sp"
+        tools:text="@string/scope_fragment_state_refreshed" />
+
+    <TextView
+        android:id="@+id/tvFragmentLog"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:textColor="#5A4638"
+        android:textSize="14sp"
+        tools:text="@string/scope_fragment_log_refreshed" />
+
+    <TextView
+        android:id="@+id/tvFragmentScopeHint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:textColor="#5A4638"
+        android:textSize="14sp"
+        tools:text="@string/scope_fragment_hint_fragment_event" />
+
+</LinearLayout>
