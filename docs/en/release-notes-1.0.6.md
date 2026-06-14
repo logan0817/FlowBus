@@ -18,6 +18,7 @@ This upgrade is a good fit for teams that: 1. already use FlowBus in Android UI,
 | Async scope close | `closeSuspending()`, `tryClose(timeoutMillis)`, `FlowBusCloseResult` | closing scopes from UI or single-thread environments | returns timeout result instead of forcing a blocking close |
 | One-time latest sticky consumption | `consumeStickyLatest(...)`, `consumeStickyLatestEvent(...)`, `channel.consumeStickyLatest()` | read the latest sticky result and clear replay | only handles sticky replay in the current store; not a state-management replacement |
 | Stronger release verification | `apiCheck`, release lint, assemble, local Maven artifact check, release dry-run | verify API, artifacts, and publication task graph before release | connected tests need a device or CI emulator |
+| Release script layout | `gradle/release-publishing.gradle.kts`, `gradle/release-verification.gradle.kts` | separate publication entry points from pre-release verification | the root `build.gradle.kts` only keeps shared configuration and script entry points |
 
 ## 3. API State Comparison
 
@@ -86,3 +87,4 @@ This upgrade is a good fit for teams that: 1. already use FlowBus in Android UI,
 | Android README | [`library-android/README.md`](../../library-android/README.md) | Android setup and lifecycle APIs |
 | core README | [`flowbus-core/README.md`](../../flowbus-core/README.md) | pure Kotlin usage and core semantics |
 | Release checklist | [`docs/release-checklist.md`](../release-checklist.md) | pre-release verification |
+| Release scripts | [`gradle/release-publishing.gradle.kts`](../../gradle/release-publishing.gradle.kts), [`gradle/release-verification.gradle.kts`](../../gradle/release-verification.gradle.kts) | Maven publication and pre-release verification |

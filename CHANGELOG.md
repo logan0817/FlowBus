@@ -14,6 +14,7 @@
 | 竞态修复 | 修复 scope 关闭竞态和 sticky replay 写入 / 消费串行化风险 | 关闭中不再误报 timeout，同名 scope 可稳定重新打开 |
 | 示例与测试 | 示例页面改为场景化案例，connected test 增加启动和 ready 检查 | 示例链路更贴近真实接入场景 |
 | 发布校验 | 本地 Maven 校验覆盖 jar / aar、POM、Gradle module metadata、sources jar、javadoc jar、license / developer metadata、`verifyMavenLocalCoreConsumer` 和 `verifyMavenLocalConsumer` | 发布前能检查产物结构、发布元数据和真实消费者接入 |
+| 构建维护 | 发布入口拆到 `gradle/release-publishing.gradle.kts`，发布前校验拆到 `gradle/release-verification.gradle.kts` | 根 `build.gradle.kts` 只保留通用配置和脚本入口，手动发布命令保持不变 |
 
 | 兼容项 | 说明 |
 | --- | --- |

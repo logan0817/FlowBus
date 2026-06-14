@@ -6,6 +6,15 @@ Run this checklist before publishing `1.0.6`.
 
 The goal is to verify that `flowbus-core` and `flowbus` are built from the FlowBus main repository, and that local verification plus the remote release task graph can be checked.
 
+Release script locations:
+
+| Logic | File |
+| --- | --- |
+| Publication entry points, Maven local cleanup, remote publication task graph, signing task trigger conditions | `gradle/release-publishing.gradle.kts` |
+| Maven local artifact checks, POM / module metadata checks, real consumer build checks | `gradle/release-verification.gradle.kts` |
+
+The root `build.gradle.kts` only keeps shared plugins, API validation configuration, project version configuration, and script entry points. Manual publication commands still run from the repository root; no submodule directory switch is needed.
+
 ## 1. Pre-Release Verification Command
 
 ```bash

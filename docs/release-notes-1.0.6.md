@@ -18,6 +18,7 @@
 | scope 异步关闭 | `closeSuspending()`、`tryClose(timeoutMillis)`、`FlowBusCloseResult` | UI 或单线程环境中关闭 scope | 超时返回结果，不强行阻塞调用线程 |
 | sticky 最新值一次性消费 | `consumeStickyLatest(...)`、`consumeStickyLatestEvent(...)`、`channel.consumeStickyLatest()` | 读取最近 sticky 结果后立即清 replay | 只处理当前 store 内的 sticky replay，不替代状态管理 |
 | 发布验证增强 | `apiCheck`、release lint、assemble、本地 Maven 产物校验、发布 dry-run | 上线前校验 API、产物和发布任务图 | connected test 依赖设备或 CI emulator 环境 |
+| 发布脚本整理 | `gradle/release-publishing.gradle.kts`、`gradle/release-verification.gradle.kts` | 区分发布入口和发布前校验 | 根 `build.gradle.kts` 只保留通用配置和脚本入口 |
 
 ## 3. API 状态对比
 
@@ -86,3 +87,4 @@
 | Android README | [`library-android/README.md`](../library-android/README.md) | 面向 Android 接入和生命周期 API |
 | core README | [`flowbus-core/README.md`](../flowbus-core/README.md) | 面向纯 Kotlin 和底层语义 |
 | 发布清单 | [`docs/release-checklist.md`](./release-checklist.md) | 面向上线前核对 |
+| 发布脚本 | [`gradle/release-publishing.gradle.kts`](../gradle/release-publishing.gradle.kts)、[`gradle/release-verification.gradle.kts`](../gradle/release-verification.gradle.kts) | 面向 Maven 发布和发布前校验 |

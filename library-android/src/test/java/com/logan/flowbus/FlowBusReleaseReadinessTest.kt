@@ -59,7 +59,7 @@ class FlowBusReleaseReadinessTest {
 
     @Test
     fun `maven local verification checks public dependency metadata`() {
-        val rootBuild = File("../build.gradle.kts").readText()
+        val releaseVerification = File("../gradle/release-verification.gradle.kts").readText()
 
         listOf(
             "pom = corePom",
@@ -84,7 +84,7 @@ class FlowBusReleaseReadinessTest {
             "onEvent",
             "postScopedEvent"
         ).forEach { expected ->
-            assertTrue("Missing release metadata gate: $expected", rootBuild.contains(expected))
+            assertTrue("Missing release metadata gate: $expected", releaseVerification.contains(expected))
         }
     }
 

@@ -6,6 +6,15 @@
 
 目标是确认 `flowbus-core` 和 `flowbus` 都由 FlowBus 主仓库统一构建，并且本地验证与远程发布任务图都可检查。
 
+发布脚本位置：
+
+| 逻辑 | 文件 |
+| --- | --- |
+| 发布入口、Maven local 清理、远程发布任务图、签名任务触发条件 | `gradle/release-publishing.gradle.kts` |
+| Maven local 产物校验、POM / module metadata 校验、真实 consumer 构建校验 | `gradle/release-verification.gradle.kts` |
+
+根 `build.gradle.kts` 只保留通用插件、API 校验配置、项目版本配置和脚本入口。手动发布命令仍从仓库根目录运行，不需要切换到子模块。
+
 ## 1. 发布前验证命令
 
 ```bash

@@ -205,6 +205,8 @@ Release gates:
 | `library-android` | Android adapter module, published as `io.github.logan0817:flowbus`; it depends on the in-repository `flowbus-core` |
 | `app` | sample app and integration verification entry |
 | `docs` | release checklist and release notes |
+| `gradle/release-publishing.gradle.kts` | Maven local and Maven Central publication entry points |
+| `gradle/release-verification.gradle.kts` | Maven artifact, POM, module metadata, and real consumer checks |
 
 ## Sample app
 

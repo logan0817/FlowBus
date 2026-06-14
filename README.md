@@ -205,6 +205,8 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 | `library-android` | Android 适配模块，对外坐标 `io.github.logan0817:flowbus`；依赖主仓库内的 `flowbus-core` |
 | `app` | 示例应用和集成验证入口 |
 | `docs` | 发布清单和发布说明 |
+| `gradle/release-publishing.gradle.kts` | Maven local 与 Maven Central 发布入口 |
+| `gradle/release-verification.gradle.kts` | Maven 产物、POM、module metadata 和真实 consumer 校验 |
 
 ## 示例应用
 
