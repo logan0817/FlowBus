@@ -15,6 +15,7 @@
 | 主仓统一维护 | 根工程发布 `flowbus-core` 和 `flowbus` | 发布、CI、API 基线统一管理 | 不再按旧子仓工作流初始化或发布 |
 | 发送结果诊断 | `tryPostResult(...)`、`tryPostStickyResult(...)`、`tryPostEventResult(...)` | 日志、单测断言、发送失败排查 | 只说明 `tryEmit` 是否被拒绝，不代表订阅者处理成功 |
 | 只读诊断快照 | `inspect()`、`inspector().snapshot()`、`inspectScope(...)` | 查看 event name、scope、订阅数、sticky replay 数和发送指标 | 只暴露元数据，不暴露 sticky payload |
+| scope 直接关闭 | `FlowBusScope.close()`、`bindTo(job)` | 生命周期回调、UI 层释放句柄 | 立即让句柄失效；已开始操作继续使用原 store，结束后再清理 |
 | scope 异步关闭 | `closeSuspending()`、`tryClose(timeoutMillis)`、`FlowBusCloseResult` | UI 或单线程环境中关闭 scope | 超时返回结果，不强行阻塞调用线程 |
 | sticky 最新值一次性消费 | `consumeStickyLatest(...)`、`consumeStickyLatestEvent(...)`、`channel.consumeStickyLatest()` | 读取最近 sticky 结果后立即清 replay | 只处理当前 store 内的 sticky replay，不替代状态管理 |
 | 发布验证增强 | `apiCheck`、release lint、assemble、本地 Maven 产物校验、发布 dry-run | 上线前校验 API、产物和发布任务图 | connected test 依赖设备或 CI emulator 环境 |

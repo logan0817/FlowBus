@@ -557,7 +557,7 @@ class FlowBusTest {
     }
 
     @Test
-    fun `close waits for in-flight scope operations to finish`() = runBlocking {
+    fun `close returns immediately and defers cleanup until in-flight scope operations finish`() = runBlocking {
         val key = eventKey<String>("demo")
         val store = FlowBusStore(FlowBusConfig())
         val storeLookupStarted = CompletableDeferred<Unit>()
@@ -598,8 +598,9 @@ class FlowBusTest {
         try {
             closeStarted.await()
             yield()
+            closeCompleted.await()
+            assertTrue(scope.isClosed)
             assertFalse(closeActionCalled.isCompleted)
-            assertFalse(closeCompleted.isCompleted)
         } finally {
             if (!releaseStoreLookup.isCompleted) {
                 releaseStoreLookup.complete(Unit)
@@ -607,7 +608,7 @@ class FlowBusTest {
         }
 
         withTimeout(1_000) {
-            closeCompleted.await()
+            closeActionCalled.await()
         }
 
         postJob.cancelAndJoin()
@@ -616,7 +617,7 @@ class FlowBusTest {
     }
 
     @Test
-    fun `close waits for suspended scope emit to finish`() = runBlocking {
+    fun `close invalidates scope immediately and removes store after suspended scope emit finishes`() = runBlocking {
         val bus = FlowBus(
             config = FlowBusConfig(
                 normalBufferCapacity = 0,
@@ -661,7 +662,9 @@ class FlowBusTest {
         try {
             closeStarted.await()
             yield()
-            assertFalse(closeCompleted.isCompleted)
+            closeCompleted.await()
+            assertTrue(scope.isClosed)
+            assertTrue(bus.hasScope("session"))
         } finally {
             if (!releaseFirst.isCompleted) {
                 releaseFirst.complete(Unit)

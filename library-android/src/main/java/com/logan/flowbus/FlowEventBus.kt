@@ -12,6 +12,7 @@ import com.logan.flowbus.core.FlowBus
 import com.logan.flowbus.core.FlowBusPostResult
 import com.logan.flowbus.core.collectFlowBusSequentially
 import com.logan.flowbus.core.eventKey
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -166,8 +167,18 @@ class FlowEventBus : ViewModel() {
                 bus.flow(eventKey)
             }
             viewModelScope.launch {
-                delay(delayMillis)
-                postOrWarn(eventKey = eventKey, value = value, isSticky = isSticky)
+                try {
+                    delay(delayMillis)
+                    postOrWarn(eventKey = eventKey, value = value, isSticky = isSticky)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    bus.config.logger.warn(
+                        tag = "FlowBus",
+                        message = "Delayed event '${eventKey.name}' failed before it could be posted.",
+                        throwable = e
+                    )
+                }
             }
             return true
         }

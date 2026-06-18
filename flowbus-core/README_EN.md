@@ -239,8 +239,8 @@ Quick distinction:
 
 One more detail:
 
-1. `close()` waits for sends or flow lookups that already started on that scope, then invalidates the handle
-2. `close()` removes the current scope store
+1. `close()` invalidates the current `FlowBusScope` handle immediately, so the handle can no longer send events or look up flows
+2. sends or flow lookups that already started keep using the original store, and that store is cleaned after those operations finish
 3. old `Flow` references you already hold are still not actively cancelled
 
 ## Lower-level typed keys
@@ -662,19 +662,24 @@ Otherwise sticky events have no usable live buffer or replay storage, and FlowBu
 
 `FlowBusScope.close()` does two things:
 
-1. It waits for sends or flow lookups that already started on that scope, then invalidates that `FlowBusScope` handle.
-2. It removes the current scope store and clears its cached values.
+1. It invalidates the current `FlowBusScope` handle immediately and rejects later sends, flow lookups, and sticky operations.
+2. It lets sends or flow lookups that already started keep using the original store, then removes that store and clears cached values after those operations finish.
 
 Only one closeable `FlowBusScope` handle can be open for the same `scopeName` at a time.
 
 If you only need to share the same named scope without owning its close lifecycle, use `scoped(...)`.
 
-If the current scope may have a suspended `emit`, do not call synchronous `close()` on the same single-thread dispatcher or on a UI-critical path.
+`close()` itself does not wait until cleanup finishes. Use the waiting APIs below when you need to know that the store has been removed or when you need a timeout result.
 
-Prefer one of these options:
+Close API comparison:
 
-1. bind the scope to an outer `Job`.
-2. use `closeSuspending()` / `tryClose(timeoutMillis)` when you need non-blocking or timeout-based closing.
+| API | Invalidates the handle immediately | Waits for store cleanup | Best for |
+| --- | --- | --- | --- |
+| `close()` | Yes | No | UI code, lifecycle callbacks, and cases that only need to stop using the current handle |
+| `closeSuspending()` | Yes | Yes | coroutine code that must wait for cleanup |
+| `tryClose(timeoutMillis)` | Yes | Up to the timeout | tests, shutdown flows, and explicit timeout handling |
+
+If the scope follows an outer lifecycle, prefer `openScope(name, closeWhen = job)` or `bindTo(job)` so the scope is not forgotten.
 
 If a close result reports `ClosingInProgress`, another close call is already handling that scope and this call did not take over.
 

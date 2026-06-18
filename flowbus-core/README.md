@@ -236,8 +236,8 @@ sessionScope.close()
 
 补一句：
 
-1. `close()` 会等待当前 scope 上已经开始的发送 / 取流操作结束，再让句柄失效
-2. `close()` 会移除当前 scope 对应的内部 store
+1. `close()` 会立即让当前 `FlowBusScope` 句柄失效，后续不能再用这个句柄发送或取流
+2. 已经开始的发送 / 取流操作会继续使用原 store，等这些操作结束后再清理 store
 3. 已经拿到手的旧 `Flow` 引用不会被主动 cancel；之后再通过同名 scope 访问时，会按需创建新的通道
 
 ## 如果你还想使用更底层的 typed key
@@ -694,17 +694,22 @@ scope.launch { taskScope.flow<TaskProgress>().collect { render(it) } }
 
 `FlowBusScope.close()` 做的是两件事：
 
-1. 等当前 scope 上已经开始的发送 / 取流操作结束，再让这个 `FlowBusScope` 句柄失效。
-2. 移除当前 scope 对应的内部 store，并清掉其中缓存。
+1. 立即让这个 `FlowBusScope` 句柄失效，拒绝后续发送、取流和 sticky 操作。
+2. 让已开始的发送 / 取流操作继续使用原 store，并在这些操作结束后移除 store、清掉缓存。
 
 同一个 `scopeName` 同一时间只能打开一个可关闭的 `FlowBusScope` 句柄；如果你只是想共享同名 scope，不想持有关闭权，请使用 `scoped(...)`。
 
-如果当前 scope 里存在可能挂起的 `emit`，不要在同一个单线程调度器或 UI 关键路径上同步调用 `close()`。
+`close()` 本身不等待清理完成。如果你需要确认 store 已清理，或者希望拿到超时结果，请使用下面的等待入口。
 
-更稳的做法有 2 个：
+关闭入口对比如下：
 
-1. 让 scope 绑定外层 `Job`。
-2. 使用 `closeSuspending()` / `tryClose(timeoutMillis)`，显式选择非阻塞或带超时的关闭方式。
+| 入口 | 是否立即让句柄失效 | 是否等待 store 清理 | 适合场景 |
+| --- | --- | --- | --- |
+| `close()` | 是 | 否 | UI、生命周期回调、只需要禁止继续使用当前句柄 |
+| `closeSuspending()` | 是 | 是 | 协程中需要等待清理完成 |
+| `tryClose(timeoutMillis)` | 是 | 最多等待指定时间 | 测试、退出流程、需要明确超时结果 |
+
+如果 scope 跟随外层生命周期，优先用 `openScope(name, closeWhen = job)` 或 `bindTo(job)`，避免忘记关闭。
 
 关闭结果里如果出现 `ClosingInProgress`，表示已有另一个关闭动作正在处理这个 scope，本次调用没有重复抢占。
 

@@ -5,6 +5,7 @@ import com.logan.flowbus.core.FlowBusOwner
 import com.logan.flowbus.core.emit
 import com.logan.flowbus.core.flow
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -21,7 +22,7 @@ class SyncRepository(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     fun start() {
-        scope.launch {
+        scope.launch(start = CoroutineStart.UNDISPATCHED) {
             val commandFlow = scopedBus.flow<NonUiSyncCommand>()
             launch {
                 (commandFlow as? MutableSharedFlow<NonUiSyncCommand>)

@@ -126,7 +126,7 @@ Before publishing, use this table:
 | Documentation map | root README | links to the Android module, core module, version history, and Chinese document |
 | Send-result boundary | root README, Android README, core README, release notes | `tryPostEventResult(...)` / `tryPostResult(...)` only describe whether `tryEmit` was rejected, not business handling success |
 | Overflow-policy boundary | root README, Android README, core README, release notes | `DROP_OLDEST` / `DROP_LATEST` are not reliable-queue policies |
-| Scope-close boundary | core README, release notes | `closeSuspending()` / `tryClose(timeoutMillis)` are intended for UI or single-thread closing scenarios |
+| Scope-close boundary | core README, release notes | `close()` invalidates the handle immediately, while `closeSuspending()` / `tryClose(timeoutMillis)` wait for cleanup or return a timeout result |
 | One-time sticky consumption boundary | root README, Android README, core README, release notes | `consumeStickyLatest(...)` / `consumeStickyLatestEvent(...)` only reads and clears the current sticky replay, and does not prevent another thread from writing a new sticky value later |
 | Old-layout troubleshooting | `TROUBLESHOOTING.md` | keeps only local old-structure troubleshooting for the main-repository layout, without old child-repository initialization or release workflow |
 

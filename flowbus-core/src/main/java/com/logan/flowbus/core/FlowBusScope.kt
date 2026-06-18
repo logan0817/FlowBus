@@ -25,8 +25,8 @@ import kotlin.concurrent.withLock
  * - task scope
  *
  * 调用 [close] 后：
- * - 当前 scope 对应的内部 store 会被移除，并清空其中缓存
- * - 该句柄不允许继续使用
+ * - 当前句柄会立即拒绝新的收发操作
+ * - 当前 scope 对应的内部 store 会在已开始的操作结束后移除，并清空其中缓存
  * - 已经拿到手的旧 [Flow] 引用不会被主动 cancel
  *
  * 如果你只想复用同一个命名 scope，而不想自己管理 close，优先使用 [ScopedFlowBus]。
@@ -35,6 +35,10 @@ class FlowBusScope internal constructor(
     override val busScopeName: String,
     private val scopedBus: ScopedFlowBus,
     private val closeAction: (String, FlowBusScope) -> Unit,
+    private val operationScopedBusProvider: (() -> ScopedFlowBus)? = null,
+    private val prepareCloseAction: (String, FlowBusScope) -> () -> Unit = { scopeName, scope ->
+        { closeAction(scopeName, scope) }
+    },
     autoCloseDispatcher: CoroutineDispatcher = Dispatchers.Default
 ) : FlowBusOwner, AutoCloseable {
     private val autoCloseScope = CoroutineScope(SupervisorJob() + autoCloseDispatcher)
@@ -42,6 +46,9 @@ class FlowBusScope internal constructor(
     private val operationLock = ReentrantLock()
     private val operationFinished = operationLock.newCondition()
     private var isClosing: Boolean = false
+    private var closeActionStarted: Boolean = false
+    private var closeActionCompleted: Boolean = false
+    private var closeCompletionAction: (() -> Unit)? = null
     private var inFlightOperationCount: Int = 0
 
     /** 当前 scope 是否已经关闭。 */
@@ -55,57 +62,57 @@ class FlowBusScope internal constructor(
 
     /** 尝试向当前 scope 发送普通事件。 */
     fun <T : Any> post(key: EventKey<T>, value: T): Boolean {
-        return withOpenOperation {
-            scopedBus.post(key, value)
+        return withOpenOperation { operationBus ->
+            operationBus.post(key, value)
         }
     }
 
     /** 尝试向当前 scope 发送普通事件，并返回总线层面的诊断结果。 */
     fun <T : Any> tryPostResult(key: EventKey<T>, value: T): FlowBusPostResult {
-        return withOpenOperation {
-            scopedBus.tryPostResult(key, value)
+        return withOpenOperation { operationBus ->
+            operationBus.tryPostResult(key, value)
         }
     }
 
     /** 挂起直到普通事件成功发送到当前 scope。 */
     suspend fun <T : Any> emit(key: EventKey<T>, value: T) {
-        withOpenOperationSuspend {
-            scopedBus.emit(key, value)
+        withOpenOperationSuspend { operationBus ->
+            operationBus.emit(key, value)
         }
     }
 
     /** 尝试向当前 scope 发送粘性事件。 */
     fun <T : Any> postSticky(key: EventKey<T>, value: T): Boolean {
-        return withOpenOperation {
-            scopedBus.postSticky(key, value)
+        return withOpenOperation { operationBus ->
+            operationBus.postSticky(key, value)
         }
     }
 
     /** 尝试向当前 scope 发送粘性事件，并返回总线层面的诊断结果。 */
     fun <T : Any> tryPostStickyResult(key: EventKey<T>, value: T): FlowBusPostResult {
-        return withOpenOperation {
-            scopedBus.tryPostStickyResult(key, value)
+        return withOpenOperation { operationBus ->
+            operationBus.tryPostStickyResult(key, value)
         }
     }
 
     /** 挂起直到粘性事件成功发送到当前 scope。 */
     suspend fun <T : Any> emitSticky(key: EventKey<T>, value: T) {
-        withOpenOperationSuspend {
-            scopedBus.emitSticky(key, value)
+        withOpenOperationSuspend { operationBus ->
+            operationBus.emitSticky(key, value)
         }
     }
 
     /** 返回当前 scope 中指定普通事件对应的 [Flow]。 */
     fun <T : Any> flow(key: EventKey<T>): Flow<T> {
-        return withOpenOperation {
-            scopedBus.flow(key)
+        return withOpenOperation { operationBus ->
+            operationBus.flow(key)
         }
     }
 
     /** 返回当前 scope 中指定粘性事件对应的 [Flow]。 */
     fun <T : Any> stickyFlow(key: EventKey<T>): Flow<T> {
-        return withOpenOperation {
-            scopedBus.stickyFlow(key)
+        return withOpenOperation { operationBus ->
+            operationBus.stickyFlow(key)
         }
     }
 
@@ -154,29 +161,29 @@ class FlowBusScope internal constructor(
 
     /** 从当前 scope 的当前 store 中移除指定普通事件。 */
     fun <T : Any> removeEvent(key: EventKey<T>) {
-        withOpenOperation {
-            scopedBus.removeEvent(key)
+        withOpenOperation { operationBus ->
+            operationBus.removeEvent(key)
         }
     }
 
     /** 清空当前 scope 中指定粘性事件的 replay 缓存。 */
     fun <T : Any> clearSticky(key: EventKey<T>) {
-        withOpenOperation {
-            scopedBus.clearSticky(key)
+        withOpenOperation { operationBus ->
+            operationBus.clearSticky(key)
         }
     }
 
     /** 从当前 scope 的当前 store 中移除指定粘性事件，并清空现有 replay 缓存。 */
     fun <T : Any> removeSticky(key: EventKey<T>) {
-        withOpenOperation {
-            scopedBus.removeSticky(key)
+        withOpenOperation { operationBus ->
+            operationBus.removeSticky(key)
         }
     }
 
     /** 读取当前 scope 中指定粘性事件的最新 replay 值，并清空该 sticky replay 缓存。 */
     fun <T : Any> consumeStickyLatest(key: EventKey<T>): T? {
-        return withOpenOperation {
-            scopedBus.consumeStickyLatest(key)
+        return withOpenOperation { operationBus ->
+            operationBus.consumeStickyLatest(key)
         }
     }
 
@@ -223,16 +230,20 @@ class FlowBusScope internal constructor(
     /**
      * 关闭当前 scope，并清理该 scope 下的事件流与缓存。
      *
-     * 关闭前会先等待当前句柄上已经开始的发送 / 订阅获取动作结束，避免 close 与在途操作互相打架。
-     * 如果当前 scope 存在可能挂起的 `emit`，不要在同一个单线程调度器或 UI 关键路径上调用同步 [close]。
-     * 等待期间如果当前线程被中断，会恢复线程中断状态并重新抛出 [InterruptedException]。
+     * 该调用会立即让当前句柄失效，不会阻塞等待挂起中的发送。
+     * 已经开始的发送 / 订阅获取动作会继续使用原 store，等这些动作结束后再完成 store 清理。
+     * 如果调用方需要等待清理完成，请使用 [closeSuspending]；如果需要带超时结果，请使用 [tryClose]。
      */
     override fun close() {
-        try {
-            closeInternal(timeoutMillis = null)
-        } catch (e: InterruptedException) {
-            Thread.currentThread().interrupt()
-            throw e
+        val action = operationLock.withLock {
+            if (isClosing || isClosed) return
+            isClosing = true
+            closeCompletionAction = prepareCloseAction(scopeName, this)
+            isClosed = true
+            claimCloseActionIfIdleLocked()
+        }
+        if (action != null) {
+            finishClose(action)
         }
     }
 
@@ -266,28 +277,30 @@ class FlowBusScope internal constructor(
         }
     }
 
-    private inline fun <T> withOpenOperation(block: () -> T): T {
-        beginOperation()
+    private inline fun <T> withOpenOperation(block: (ScopedFlowBus) -> T): T {
+        val operationBus = beginOperation()
         return try {
-            block()
+            block(operationBus)
         } finally {
             endOperation()
         }
     }
 
-    private suspend inline fun <T> withOpenOperationSuspend(crossinline block: suspend () -> T): T {
-        beginOperation()
+    private suspend inline fun <T> withOpenOperationSuspend(crossinline block: suspend (ScopedFlowBus) -> T): T {
+        val operationBus = beginOperation()
         return try {
-            block()
+            block(operationBus)
         } finally {
             endOperation()
         }
     }
 
-    private fun beginOperation() {
-        operationLock.withLock {
+    private fun beginOperation(): ScopedFlowBus {
+        return operationLock.withLock {
             check(!isClosing && !isClosed) { "FlowBusScope '$scopeName' is already closed." }
+            val operationBus = operationScopedBusProvider?.invoke() ?: scopedBus
             inFlightOperationCount++
+            operationBus
         }
     }
 
@@ -298,17 +311,30 @@ class FlowBusScope internal constructor(
                 operationFinished.signalAll()
             }
         }
+        completeCloseIfIdle()
+    }
+
+    private fun completeCloseIfIdle() {
+        val action = operationLock.withLock {
+            claimCloseActionIfIdleLocked()
+        }
+        if (action != null) {
+            finishClose(action)
+        }
     }
 
     private fun closeInternal(timeoutMillis: Long?): FlowBusCloseResult {
-        val shouldClose = operationLock.withLock {
-            if (isClosed) {
+        val action = operationLock.withLock {
+            if (closeActionCompleted) {
                 return FlowBusCloseResult(
                     scopeName = scopeName,
                     closed = true,
                     outcome = FlowBusCloseOutcome.AlreadyClosed,
                     inFlightOperationCount = inFlightOperationCount
                 )
+            }
+            if (isClosed && isClosing) {
+                return waitPreparedCloseCompletionLocked(timeoutMillis)
             }
             if (isClosing) {
                 return FlowBusCloseResult(
@@ -321,34 +347,27 @@ class FlowBusScope internal constructor(
 
             isClosing = true
             try {
-                if (timeoutMillis == null) {
-                    while (inFlightOperationCount > 0) {
-                        operationFinished.await()
-                    }
-                } else {
-                    var remainingNanos = TimeUnit.MILLISECONDS.toNanos(timeoutMillis)
-                    while (inFlightOperationCount > 0 && remainingNanos > 0) {
-                        remainingNanos = operationFinished.awaitNanos(remainingNanos)
-                    }
-                    if (inFlightOperationCount > 0) {
-                        isClosing = false
-                        return FlowBusCloseResult(
-                            scopeName = scopeName,
-                            closed = false,
-                            outcome = FlowBusCloseOutcome.Timeout,
-                            inFlightOperationCount = inFlightOperationCount
-                        )
-                    }
+                if (!awaitInFlightOperationsLocked(timeoutMillis)) {
+                    isClosing = false
+                    operationFinished.signalAll()
+                    return FlowBusCloseResult(
+                        scopeName = scopeName,
+                        closed = false,
+                        outcome = FlowBusCloseOutcome.Timeout,
+                        inFlightOperationCount = inFlightOperationCount
+                    )
                 }
-                true
+                closeCompletionAction = prepareCloseAction(scopeName, this)
+                claimCloseActionIfIdleLocked()
             } catch (e: InterruptedException) {
                 isClosing = false
+                operationFinished.signalAll()
                 throw e
             }
         }
 
-        if (shouldClose) {
-            finishClose()
+        if (action != null) {
+            finishClose(action)
         }
 
         return FlowBusCloseResult(
@@ -360,7 +379,9 @@ class FlowBusScope internal constructor(
     }
 
     private fun closeFromLifecycleBinding() {
-        if (!markClosingForLifecycleBinding()) {
+        val closeStart = markClosingForLifecycleBinding() ?: return
+        if (closeStart.action != null) {
+            finishClose(requireNotNull(closeStart.action))
             return
         }
         launchLifecycleCloseWait()
@@ -368,43 +389,108 @@ class FlowBusScope internal constructor(
 
     private fun launchLifecycleCloseWait() {
         autoCloseScope.launch {
-            val shouldClose = try {
+            val action = try {
                 operationLock.withLock {
                     while (inFlightOperationCount > 0) {
                         operationFinished.await()
                     }
-                    !isClosed
+                    claimCloseActionIfIdleLocked()
                 }
             } catch (_: InterruptedException) {
                 launchLifecycleCloseWait()
-                false
+                null
             }
-            if (shouldClose) {
-                finishClose()
+            if (action != null) {
+                finishClose(action)
             }
         }
     }
 
-    private fun markClosingForLifecycleBinding(): Boolean {
+    private fun markClosingForLifecycleBinding(): CloseStart? {
         return operationLock.withLock {
             if (isClosed || isClosing) {
-                false
+                null
             } else {
                 isClosing = true
-                true
+                closeCompletionAction = prepareCloseAction(scopeName, this)
+                isClosed = true
+                CloseStart(action = claimCloseActionIfIdleLocked())
             }
         }
     }
 
-    private fun finishClose() {
+    private fun claimCloseActionIfIdleLocked(): (() -> Unit)? {
+        if (!isClosing || closeActionStarted || inFlightOperationCount > 0) {
+            return null
+        }
+        val action = closeCompletionAction ?: return null
+        closeActionStarted = true
+        return action
+    }
+
+    private fun awaitInFlightOperationsLocked(timeoutMillis: Long?): Boolean {
+        if (timeoutMillis == null) {
+            while (inFlightOperationCount > 0) {
+                operationFinished.await()
+            }
+            return true
+        }
+
+        var remainingNanos = TimeUnit.MILLISECONDS.toNanos(timeoutMillis)
+        while (inFlightOperationCount > 0 && remainingNanos > 0) {
+            remainingNanos = operationFinished.awaitNanos(remainingNanos)
+        }
+        return inFlightOperationCount == 0
+    }
+
+    private fun waitPreparedCloseCompletionLocked(timeoutMillis: Long?): FlowBusCloseResult {
+        if (timeoutMillis == null) {
+            while (!closeActionCompleted) {
+                operationFinished.await()
+            }
+            return FlowBusCloseResult(
+                scopeName = scopeName,
+                closed = true,
+                outcome = FlowBusCloseOutcome.Closed,
+                inFlightOperationCount = 0
+            )
+        }
+
+        var remainingNanos = TimeUnit.MILLISECONDS.toNanos(timeoutMillis)
+        while (!closeActionCompleted && remainingNanos > 0) {
+            remainingNanos = operationFinished.awaitNanos(remainingNanos)
+        }
+        return if (closeActionCompleted) {
+            FlowBusCloseResult(
+                scopeName = scopeName,
+                closed = true,
+                outcome = FlowBusCloseOutcome.Closed,
+                inFlightOperationCount = 0
+            )
+        } else {
+            FlowBusCloseResult(
+                scopeName = scopeName,
+                closed = false,
+                outcome = FlowBusCloseOutcome.Timeout,
+                inFlightOperationCount = inFlightOperationCount
+            )
+        }
+    }
+
+    private fun finishClose(action: () -> Unit) {
         lifecycleBindings.forEach { it.dispose() }
         lifecycleBindings.clear()
-        closeAction(scopeName, this)
+        action()
         autoCloseScope.cancel()
         operationLock.withLock {
             isClosed = true
             isClosing = false
+            closeActionCompleted = true
             operationFinished.signalAll()
         }
     }
+
+    private data class CloseStart(
+        val action: (() -> Unit)?
+    )
 }

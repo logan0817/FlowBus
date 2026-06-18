@@ -126,7 +126,7 @@ Kotlin 1.8 及以下、AGP 7.x 项目不承诺无痛接入。历史项目需要�
 | 文档导航 | 根 README | 能找到 Android 模块、core 模块、版本记录和英文文档 |
 | 发送结果边界 | 根 README、Android README、core README、发布说明 | `tryPostEventResult(...)` / `tryPostResult(...)` 只代表 `tryEmit` 是否被拒绝，不代表业务处理成功 |
 | 溢出策略边界 | 根 README、Android README、core README、发布说明 | `DROP_OLDEST` / `DROP_LATEST` 不是可靠队列策略 |
-| scope 关闭边界 | core README、发布说明 | `closeSuspending()` / `tryClose(timeoutMillis)` 适合 UI 或单线程关闭场景 |
+| scope 关闭边界 | core README、发布说明 | `close()` 立即让句柄失效，`closeSuspending()` / `tryClose(timeoutMillis)` 用于等待清理或获取超时结果 |
 | sticky 一次性消费边界 | 根 README、Android README、core README、发布说明 | `consumeStickyLatest(...)` / `consumeStickyLatestEvent(...)` 只处理当前 sticky replay 的读取和清理，不会阻止其他线程后续写入新的 sticky 值 |
 | 旧结构排查 | `TROUBLESHOOTING.md` | 只保留主仓直接维护后的本地旧结构排查说明，不再引导用户按旧子仓工作流初始化或发布 |
 

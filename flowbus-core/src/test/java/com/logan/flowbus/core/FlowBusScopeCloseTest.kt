@@ -7,6 +7,7 @@ import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
@@ -95,6 +96,110 @@ class FlowBusScopeCloseTest {
     }
 
     @Test
+    fun `close marks scope closed immediately and cleans up after in flight operation`() = runBlocking {
+        val key = eventKey<String>("closing.direct.nonblocking.event")
+        val store = FlowBusStore(FlowBusConfig())
+        val storeLookupStarted = CompletableDeferred<Unit>()
+        val releaseStoreLookup = CompletableDeferred<Unit>()
+        val closeActionCalled = CompletableDeferred<Unit>()
+        val scope = FlowBusScope(
+            busScopeName = "closing.direct.nonblocking",
+            scopedBus = ScopedFlowBus(
+                scopeName = "closing.direct.nonblocking",
+                storeProvider = {
+                    storeLookupStarted.complete(Unit)
+                    runBlocking { releaseStoreLookup.await() }
+                    store
+                },
+                removeScopeAction = {}
+            ),
+            closeAction = { _, _ -> closeActionCalled.complete(Unit) }
+        )
+
+        val postJob = launch(Dispatchers.Default) {
+            scope.post(key, "value")
+        }
+        storeLookupStarted.await()
+
+        scope.close()
+
+        assertTrue(scope.isClosed)
+        assertFalse(closeActionCalled.isCompleted)
+        val timeoutResult = scope.tryClose(timeoutMillis = 10)
+        assertFalse(timeoutResult.closed)
+        assertEquals(FlowBusCloseOutcome.Timeout, timeoutResult.outcome)
+        val closeResult = async { scope.closeSuspending() }
+        yield()
+        assertFalse(closeResult.isCompleted)
+
+        releaseStoreLookup.complete(Unit)
+        withTimeout(1_000) {
+            postJob.join()
+            closeActionCalled.await()
+            assertEquals(FlowBusCloseOutcome.Closed, closeResult.await().outcome)
+        }
+    }
+
+    @Test
+    fun `direct close cleanup does not remove immediately reopened scope store`() = runBlocking {
+        val bus = FlowBus(
+            FlowBusConfig(
+                normalBufferCapacity = 0,
+                overflowPolicy = BufferOverflow.SUSPEND
+            )
+        )
+        val normalKey = eventKey<Int>("closing.reopen.event")
+        val stickyKey = eventKey<String>("closing.reopen.state")
+        val scope = bus.openScope("closing.reopen")
+        val flow = scope.flow(normalKey) as MutableSharedFlow<Int>
+        val firstHandled = CompletableDeferred<Unit>()
+        val allowFirstToFinish = CompletableDeferred<Unit>()
+        val secondEmitStarted = CompletableDeferred<Unit>()
+        val secondEmitFinished = CompletableDeferred<Unit>()
+
+        val collectorJob = launch {
+            flow.collect { value ->
+                if (value == 1 && !firstHandled.isCompleted) {
+                    firstHandled.complete(Unit)
+                    allowFirstToFinish.await()
+                }
+            }
+        }
+
+        try {
+            flow.subscriptionCount.first { it > 0 }
+            val firstEmitJob = launch { scope.emit(normalKey, 1) }
+            firstHandled.await()
+            val secondEmitJob = launch {
+                secondEmitStarted.complete(Unit)
+                scope.emit(normalKey, 2)
+                secondEmitFinished.complete(Unit)
+            }
+            secondEmitStarted.await()
+            delay(50)
+            assertFalse(secondEmitFinished.isCompleted)
+
+            scope.close()
+            val reopenedScope = bus.openScope("closing.reopen")
+            reopenedScope.postSticky(stickyKey, "new-state")
+
+            allowFirstToFinish.complete(Unit)
+            withTimeout(1_000) {
+                secondEmitFinished.await()
+            }
+
+            assertEquals("new-state", reopenedScope.stickyFlow(stickyKey).first())
+
+            firstEmitJob.cancelAndJoin()
+            secondEmitJob.cancelAndJoin()
+            reopenedScope.close()
+        } finally {
+            allowFirstToFinish.complete(Unit)
+            collectorJob.cancelAndJoin()
+        }
+    }
+
+    @Test
     fun `job lifecycle binding does not block job completion while scope has in flight operation`() = runBlocking {
         val bus = FlowBus(
             FlowBusConfig(
@@ -142,11 +247,12 @@ class FlowBusScopeCloseTest {
             } finally {
                 executor.shutdownNow()
             }
-            assertFalse(scope.isClosed)
+            assertTrue(scope.isClosed)
+            assertTrue(bus.hasScope("closing.bound.job"))
 
             allowFirstToFinish.complete(Unit)
             withTimeout(1_000) {
-                while (!scope.isClosed) {
+                while (bus.hasScope("closing.bound.job")) {
                     yield()
                 }
             }

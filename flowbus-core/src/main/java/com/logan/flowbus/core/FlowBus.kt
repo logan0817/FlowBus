@@ -37,7 +37,7 @@ class FlowBus(
     }
 
     private val rootStore = FlowBusStore(config)
-    private val scopedStores = ConcurrentHashMap<String, FlowBusStore>()
+    private val scopedStores = ConcurrentHashMap<String, ScopedStoreEntry>()
     private val openScopes = ConcurrentHashMap<String, FlowBusScope>()
     private val scopeRegistryLock = Any()
 
@@ -211,7 +211,9 @@ class FlowBus(
             FlowBusScope(
                 busScopeName = scopeName,
                 scopedBus = scoped(scopeName),
-                closeAction = ::closeOpenScope
+                closeAction = ::closeOpenScope,
+                operationScopedBusProvider = { scopedWithStore(scopeName, getScopedStore(scopeName)) },
+                prepareCloseAction = ::prepareScopeClose
             ).also { scope ->
                 openScopes[scopeName] = scope
             }
@@ -313,7 +315,7 @@ class FlowBus(
                     val openScope = openScopes[scopeName]
                     FlowBusScopeSnapshot(
                         scopeName = scopeName,
-                        events = scopedStores[scopeName]?.snapshot().orEmpty(),
+                        events = scopedStores[scopeName]?.store?.snapshot().orEmpty(),
                         hasOpenScopeHandle = openScope?.isClosed == false,
                         isClosed = openScope?.isClosed == true
                     )
@@ -329,7 +331,7 @@ class FlowBus(
         return if (scopedStores.containsKey(scopeName) || openScope != null) {
             FlowBusScopeSnapshot(
                 scopeName = scopeName,
-                events = scopedStores[scopeName]?.snapshot().orEmpty(),
+                events = scopedStores[scopeName]?.store?.snapshot().orEmpty(),
                 hasOpenScopeHandle = openScope?.isClosed == false,
                 isClosed = openScope?.isClosed == true
             )
@@ -356,7 +358,23 @@ class FlowBus(
 
     private fun getScopedStore(scopeName: String): FlowBusStore {
         require(scopeName.isNotBlank()) { "scopeName must not be blank" }
-        return scopedStores.computeIfAbsent(scopeName) { FlowBusStore(config) }
+        val entry = scopedStores.compute(scopeName) { _, existing ->
+            if (existing == null || existing.isClosing) {
+                ScopedStoreEntry(FlowBusStore(config))
+            } else {
+                existing
+            }
+        }
+        return requireNotNull(entry).store
+    }
+
+    private fun scopedWithStore(scopeName: String, store: FlowBusStore): ScopedFlowBus {
+        return ScopedFlowBus(
+            scopeName = scopeName,
+            storeProvider = { store },
+            removeScopeAction = ::removeScope,
+            configProvider = { config }
+        )
     }
 
     private fun closeOpenScope(scopeName: String, scope: FlowBusScope) {
@@ -366,7 +384,31 @@ class FlowBus(
         }
     }
 
-    private fun removeScopedStore(scopeName: String) {
-        scopedStores.remove(scopeName)?.clearAll()
+    private fun prepareScopeClose(scopeName: String, scope: FlowBusScope): () -> Unit {
+        require(scopeName.isNotBlank()) { "scopeName must not be blank" }
+        var closingEntry: ScopedStoreEntry? = null
+        scopedStores.computeIfPresent(scopeName) { _, existing ->
+            existing.isClosing = true
+            closingEntry = existing
+            existing
+        }
+        return {
+            closingEntry?.let { entry ->
+                scopedStores.remove(scopeName, entry)
+                entry.store.clearAll()
+            }
+            synchronized(scopeRegistryLock) {
+                openScopes.remove(scopeName, scope)
+            }
+        }
     }
+
+    private fun removeScopedStore(scopeName: String) {
+        scopedStores.remove(scopeName)?.store?.clearAll()
+    }
+
+    private data class ScopedStoreEntry(
+        val store: FlowBusStore,
+        @Volatile var isClosing: Boolean = false
+    )
 }
