@@ -256,10 +256,15 @@ class FlowBusScope internal constructor(
         }
     }
 
+    internal fun isCloseCompletedForRemoval(): Boolean {
+        return operationLock.withLock { closeActionCompleted }
+    }
+
     /**
      * 尝试在 [timeoutMillis] 内关闭当前 scope。
      *
-     * 超时返回后，scope 会恢复为可继续使用状态，调用方可以稍后重试关闭。
+     * 如果本次调用刚开始关闭且等待在途操作超时，scope 会恢复为可继续使用状态，调用方可以稍后重试。
+     * 如果已有 [close] 或生命周期绑定先让句柄失效，本次超时只表示等待清理未完成，旧句柄不会恢复可用。
      */
     fun tryClose(timeoutMillis: Long): FlowBusCloseResult {
         require(timeoutMillis >= 0) { "timeoutMillis must be >= 0" }

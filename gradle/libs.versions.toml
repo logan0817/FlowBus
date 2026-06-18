@@ -18,7 +18,7 @@ activity_version = "1.9.2"
 fragment_version = "1.8.3"
 lifecycle_version = "2.6.2"
 constraint_layout_version = "2.2.1"
-flowbus_version = "1.0.6"
+flowbus_version = "1.0.7"
 
 [libraries]
 agp = { module = "com.android.tools.build:gradle", version.ref = "agp" }

@@ -34,7 +34,7 @@ If you are building an Android app, the Android adapter is usually the faster st
 2. If you need DI, multi-instance isolation, or explicit lifecycle ownership, create `FlowBus()` yourself.
 3. The default event name is the fully qualified event type name, not the short class name.
 4. If one payload type needs multiple channels, use `eventChannel<T>("name")` or an explicit `eventName`.
-5. `EventChannel` is better for stable reusable business channels, while value-sugar APIs are better for shorter send calls.
+5. `EventChannel` is better for stable reusable business channels, while event extension helpers are better for shorter send calls.
 6. `scoped(...)` gives you a shared named scope view, while `openScope(...)` gives you a scope handle with explicit lifecycle.
 7. `post*` / `send()` try immediately and return `Boolean`; switch to `emit*` / `awaitSend*` if silent failure is not acceptable.
 8. `tryPost*Result` returns bus-layer diagnostics; `consumeStickyLatest(...)` only reads and clears current sticky replay.
@@ -49,7 +49,7 @@ Cleanup APIs have 2 extra rules:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.0.6") // Use 1.0.6 after release; the badge above is the source of truth.
+implementation("io.github.logan0817:flowbus-core:1.0.7") // Use 1.0.7 after release; the badge above is the source of truth.
 ```
 
 ## Start with the shortest path
@@ -78,6 +78,16 @@ scope.launch {
 Use `send()` if you prefer the “event sends itself” style. Use `awaitSend()` if delivery must succeed before continuing.
 
 If you want to replace the default singleton configuration, call `DefaultFlowBus.configure(...)` or `install(...)` before the first real use.
+
+Quick terminology:
+
+| Term | Meaning | Why it matters |
+| --- | --- | --- |
+| `tryEmit` | Kotlin `SharedFlow`'s non-suspending write attempt | `post(...)` / `send()` depend on it, so failure only means the bus did not accept the value immediately |
+| replay | the latest-value cache stored by a sticky channel | late subscribers can see the latest value, but it is not long-lived state management |
+| scope store | the internal container for event flows and sticky cache under one `scopeName` | `close()` / `removeScope()` clean the current store, but do not actively cancel old `Flow` references |
+| `DROP_OLDEST` / `DROP_LATEST` | overflow policies that drop old or new values when buffers are full | use them for lightweight notifications, not reliable delivery |
+| `DefaultFlowBus` | the default singleton entry point | good for quick setup; use `FlowBus()` when you need isolation or dependency injection |
 
 ## When to switch from `DefaultFlowBus` to `FlowBus()`
 
@@ -271,23 +281,22 @@ val key = channel.asEventKey()
 
 ## API selection matrix
 
-| Need | Recommended API |
-| --- | --- |
-| Default singleton | `DefaultFlowBus` |
-| Multi-instance isolation | `FlowBus()` |
-| Shortest send | `post(...)` / `send()` |
-| Need to know whether `tryEmit` was rejected | `post(...)` / `send()` return `Boolean` |
-| Need a diagnostic send result | `tryPostResult(...)` / `tryPostStickyResult(...)` |
-| Guarantee delivery | `emit(...)` / `awaitSend()` |
-| Subscribe directly with FlowBus error handling | `collect(...)` / `collectSticky(...)` |
-| Compose Flow operators yourself | `flow(...)` / `stickyFlow(...)` |
-| Named channel | `eventChannel<T>("name")` |
-| Named shared scope view | `scoped(...)` |
-| Explicit lifecycle scope | `openScope(...)` |
-| Inspect event metadata | `inspect()` / `inspector().snapshot()` |
-| Remove the current normal-event channel | `removeEvent(...)` |
-| Clear sticky replay or sticky channel | `clearSticky(...)` / `removeSticky(...)` |
-| Read and clear the latest sticky value | `consumeStickyLatest(...)` |
+| Need | Recommended API | What it does | When to choose it |
+| --- | --- | --- | --- |
+| Default singleton | `DefaultFlowBus` | provides one process-wide default bus | quick setup, demos, no DI requirement |
+| Multi-instance isolation | `FlowBus()` | each instance owns its own root bus and scopes | test isolation, tenant isolation, repository-owned lifecycle |
+| Shortest non-suspending send | `post(...)` / `send()` | tries to write immediately and returns `Boolean` | lightweight broadcasts where occasional dropping is acceptable |
+| Diagnostic send result | `tryPostResult(...)` / `tryPostStickyResult(...)` | returns subscriber count, overflow policy, sticky replay count, and outcome | logs, tests, send-failure investigation |
+| Guarantee delivery | `emit(...)` / `awaitSend()` | suspends until the underlying flow accepts the value | important notifications that must not be silently dropped |
+| Subscribe with FlowBus error handling | `collect(...)` / `collectSticky(...)` | applies the logger and error handler from `FlowBusConfig` | avoiding repeated try/catch and logging boilerplate |
+| Compose Flow operators yourself | `flow(...)` / `stickyFlow(...)` | returns the raw `Flow<T>` | `map`, `filter`, `debounce`, `combine`, and custom collection |
+| Named channel | `eventChannel<T>("name")` | binds the event name and type into a stable object | same-type events with different meanings, reuse across files, public business channels |
+| Named shared scope view | `scoped(...)` | shares a named local bus without close ownership | multiple call sites reuse a scope whose lifecycle is managed elsewhere |
+| Explicit lifecycle scope | `openScope(...)` | returns a closeable `FlowBusScope` handle | Session, Worker, Task, or Repository cache cleanup |
+| Inspect metadata | `inspect()` / `inspector().snapshot()` | returns a read-only snapshot without sticky payloads | debugging, logs, and test assertions |
+| Remove current normal-event channel | `removeEvent(...)` | removes the normal event flow from the current store | later access should create a fresh normal channel |
+| Clear sticky replay or sticky channel | `clearSticky(...)` / `removeSticky(...)` | clears replay, or removes the current sticky entry too | page exit, session switch, expired latest value |
+| Read and clear latest sticky value | `consumeStickyLatest(...)` | reads current replay latest value and clears it | one-time consumption of the latest result |
 
 ## How to choose sending APIs
 
@@ -336,12 +345,12 @@ if (!result.accepted) {
 
 `FlowBusPostResult` only describes the bus-layer result.
 
-| Result | Meaning |
-| --- | --- |
-| `accepted = true` | `tryEmit` did not immediately reject this call |
-| `accepted = false` | the underlying flow rejected this non-suspending write |
-| `AcceptedWithDropOldestPolicy` | the new value may overwrite an older value |
-| `AcceptedWithDropLatestPolicy` | the call may be accepted, but the current value still may not enter the buffer |
+| Result | Meaning | What to do |
+| --- | --- | --- |
+| `accepted = true` | `tryEmit` did not immediately reject this call | treat it only as bus-layer acceptance; add a business ACK or state update if business completion matters |
+| `accepted = false` | the underlying flow rejected this non-suspending write | use `emit(...)` for important events, or inspect buffer, subscribers, and overflow policy |
+| `AcceptedWithDropOldestPolicy` | the new value may overwrite an older value | use only for discardable refresh-style notifications |
+| `AcceptedWithDropLatestPolicy` | the call may be accepted, but the current value still may not enter the buffer | do not treat it as reliable delivery; use suspending send or a business queue if reliability matters |
 
 It does not mean subscribers already handled the event. `DROP_OLDEST` / `DROP_LATEST` are not reliable-queue policies.
 
@@ -433,7 +442,7 @@ Diagnostics snapshots only expose metadata. Keep these 6 boundaries in mind:
 5. `events` means registered event metadata, not necessarily active subscribers.
 6. `metrics` only describes bus-layer `tryEmit` acceptance or rejection, not business handling success.
 
-## `EventChannel`, value-sugar APIs, or plain `eventName`?
+## `EventChannel`, event extension helpers, or plain `eventName`?
 
 If you are deciding between the 3 styles, use this rule of thumb:
 
@@ -443,15 +452,15 @@ If you are deciding between the 3 styles, use this rule of thumb:
 | You only want the shortest send call at one call site | `event.send()` / `event.sendOn(target)` |
 | You already have a stable name locally and do not want another wrapper object | plain `eventName` |
 | Public API or long-lived code | prefer `eventChannel<T>("name")` |
-| Internal one-off broadcast | value-sugar APIs or direct `post(value)` are both fine |
+| Internal one-off broadcast | event extension helpers or direct `post(value)` are both fine |
 
 You can think of them as 3 levels:
 
 1. `eventChannel<T>("name")`: model the channel itself as a stable object. Best for reuse and public business meaning.
-2. `event.send()` / `event.sendOn(target)`: shorten the sending call. Best for local call sites.
+2. `event.send()` / `event.sendOn(target)`: event extension helpers that shorten the sending call. Best for local call sites.
 3. `eventName = "..."`: most direct, but also the easiest way to scatter strings.
 
-Direct value-sugar mapping:
+Direct event extension helper mapping:
 
 | API | Actual behavior |
 | --- | --- |
@@ -464,7 +473,7 @@ Direct value-sugar mapping:
 
 In short:
 
-1. Value-sugar APIs are only shorter syntax, not a different dispatch model.
+1. Event extension helpers are only shorter syntax, not a different dispatch model.
 2. The default `eventName` is still the fully qualified event type name.
 3. Custom `eventName` still must not be blank.
 4. Sending to `FlowBus`, `ScopedFlowBus`, or `FlowBusScope` keeps the same behavior as the matching `post*` / `emit*` API.
@@ -501,6 +510,8 @@ Good for:
 ## Sticky events
 
 Sticky events are for “late subscribers should still see the latest value”.
+
+Replay means the latest-value cache stored inside the sticky channel. It solves “I subscribed late but still need the latest result”, but it should not become long-lived state management. Keep page state, form state, and complex business state in `StateFlow`, a database, or a business state machine.
 
 | State | Recommended API | Can late subscribers read the latest value | Clears replay | Good for | Boundary |
 | --- | --- | --- | --- | --- | --- |
@@ -606,38 +617,6 @@ DefaultFlowBus.install(
 
 If any of those have already run, later `configure(...)` or `install(...)` calls throw `IllegalStateException`.
 
-## If you only want the shortest usage
-
-### Default singleton
-
-```kotlin
-DefaultFlowBus.post(MyEvent(...))
-scope.launch { DefaultFlowBus.flow<MyEvent>().collect { handle(it) } }
-```
-
-### Value-style sending
-
-```kotlin
-MyEvent(...).send()
-scope.launch { DefaultFlowBus.flow<MyEvent>().collect { handle(it) } }
-```
-
-### Named channel
-
-```kotlin
-val toastChannel = eventChannel<String>("ui.toast")
-toastChannel.post("Saved")
-scope.launch { toastChannel.flow().collect { showToast(it) } }
-```
-
-### Explicit scope
-
-```kotlin
-val taskScope = DefaultFlowBus.openScope("task", closeWhen = scope)
-taskScope.post(TaskProgress(percent = 10))
-scope.launch { taskScope.flow<TaskProgress>().collect { render(it) } }
-```
-
 ## Common behavior boundaries
 
 ### Name validation
@@ -673,11 +652,11 @@ If you only need to share the same named scope without owning its close lifecycl
 
 Close API comparison:
 
-| API | Invalidates the handle immediately | Waits for store cleanup | Best for |
-| --- | --- | --- | --- |
-| `close()` | Yes | No | UI code, lifecycle callbacks, and cases that only need to stop using the current handle |
-| `closeSuspending()` | Yes | Yes | coroutine code that must wait for cleanup |
-| `tryClose(timeoutMillis)` | Yes | Up to the timeout | tests, shutdown flows, and explicit timeout handling |
+| API | Invalidates the handle immediately | Waits for store cleanup | Best for | Check first if it behaves unexpectedly |
+| --- | --- | --- | --- | --- |
+| `close()` | Yes | No | UI code, lifecycle callbacks, and cases that only need to stop using the current handle | whether a started send or flow lookup is still running |
+| `closeSuspending()` | Yes | Yes | coroutine code that must wait for cleanup | whether a suspending send is stuck behind backpressure |
+| `tryClose(timeoutMillis)` | Yes | Up to the timeout | tests, shutdown flows, and explicit timeout handling | whether the timeout is too short, or a collector is blocking send completion |
 
 If the scope follows an outer lifecycle, prefer `openScope(name, closeWhen = job)` or `bindTo(job)` so the scope is not forgotten.
 

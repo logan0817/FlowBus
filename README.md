@@ -25,7 +25,7 @@ Android 项目优先使用 `flowbus`：
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.0.6")  // 发布后可使用 1.0.6，实际 latest 以 Maven Central 徽章为准
+implementation("io.github.logan0817:flowbus:1.0.7")  // 发布后可使用 1.0.7，实际 latest 以 Maven Central 徽章为准
 ```
 
 纯 Kotlin / Coroutines / 非 Android 场景使用 `flowbus-core`：
@@ -33,7 +33,7 @@ implementation("io.github.logan0817:flowbus:1.0.6")  // 发布后可使用 1.0.6
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.0.6")  // 发布后可使用 1.0.6，实际 latest 以 Maven Central 徽章为准
+implementation("io.github.logan0817:flowbus-core:1.0.7")  // 发布后可使用 1.0.7，实际 latest 以 Maven Central 徽章为准
 ```
 
 模块选择：
@@ -166,7 +166,7 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 
 ## 兼容与发布状态
 
-当前文档对应 `1.0.6`。远端 Maven Central 的实际可用版本以徽章和 Central 页面为准。
+当前文档对应 `1.0.7`。远端 Maven Central 的实际可用版本以徽章和 Central 页面为准。
 
 | 项目 | 版本 |
 | --- | --- |
@@ -193,7 +193,7 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 1. Android 接入与完整场景：[`library-android/README.md`](./library-android/README.md)
 2. Core 能力、多实例和 scope 生命周期：[`flowbus-core/README.md`](./flowbus-core/README.md)
 3. 发布清单：[`docs/release-checklist.md`](./docs/release-checklist.md)
-4. 发布说明：[`docs/release-notes-1.0.6.md`](./docs/release-notes-1.0.6.md)
+4. 发布说明：[`docs/release-notes-1.0.7.md`](./docs/release-notes-1.0.7.md)
 5. 版本记录：[`CHANGELOG.md`](./CHANGELOG.md)
 6. 英文文档：[`README_EN.md`](./README_EN.md)
 

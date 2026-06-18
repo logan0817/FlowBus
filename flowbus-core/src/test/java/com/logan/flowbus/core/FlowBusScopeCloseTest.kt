@@ -200,6 +200,66 @@ class FlowBusScopeCloseTest {
     }
 
     @Test
+    fun `remove scope during pending close does not clear store before in flight operation finishes`() = runBlocking {
+        val bus = FlowBus(
+            FlowBusConfig(
+                normalBufferCapacity = 0,
+                overflowPolicy = BufferOverflow.SUSPEND
+            )
+        )
+        val scopeName = "closing.remove.pending"
+        val key = eventKey<Int>("closing.remove.pending.event")
+        val scope = bus.openScope(scopeName)
+        val flow = scope.flow(key) as MutableSharedFlow<Int>
+        val firstHandled = CompletableDeferred<Unit>()
+        val allowFirstToFinish = CompletableDeferred<Unit>()
+        val secondEmitStarted = CompletableDeferred<Unit>()
+        val secondEmitFinished = CompletableDeferred<Unit>()
+
+        val collectorJob = launch {
+            flow.collect { value ->
+                if (value == 1 && !firstHandled.isCompleted) {
+                    firstHandled.complete(Unit)
+                    allowFirstToFinish.await()
+                }
+            }
+        }
+
+        try {
+            flow.subscriptionCount.first { it > 0 }
+            val firstEmitJob = launch { scope.emit(key, 1) }
+            firstHandled.await()
+            val secondEmitJob = launch {
+                secondEmitStarted.complete(Unit)
+                scope.emit(key, 2)
+                secondEmitFinished.complete(Unit)
+            }
+            secondEmitStarted.await()
+            delay(50)
+            assertFalse(secondEmitFinished.isCompleted)
+
+            scope.close()
+            bus.removeScope(scopeName)
+
+            assertTrue(bus.hasScope(scopeName))
+
+            allowFirstToFinish.complete(Unit)
+            withTimeout(1_000) {
+                secondEmitFinished.await()
+                while (bus.hasScope(scopeName)) {
+                    yield()
+                }
+            }
+
+            firstEmitJob.cancelAndJoin()
+            secondEmitJob.cancelAndJoin()
+        } finally {
+            allowFirstToFinish.complete(Unit)
+            collectorJob.cancelAndJoin()
+        }
+    }
+
+    @Test
     fun `job lifecycle binding does not block job completion while scope has in flight operation`() = runBlocking {
         val bus = FlowBus(
             FlowBusConfig(

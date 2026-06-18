@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.7
+
+完整发布说明见 [`docs/release-notes-1.0.7.md`](./docs/release-notes-1.0.7.md)。
+
+| 类型 | 变更 | 影响 |
+| --- | --- | --- |
+| core 可靠性 | 修复 `removeScope(scopeName)` 并发介入 `FlowBusScope.close()` 时可能提前清理旧 store 的竞态 | 已开始的发送 / 取流操作能继续使用原 store，同名 scope 重开不受旧 cleanup 误伤 |
+| 测试覆盖 | 补充 `removeScope()` 与 pending close 并发的回归测试 | `FlowBusScopeCloseTest` 覆盖 close、closeSuspending、tryClose、同名重开和 removeScope 竞态 |
+| 文档整理 | 优化 core README 的术语速查、API 选择矩阵、sticky replay、close 对比说明 | 表格补充功能解释、适合场景和排查入口，减少重复最短用法 |
+| 发布准备 | 版本、安装坐标、发布说明和发布清单统一到 `1.0.7` | 避免发布前文档和 Gradle 元数据仍指向 1.0.6 |
+| 发布校验 | 发布就绪测试检查 1.0.7 文档、版本、README、`verifyMavenLocalCoreConsumer`、`verifyMavenLocalConsumer`、license 和 developer 元数据说明 | 发布前能更早发现版本漂移、文档漏改和 Maven 元数据缺口 |
+
 ## 1.0.6
 
 完整发布说明见 [`docs/release-notes-1.0.6.md`](./docs/release-notes-1.0.6.md)。

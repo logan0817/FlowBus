@@ -2,7 +2,7 @@
 
 [English](en/release-checklist.md)
 
-发布 `1.0.6` 前按这份清单核对。
+发布 `1.0.7` 前按这份清单核对。
 
 目标是确认 `flowbus-core` 和 `flowbus` 都由 FlowBus 主仓库统一构建，并且本地验证与远程发布任务图都可检查。
 
@@ -73,7 +73,7 @@ adb shell settings get global animator_duration_scale
 ## 3. 产物检查
 
 本地 Maven 产物必须满足：
-1. `flowbus-core-1.0.6.jar` 和 `flowbus-1.0.6.aar` 存在。
+1. `flowbus-core-1.0.7.jar` 和 `flowbus-1.0.7.aar` 存在。
 2. 两个模块都必须生成 `-sources.jar`、`-javadoc.jar` 和 `.module`。
 3. `flowbus` 主产物必须是 AAR，不能退回普通 Jar。
 4. `flowbus` POM 中依赖 `flowbus-core`，版本必须等于本次版本。
@@ -118,17 +118,17 @@ Kotlin 1.8 及以下、AGP 7.x 项目不承诺无痛接入。历史项目需要�
 
 发布前按这张表核对：
 
-| 检查项 | 责任文档 | 通过标准 |
-| --- | --- | --- |
-| 版本号 | 根 `gradle.properties` | `VERSION_NAME=1.0.6` |
-| 安装坐标 | 根 README、Android README、core README 的中英文版本 | `flowbus` 和 `flowbus-core` 坐标与版本一致 |
-| 中英文入口 | 根 README、模块 README、`docs` 中英文页面 | 中文和英文文档互相可跳转 |
-| 文档导航 | 根 README | 能找到 Android 模块、core 模块、版本记录和英文文档 |
-| 发送结果边界 | 根 README、Android README、core README、发布说明 | `tryPostEventResult(...)` / `tryPostResult(...)` 只代表 `tryEmit` 是否被拒绝，不代表业务处理成功 |
-| 溢出策略边界 | 根 README、Android README、core README、发布说明 | `DROP_OLDEST` / `DROP_LATEST` 不是可靠队列策略 |
-| scope 关闭边界 | core README、发布说明 | `close()` 立即让句柄失效，`closeSuspending()` / `tryClose(timeoutMillis)` 用于等待清理或获取超时结果 |
-| sticky 一次性消费边界 | 根 README、Android README、core README、发布说明 | `consumeStickyLatest(...)` / `consumeStickyLatestEvent(...)` 只处理当前 sticky replay 的读取和清理，不会阻止其他线程后续写入新的 sticky 值 |
-| 旧结构排查 | `TROUBLESHOOTING.md` | 只保留主仓直接维护后的本地旧结构排查说明，不再引导用户按旧子仓工作流初始化或发布 |
+| 检查项 | 责任文档 | 通过标准 | 怎么检查 |
+| --- | --- | --- | --- |
+| 版本号 | 根 `gradle.properties`、`gradle/libs.versions.toml` | `VERSION_NAME=1.0.7`、`APP_VERSION_NAME=1.0.7`、`APP_VERSION_CODE=7`、`flowbus_version = "1.0.7"` | `rg "1\\.0\\.6|1\\.0\\.7" gradle.properties gradle/libs.versions.toml` |
+| 安装坐标 | 根 README、Android README、core README 的中英文版本 | `flowbus` 和 `flowbus-core` 坐标都写本次版本 | `rg "flowbus(:|-core:)?1\\.0\\.7" README.md README_EN.md library-android flowbus-core` |
+| 中英文入口 | 根 README、模块 README、`docs` 中英文页面 | 中文和英文文档互相可跳转 | 人工点击链接，确认当前版本不再指向旧发布说明 |
+| 文档导航 | 根 README | 能找到 Android 模块、core 模块、版本记录和英文文档 | 从首页按导航逐个打开 |
+| 发送结果边界 | 根 README、Android README、core README、发布说明 | `tryPostEventResult(...)` / `tryPostResult(...)` 只代表 `tryEmit` 是否被拒绝，不代表业务处理成功 | 搜索 `accepted = true`，确认语义没有写成业务成功 |
+| 溢出策略边界 | 根 README、Android README、core README、发布说明 | `DROP_OLDEST` / `DROP_LATEST` 不是可靠队列策略 | 搜索 `DROP_`，确认关键链路建议使用 `emit*` 或业务队列 |
+| scope 关闭边界 | core README、发布说明 | `close()` 立即让句柄失效，`closeSuspending()` / `tryClose(timeoutMillis)` 用于等待清理或获取超时结果 | 跑 `FlowBusScopeCloseTest`，并人工检查 close 对比表 |
+| sticky 一次性消费边界 | 根 README、Android README、core README、发布说明 | `consumeStickyLatest(...)` / `consumeStickyLatestEvent(...)` 只处理当前 sticky replay 的读取和清理，不会阻止其他线程后续写入新的 sticky 值 | 搜索 `consumeStickyLatest`，确认没有把它写成全局互斥 |
+| 旧结构排查 | `TROUBLESHOOTING.md` | 只保留主仓直接维护后的本地旧结构排查说明，不再引导用户按旧子仓工作流初始化或发布 | 搜索 `.gitmodules` 和旧子仓发布命令 |
 
 ## 7. 远程发布前检查
 

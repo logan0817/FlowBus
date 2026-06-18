@@ -276,7 +276,7 @@ class FlowBus(
                     removeScopedStore(scopeName)
                     null
                 }
-                openScope.isClosed -> {
+                openScope.isCloseCompletedForRemoval() -> {
                     openScopes.remove(scopeName, openScope)
                     removeScopedStore(scopeName)
                     null

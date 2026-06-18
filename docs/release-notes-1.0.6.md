@@ -74,7 +74,7 @@
 | 误把发送结果当业务成功 | 只看 `accepted = true` 就认为订阅者已处理 | 文档、日志和测试里统一写成“总线层接收结果” | 改回 `tryPostEvent(...)` 或补业务 ACK |
 | 溢出策略被误当可靠队列 | 使用 `DROP_OLDEST` / `DROP_LATEST` 承载关键链路 | 关键事件改用 `emit*` 或专用队列 | 回退到 `SUSPEND` 策略或业务队列 |
 | sticky replay 被长期状态化 | 用 sticky event 替代页面状态容器 | 长期状态继续使用 `StateFlow` | 去掉 sticky，改回状态容器 |
-| 依赖 sticky Flow 的运行时实现 | 外部代码把 `stickyFlow(...)` 强转为 `MutableSharedFlow` 或直接读取 `replayCache` / `subscriptionCount` | 只按公开 API 的 `Flow` 契约收集；需要诊断时使用 `inspect()` | 移除强转，改为 `consumeStickyLatest(...)`、`stickyReplayCache(...)` 或诊断快照 |
+| 依赖 sticky Flow 的运行时实现 | 外部代码把 `stickyFlow(...)` 强转为 `MutableSharedFlow` 或直接读取 `replayCache` / `subscriptionCount` | 只按公开 API 的 `Flow` 契约收集；需要读清最新值用 `consumeStickyLatest(...)`，需要诊断数量用 `inspect()` | 移除强转，改用公开 API 或诊断快照 |
 | 一次性消费被误读为全局互斥 | 多线程同时读写同一 sticky 业务结果 | 仅用于当前 store 内 replay 读清；如果要阻止后续写入，需要业务层锁或状态机 | 改用业务状态机、数据库事务或专用 channel |
 | Android 配置时序过晚 | 首个 `FlowEventBus` 创建后才 configure | 放到 `Application.onCreate()` | 恢复默认配置或提前初始化 |
 

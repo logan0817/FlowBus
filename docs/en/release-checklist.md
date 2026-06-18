@@ -2,7 +2,7 @@
 
 [中文](../release-checklist.md)
 
-Run this checklist before publishing `1.0.6`.
+Run this checklist before publishing `1.0.7`.
 
 The goal is to verify that `flowbus-core` and `flowbus` are built from the FlowBus main repository, and that local verification plus the remote release task graph can be checked.
 
@@ -73,7 +73,7 @@ Expected result:
 ## 3. Artifact Checks
 
 Local Maven artifacts must satisfy:
-1. `flowbus-core-1.0.6.jar` and `flowbus-1.0.6.aar` exist.
+1. `flowbus-core-1.0.7.jar` and `flowbus-1.0.7.aar` exist.
 2. Both modules generate `-sources.jar`, `-javadoc.jar`, and `.module`.
 3. The `flowbus` main artifact is an AAR and does not fall back to a plain Jar.
 4. The `flowbus` POM depends on `flowbus-core` with the same release version.
@@ -118,17 +118,17 @@ Current compatibility floor in one line: Kotlin 1.9.25, AGP 8.6.1, Gradle 8.7, J
 
 Before publishing, use this table:
 
-| Check | Responsible docs | Pass criteria |
-| --- | --- | --- |
-| Version name | root `gradle.properties` | `VERSION_NAME=1.0.6` |
-| Install coordinates | root README, Android README, and core README in Chinese and English | `flowbus` and `flowbus-core` coordinates and versions match |
-| Chinese / English links | root README, module README files, and `docs` pages | Chinese and English docs link to each other |
-| Documentation map | root README | links to the Android module, core module, version history, and Chinese document |
-| Send-result boundary | root README, Android README, core README, release notes | `tryPostEventResult(...)` / `tryPostResult(...)` only describe whether `tryEmit` was rejected, not business handling success |
-| Overflow-policy boundary | root README, Android README, core README, release notes | `DROP_OLDEST` / `DROP_LATEST` are not reliable-queue policies |
-| Scope-close boundary | core README, release notes | `close()` invalidates the handle immediately, while `closeSuspending()` / `tryClose(timeoutMillis)` wait for cleanup or return a timeout result |
-| One-time sticky consumption boundary | root README, Android README, core README, release notes | `consumeStickyLatest(...)` / `consumeStickyLatestEvent(...)` only reads and clears the current sticky replay, and does not prevent another thread from writing a new sticky value later |
-| Old-layout troubleshooting | `TROUBLESHOOTING.md` | keeps only local old-structure troubleshooting for the main-repository layout, without old child-repository initialization or release workflow |
+| Check | Responsible docs | Pass criteria | How to check |
+| --- | --- | --- | --- |
+| Version name | root `gradle.properties`, `gradle/libs.versions.toml` | `VERSION_NAME=1.0.7`, `APP_VERSION_NAME=1.0.7`, `APP_VERSION_CODE=7`, `flowbus_version = "1.0.7"` | `rg "1\\.0\\.6|1\\.0\\.7" gradle.properties gradle/libs.versions.toml` |
+| Install coordinates | root README, Android README, and core README in Chinese and English | `flowbus` and `flowbus-core` coordinates use this release version | `rg "flowbus(:|-core:)?1\\.0\\.7" README.md README_EN.md library-android flowbus-core` |
+| Chinese / English links | root README, module README files, and `docs` pages | Chinese and English docs link to each other | open each link and confirm the current version no longer points to old release notes |
+| Documentation map | root README | links to the Android module, core module, version history, and Chinese document | follow the root README navigation |
+| Send-result boundary | root README, Android README, core README, release notes | `tryPostEventResult(...)` / `tryPostResult(...)` only describe whether `tryEmit` was rejected, not business handling success | search `accepted = true` and confirm it is not described as business success |
+| Overflow-policy boundary | root README, Android README, core README, release notes | `DROP_OLDEST` / `DROP_LATEST` are not reliable-queue policies | search `DROP_` and confirm critical paths point to `emit*` or a business queue |
+| Scope-close boundary | core README, release notes | `close()` invalidates the handle immediately, while `closeSuspending()` / `tryClose(timeoutMillis)` wait for cleanup or return a timeout result | run `FlowBusScopeCloseTest` and inspect the close comparison table |
+| One-time sticky consumption boundary | root README, Android README, core README, release notes | `consumeStickyLatest(...)` / `consumeStickyLatestEvent(...)` only reads and clears the current sticky replay, and does not prevent another thread from writing a new sticky value later | search `consumeStickyLatest` and confirm it is not described as global mutual exclusion |
+| Old-layout troubleshooting | `TROUBLESHOOTING.md` | keeps only local old-structure troubleshooting for the main-repository layout, without old child-repository initialization or release workflow | search `.gitmodules` and old child-repository publish commands |
 
 ## 7. Before Remote Publication
 

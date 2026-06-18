@@ -20,6 +20,6 @@ enum class FlowBusCloseOutcome {
     AlreadyClosed,
     /** 另一个关闭动作正在进行中，本次调用没有重复等待或抢占。 */
     ClosingInProgress,
-    /** 等待在途操作结束时超时，scope 仍保持打开。 */
+    /** 等待在途操作或已准备的关闭动作完成时超时；句柄是否仍可用取决于关闭是否已先开始。 */
     Timeout
 }

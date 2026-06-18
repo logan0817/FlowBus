@@ -9,7 +9,7 @@ Gradle 模块目录名是 `library-android`，对外发布的依赖坐标是：
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.0.6")  // 发布后可使用 1.0.6，实际 latest 以上方徽章为准
+implementation("io.github.logan0817:flowbus:1.0.7")  // 发布后可使用 1.0.7，实际 latest 以上方徽章为准
 ```
 
 如果你是 Android 项目接入 FlowBus，通常就从这个模块开始，不需要先研究 `flowbus-core`。
@@ -33,7 +33,7 @@ FlowBus 适合“某个地方发出通知，多个地方可能关心”的异步
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.0.6")  // 发布后可使用 1.0.6，实际 latest 以上方徽章为准
+implementation("io.github.logan0817:flowbus:1.0.7")  // 发布后可使用 1.0.7，实际 latest 以上方徽章为准
 ```
 
 ### 2. 定义一个事件类型

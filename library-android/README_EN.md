@@ -9,7 +9,7 @@ The Gradle module directory is `library-android`, and the published artifact is:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.0.6") // Use 1.0.6 after release; the badge above is the source of truth.
+implementation("io.github.logan0817:flowbus:1.0.7") // Use 1.0.7 after release; the badge above is the source of truth.
 ```
 
 If you are integrating FlowBus into an Android app, this is usually the place to start.
@@ -34,7 +34,7 @@ FlowBus is a good fit for asynchronous events where one place sends a notificati
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.0.6") // Use 1.0.6 after release; the badge above is the source of truth.
+implementation("io.github.logan0817:flowbus:1.0.7") // Use 1.0.7 after release; the badge above is the source of truth.
 ```
 
 ### 2. Define an event type

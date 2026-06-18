@@ -25,7 +25,7 @@ Android projects should usually start with `flowbus`:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.0.6") // Use 1.0.6 after release; the Maven Central badge is the source of truth for the latest published version.
+implementation("io.github.logan0817:flowbus:1.0.7") // Use 1.0.7 after release; the Maven Central badge is the source of truth for the latest published version.
 ```
 
 Pure Kotlin / Coroutines / non-Android projects should use `flowbus-core`:
@@ -33,7 +33,7 @@ Pure Kotlin / Coroutines / non-Android projects should use `flowbus-core`:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.0.6") // Use 1.0.6 after release; the Maven Central badge is the source of truth for the latest published version.
+implementation("io.github.logan0817:flowbus-core:1.0.7") // Use 1.0.7 after release; the Maven Central badge is the source of truth for the latest published version.
 ```
 
 Module choice:
@@ -166,7 +166,7 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 
 ## Compatibility and release status
 
-This documentation targets `1.0.6`. The actual published version on Maven Central is determined by the badge and Central artifact page.
+This documentation targets `1.0.7`. The actual published version on Maven Central is determined by the badge and Central artifact page.
 
 | Item | Version |
 | --- | --- |
@@ -193,7 +193,7 @@ Release gates:
 1. Android integration and full scenarios: [`library-android/README_EN.md`](./library-android/README_EN.md)
 2. Core capabilities, multi-instance usage, and scope lifecycle: [`flowbus-core/README_EN.md`](./flowbus-core/README_EN.md)
 3. Release checklist: [`docs/en/release-checklist.md`](./docs/en/release-checklist.md)
-4. Release notes: [`docs/en/release-notes-1.0.6.md`](./docs/en/release-notes-1.0.6.md)
+4. Release notes: [`docs/en/release-notes-1.0.7.md`](./docs/en/release-notes-1.0.7.md)
 5. Version history: [`CHANGELOG.md`](./CHANGELOG.md)
 6. Chinese document: [`README.md`](./README.md)
 

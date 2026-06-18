@@ -105,8 +105,8 @@ class FlowBusReleaseReadinessTest {
     fun `release checklist documents shrink and dependency metadata gates`() {
         val checklist = File("../docs/release-checklist.md").readText()
         val englishChecklist = File("../docs/en/release-checklist.md").readText()
-        val releaseNotes = File("../docs/release-notes-1.0.6.md").readText()
-        val englishReleaseNotes = File("../docs/en/release-notes-1.0.6.md").readText()
+        val releaseNotes = File("../docs/release-notes-1.0.7.md").readText()
+        val englishReleaseNotes = File("../docs/en/release-notes-1.0.7.md").readText()
         val changelog = File("../CHANGELOG.md").readText()
 
         listOf(checklist to "依赖", englishChecklist to "dependency").forEach { (text, dependencyText) ->
@@ -125,6 +125,46 @@ class FlowBusReleaseReadinessTest {
         }
         listOf("verifyMavenLocalCoreConsumer", "verifyMavenLocalConsumer", "license", "developer").forEach { expected ->
             assertTrue("CHANGELOG must summarize release gate: $expected", changelog.contains(expected))
+        }
+    }
+
+    @Test
+    fun `release documentation and versions target 1_0_7`() {
+        val releaseVersion = "1.0.7"
+        val gradleProperties = File("../gradle.properties").readText()
+        val versionCatalog = File("../gradle/libs.versions.toml").readText()
+        val rootReadme = File("../README.md").readText()
+        val rootEnglishReadme = File("../README_EN.md").readText()
+        val coreReadme = File("../flowbus-core/README.md").readText()
+        val coreEnglishReadme = File("../flowbus-core/README_EN.md").readText()
+        val androidReadme = File("../library-android/README.md").readText()
+        val androidEnglishReadme = File("../library-android/README_EN.md").readText()
+        val checklist = File("../docs/release-checklist.md").readText()
+        val englishChecklist = File("../docs/en/release-checklist.md").readText()
+        val releaseNotes = File("../docs/release-notes-1.0.7.md").readText()
+        val englishReleaseNotes = File("../docs/en/release-notes-1.0.7.md").readText()
+        val changelog = File("../CHANGELOG.md").readText()
+
+        listOf(
+            gradleProperties to "VERSION_NAME=$releaseVersion",
+            gradleProperties to "APP_VERSION_NAME=$releaseVersion",
+            gradleProperties to "APP_VERSION_CODE=7",
+            versionCatalog to "flowbus_version = \"$releaseVersion\"",
+            rootReadme to "flowbus:$releaseVersion",
+            rootReadme to "flowbus-core:$releaseVersion",
+            rootEnglishReadme to "flowbus:$releaseVersion",
+            rootEnglishReadme to "flowbus-core:$releaseVersion",
+            coreReadme to "flowbus-core:$releaseVersion",
+            coreEnglishReadme to "flowbus-core:$releaseVersion",
+            androidReadme to "flowbus:$releaseVersion",
+            androidEnglishReadme to "flowbus:$releaseVersion",
+            checklist to "VERSION_NAME=$releaseVersion",
+            englishChecklist to "VERSION_NAME=$releaseVersion",
+            releaseNotes to "FlowBus 1.0.7",
+            englishReleaseNotes to "FlowBus 1.0.7",
+            changelog to "## 1.0.7"
+        ).forEach { (text, expected) ->
+            assertTrue("Release target must include `$expected`.", text.contains(expected))
         }
     }
 

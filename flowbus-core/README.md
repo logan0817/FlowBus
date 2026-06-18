@@ -34,7 +34,7 @@
 2. 需要依赖注入、多实例隔离或明确生命周期，就自己创建 `FlowBus()`。
 3. 默认事件名不是类短名，而是事件类型完整类名。
 4. 同一类型要拆多个通道时，用 `eventChannel<T>("name")` 或显式 `eventName`。
-5. `EventChannel` 适合长期复用和公开语义，值糖 API 适合把发送调用写短，直接写 `eventName` 适合局部少量使用。
+5. `EventChannel` 适合长期复用和公开语义，对象式发送扩展适合把发送调用写短，直接写 `eventName` 适合局部少量使用。
 6. `scoped(...)` 是共享命名视图，`openScope(...)` 是带显式生命周期的 scope 句柄。
 7. `post*` / `send()` 是立即尝试写入并返回 `Boolean`；不能接受静默失败时，改用 `emit*` / `awaitSend*`。
 8. `tryPost*Result` 返回总线层诊断结果；`consumeStickyLatest(...)` 只读取并清理当前 sticky replay。
@@ -49,7 +49,7 @@
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.0.6")  // 发布后可使用 1.0.6，实际 latest 以上方徽章为准
+implementation("io.github.logan0817:flowbus-core:1.0.7")  // 发布后可使用 1.0.7，实际 latest 以上方徽章为准
 ```
 
 ## 先看最短路径
@@ -78,6 +78,16 @@ scope.launch {
 对象式发送就用 `send()`；必须保证写入成功就用 `awaitSend()`。
 
 如果你准备替换默认单例配置，要先调用 `DefaultFlowBus.configure(...)` 或 `install(...)`，再第一次真正使用它。
+
+术语速查：
+
+| 术语 | 含义 | 为什么会影响你 |
+| --- | --- | --- |
+| `tryEmit` | Kotlin `SharedFlow` 的非挂起写入尝试 | `post(...)` / `send()` 依赖它，所以失败只说明总线没立刻接收，不代表业务失败 |
+| replay | sticky 通道保存的最近值缓存 | 后订阅者能先读到最近值，但它不是长期状态容器 |
+| scope store | 某个 scopeName 下当前保存事件流和 sticky 缓存的内部容器 | `close()` / `removeScope()` 清理的是当前 store，不会主动 cancel 旧 `Flow` 引用 |
+| `DROP_OLDEST` / `DROP_LATEST` | 缓冲满时丢旧值或丢新值的策略 | 适合轻量通知，不适合关键链路可靠投递 |
+| `DefaultFlowBus` | 默认单例入口 | 适合开箱即用；需要隔离或依赖注入时改用 `FlowBus()` |
 
 ## 什么时候该从 `DefaultFlowBus` 切到 `FlowBus()`
 
@@ -268,23 +278,22 @@ val key = channel.asEventKey()
 
 ## API 选择矩阵
 
-| 需求 | 推荐 API |
-| --- | --- |
-| 默认单例 | `DefaultFlowBus` |
-| 多实例隔离 | `FlowBus()` |
-| 想最短发送 | `post(...)` / `send()` |
-| 需要返回是否接收 | `post(...)` / `send()` 的 `Boolean` |
-| 需要发送诊断结果 | `tryPostResult(...)` / `tryPostStickyResult(...)` |
-| 保证写入成功 | `emit(...)` / `awaitSend()` |
-| 直接订阅并复用 FlowBus 错误处理 | `collect(...)` / `collectSticky(...)` |
-| 自己组合 Flow 操作符 | `flow(...)` / `stickyFlow(...)` |
-| 命名通道 | `eventChannel<T>("name")` |
-| 命名 scope 视图 | `scoped(...)` |
-| 显式生命周期 scope | `openScope(...)` |
-| 查看事件诊断元数据 | `inspect()` / `inspector().snapshot()` |
-| 移除普通事件当前通道 | `removeEvent(...)` |
-| 清理 sticky 缓存或通道 | `clearSticky(...)` / `removeSticky(...)` |
-| 读取并清空 sticky 最新值 | `consumeStickyLatest(...)` |
+| 需求 | 推荐 API | 功能解释 | 什么时候选 |
+| --- | --- | --- | --- |
+| 默认单例 | `DefaultFlowBus` | 提供一个进程内默认 bus | 快速接入、Demo、没有 DI 要求 |
+| 多实例隔离 | `FlowBus()` | 每个实例有独立 root bus 和 scope 容器 | 测试隔离、租户隔离、Repository 自持生命周期 |
+| 最短非挂起发送 | `post(...)` / `send()` | 立即尝试写入，返回 `Boolean` | 轻量广播、偶发丢失可接受 |
+| 发送诊断结果 | `tryPostResult(...)` / `tryPostStickyResult(...)` | 返回订阅数、溢出策略、sticky replay 数和结果分类 | 日志排查、单测断言、分析发送失败 |
+| 保证写入成功 | `emit(...)` / `awaitSend()` | 挂起等待底层流接收 | 关键通知、不希望静默丢事件 |
+| 直接订阅并复用错误处理 | `collect(...)` / `collectSticky(...)` | 内部套用 `FlowBusConfig` 的 logger 和 errorHandler | 不想每处手写 try/catch 和日志策略 |
+| 自己组合 Flow 操作符 | `flow(...)` / `stickyFlow(...)` | 返回原始 `Flow<T>` | 要做 `map`、`filter`、`debounce`、`combine` |
+| 命名通道 | `eventChannel<T>("name")` | 把事件名和类型绑定成稳定对象 | 同类型多语义、跨文件复用、公开业务通道 |
+| 命名 scope 视图 | `scoped(...)` | 共享一个命名局部 bus，不拥有关闭权 | 多处代码复用同一 scope，但生命周期由外部管理 |
+| 显式生命周期 scope | `openScope(...)` | 返回可关闭的 `FlowBusScope` 句柄 | Session、Worker、Task、Repository 结束后要清缓存 |
+| 查看诊断元数据 | `inspect()` / `inspector().snapshot()` | 返回只读快照，不暴露 sticky payload | 调试、日志、测试断言 |
+| 移除普通事件当前通道 | `removeEvent(...)` | 移除当前 store 里的普通事件流 | 让后续访问重新建普通通道 |
+| 清理 sticky 缓存或通道 | `clearSticky(...)` / `removeSticky(...)` | 清 replay，或连当前 sticky 条目一起移除 | 页面退出、会话切换、最近值过期 |
+| 读取并清空 sticky 最新值 | `consumeStickyLatest(...)` | 读取当前最新 replay 后清空 | 一次性消费最近结果 |
 
 ## 发送 API 怎么选
 
@@ -333,12 +342,12 @@ if (!result.accepted) {
 
 `FlowBusPostResult` 只说明总线这一层的接收结果。
 
-| 结果 | 含义 |
-| --- | --- |
-| `accepted = true` | `tryEmit` 没有立刻拒绝这次调用 |
-| `accepted = false` | 底层流拒绝了这次非挂起写入 |
-| `AcceptedWithDropOldestPolicy` | 新值可能挤掉旧值 |
-| `AcceptedWithDropLatestPolicy` | 这次调用可能被接受，但当前值仍可能不会进入缓冲 |
+| 结果 | 含义 | 你该怎么处理 |
+| --- | --- | --- |
+| `accepted = true` | `tryEmit` 没有立刻拒绝这次调用 | 只能说明总线层接收尝试通过，业务完成要另做 ACK 或状态更新 |
+| `accepted = false` | 底层流拒绝了这次非挂起写入 | 关键事件改用 `emit(...)`，或检查缓冲、订阅者和溢出策略 |
+| `AcceptedWithDropOldestPolicy` | 新值可能挤掉旧值 | 只用于可丢弃的刷新类通知，不要承载关键链路 |
+| `AcceptedWithDropLatestPolicy` | 调用可能被接受，但当前值仍可能不会进入缓冲 | 不要把它当可靠投递；需要可靠性时改用挂起发送或业务队列 |
 
 它不表示订阅者已经处理事件。`DROP_OLDEST` / `DROP_LATEST` 也不是可靠队列策略。
 
@@ -430,7 +439,7 @@ val session = bus.inspectScope("session")
 5. `events` 表示当前已登记的事件元数据，不等于一定有活跃订阅者。
 6. `metrics` 只统计 `tryEmit` 层面的接受或拒绝，不代表业务处理成功。
 
-## `EventChannel`、值糖 API、`eventName` 怎么选
+## `EventChannel`、对象式发送扩展、`eventName` 怎么选
 
 如果你在这 3 种写法里犹豫，可以直接按下面的规则选：
 
@@ -440,15 +449,15 @@ val session = bus.inspectScope("session")
 | 只是临时发一次，想写得最短 | `event.send()` / `event.sendOn(target)` |
 | 已经有稳定名字，但不想单独建 channel 对象 | 直接传 `eventName` |
 | 面向公开 API 或长期维护代码 | 优先 `eventChannel<T>("name")` |
-| 只是内部简单广播 | 值糖 API 或直接 `post(value)` 都可以 |
+| 只是内部简单广播 | 对象式发送扩展或直接 `post(value)` 都可以 |
 
 可以把它们理解成 3 个层级：
 
 1. `eventChannel<T>("name")`：把“通道”本身抽成一个稳定对象，最适合长期复用。
-2. `event.send()` / `event.sendOn(target)`：把“发送动作”写短，最适合一次性调用点。
+2. `event.send()` / `event.sendOn(target)`：对象式发送扩展，把“发送动作”写短，最适合一次性调用点。
 3. `eventName = "..."`：最直接，但也最容易把字符串散落在代码里。
 
-值糖 API 的直接对应关系：
+对象式发送扩展的直接对应关系：
 
 | 写法 | 实际语义 |
 | --- | --- |
@@ -461,7 +470,7 @@ val session = bus.inspectScope("session")
 
 补一句：
 
-1. 这些值糖 API 只是更短的写法，不是另一套分发规则。
+1. 这些对象式发送扩展只是更短的写法，不是另一套分发规则。
 2. 默认 `eventName` 仍然是事件类型完整类名。
 3. 自定义 `eventName` 仍然不能为空白字符串。
 4. 发到 `FlowBus`、`ScopedFlowBus`、`FlowBusScope` 时，行为边界和对应的 `post*` / `emit*` 完全一致。
@@ -498,6 +507,8 @@ val session = bus.inspectScope("session")
 ## sticky event 什么时候该用
 
 sticky event 会保存最近一次值，后来订阅的人也能立刻读到。
+
+这里的 replay 指 sticky 通道内部保存的最近值缓存。它能解决“订阅晚了也想先拿最近结果”的问题，但不适合承载长期状态；页面状态、表单状态和复杂业务状态仍应交给 `StateFlow`、数据库或业务状态机。
 
 | 状态 | 推荐 API | 后订阅者能否读到最近值 | 是否清 replay | 适合场景 | 边界 |
 | --- | --- | --- | --- | --- | --- |
@@ -638,38 +649,6 @@ DefaultFlowBus.install(
 
 如果这些入口已经调用过，再执行 `configure(...)` 或 `install(...)` 会抛 `IllegalStateException`。
 
-## 如果你只想记最短用法，看这里
-
-### 默认单例
-
-```kotlin
-DefaultFlowBus.post(MyEvent(...))
-scope.launch { DefaultFlowBus.flow<MyEvent>().collect { handle(it) } }
-```
-
-### 对象式发送
-
-```kotlin
-MyEvent(...).send()
-scope.launch { DefaultFlowBus.flow<MyEvent>().collect { handle(it) } }
-```
-
-### 命名 channel
-
-```kotlin
-val toastChannel = eventChannel<String>("ui.toast")
-toastChannel.post("Saved")
-scope.launch { toastChannel.flow().collect { showToast(it) } }
-```
-
-### 显式 scope
-
-```kotlin
-val taskScope = DefaultFlowBus.openScope("task", closeWhen = scope)
-taskScope.post(TaskProgress(percent = 10))
-scope.launch { taskScope.flow<TaskProgress>().collect { render(it) } }
-```
-
 ## 常见边界说明
 
 ### 名称校验
@@ -703,11 +682,11 @@ scope.launch { taskScope.flow<TaskProgress>().collect { render(it) } }
 
 关闭入口对比如下：
 
-| 入口 | 是否立即让句柄失效 | 是否等待 store 清理 | 适合场景 |
-| --- | --- | --- | --- |
-| `close()` | 是 | 否 | UI、生命周期回调、只需要禁止继续使用当前句柄 |
-| `closeSuspending()` | 是 | 是 | 协程中需要等待清理完成 |
-| `tryClose(timeoutMillis)` | 是 | 最多等待指定时间 | 测试、退出流程、需要明确超时结果 |
+| 入口 | 是否立即让句柄失效 | 是否等待 store 清理 | 适合场景 | 不符合预期先查 |
+| --- | --- | --- | --- | --- |
+| `close()` | 是 | 否 | UI、生命周期回调、只需要禁止继续使用当前句柄 | 是否还有已开始的发送 / 取流操作未结束 |
+| `closeSuspending()` | 是 | 是 | 协程中需要等待清理完成 | 是否有挂起发送被背压卡住 |
+| `tryClose(timeoutMillis)` | 是 | 最多等待指定时间 | 测试、退出流程、需要明确超时结果 | timeout 是否太短，或是否还有 collector 阻塞发送完成 |
 
 如果 scope 跟随外层生命周期，优先用 `openScope(name, closeWhen = job)` 或 `bindTo(job)`，避免忘记关闭。
 
