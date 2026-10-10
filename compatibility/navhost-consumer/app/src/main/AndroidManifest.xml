@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application
+        android:name=".ConsumerApplication"
+        android:label="FlowBus NavHost Consumer"
+        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <activity android:name=".NavHostConsumerActivity" android:exported="true" />
+        <activity android:name=".NavigationConsumerActivity" android:exported="true" />
+        <activity android:name=".ConsumerActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

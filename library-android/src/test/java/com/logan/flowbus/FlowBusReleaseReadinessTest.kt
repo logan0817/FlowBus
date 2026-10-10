@@ -80,11 +80,21 @@ class FlowBusReleaseReadinessTest {
             "POM_DEVELOPER_ID",
             "android.useAndroidX=true",
             "kotlinOptions",
-            "collectEvent",
-            "onEvent",
-            "postScopedEvent"
+            "compatibility/android-consumer/app/src/main/java/com/logan/flowbus/consumer/ConsumerActivity.kt",
+            "copyTo(sourceDir.resolve(\"ConsumerActivity.kt\"), overwrite = true)"
         ).forEach { expected ->
             assertTrue("Missing release metadata gate: $expected", releaseVerification.contains(expected))
+        }
+
+        // 消费者源码已提取为 fixture，门禁同时检查脚本接入与实际调用。
+        val consumer = File(
+            "../compatibility/android-consumer/app/src/main/java/com/logan/flowbus/consumer/ConsumerActivity.kt"
+        ).readText()
+        listOf("collectEvent", "onEvent", "postScopedEvent").forEach { api ->
+            assertTrue("Missing legacy consumer import: $api", consumer.contains("import com.logan.flowbus.$api"))
+        }
+        listOf("owner.collectEvent(", "owner.onEvent<Int>(", "owner.postScopedEvent(").forEach { call ->
+            assertTrue("Missing legacy consumer call: $call", consumer.contains(call))
         }
     }
 
@@ -95,18 +105,40 @@ class FlowBusReleaseReadinessTest {
         assertTrue(ci.contains("permissions:"))
         assertTrue(ci.contains("contents: read"))
         assertTrue(ci.contains("cache-read-only: false"))
+        assertTrue("SDK setup must not use the removed tools package.", ci.contains("packages: platform-tools"))
         assertTrue(ci.contains("verifyMavenLocalArtifacts"))
         assertTrue(ci.contains("verifyMavenLocalConsumer"))
         assertTrue(ci.contains("verifyMavenLocalCoreConsumer"))
-        assertTrue(ci.contains(":app:connectedReleaseAndroidTest"))
+        assertTrue(ci.contains("bash compatibility/run-api35.sh"))
+        val api35Script = File("../compatibility/run-api35.sh").readText()
+        assertTrue(api35Script.contains(":app:connectedReleaseAndroidTest"))
+        assertTrue(api35Script.contains("wm dismiss-keyguard"))
+        assertTrue(ci.contains("bash compatibility/run-api21.sh"))
+        val api21Script = File("../compatibility/run-api21.sh").readText()
+        assertTrue(api21Script.contains("set -euo pipefail"))
+        assertTrue(api21Script.contains("ANDROID_SERIAL=emulator-5554 ./gradlew :library-android:connectedDebugAndroidTest"))
+        assertTrue(api21Script.contains("properties[\"ro.build.version.sdk\"] == \"21\""))
+        assertTrue(ci.contains("if: always()"))
+        assertTrue(ci.contains("uses: actions/upload-artifact@v4"))
+        listOf(
+            "library-android/build/outputs/androidTest-results/",
+            "build/api21-environment/",
+            "build/android-consumer-device/",
+            "build/compose-effects-device/",
+            "build/compose-policies-device/",
+            "build/navigation-device/",
+            "build/navhost-device/"
+        ).forEach { path ->
+            assertTrue("CI must preserve device evidence: $path", ci.contains(path))
+        }
     }
 
     @Test
     fun `release checklist documents shrink and dependency metadata gates`() {
         val checklist = File("../docs/release-checklist.md").readText()
         val englishChecklist = File("../docs/en/release-checklist.md").readText()
-        val releaseNotes = File("../docs/release-notes-1.0.7.md").readText()
-        val englishReleaseNotes = File("../docs/en/release-notes-1.0.7.md").readText()
+        val releaseNotes = File("../docs/release-notes-1.1.0.md").readText()
+        val englishReleaseNotes = File("../docs/en/release-notes-1.1.0.md").readText()
         val changelog = File("../CHANGELOG.md").readText()
 
         listOf(checklist to "依赖", englishChecklist to "dependency").forEach { (text, dependencyText) ->
@@ -129,8 +161,8 @@ class FlowBusReleaseReadinessTest {
     }
 
     @Test
-    fun `release documentation and versions target 1_0_7`() {
-        val releaseVersion = "1.0.7"
+    fun `release documentation and versions target 1_1_0`() {
+        val releaseVersion = "1.1.0"
         val gradleProperties = File("../gradle.properties").readText()
         val versionCatalog = File("../gradle/libs.versions.toml").readText()
         val rootReadme = File("../README.md").readText()
@@ -141,14 +173,14 @@ class FlowBusReleaseReadinessTest {
         val androidEnglishReadme = File("../library-android/README_EN.md").readText()
         val checklist = File("../docs/release-checklist.md").readText()
         val englishChecklist = File("../docs/en/release-checklist.md").readText()
-        val releaseNotes = File("../docs/release-notes-1.0.7.md").readText()
-        val englishReleaseNotes = File("../docs/en/release-notes-1.0.7.md").readText()
+        val releaseNotes = File("../docs/release-notes-1.1.0.md").readText()
+        val englishReleaseNotes = File("../docs/en/release-notes-1.1.0.md").readText()
         val changelog = File("../CHANGELOG.md").readText()
 
         listOf(
             gradleProperties to "VERSION_NAME=$releaseVersion",
             gradleProperties to "APP_VERSION_NAME=$releaseVersion",
-            gradleProperties to "APP_VERSION_CODE=7",
+            gradleProperties to "APP_VERSION_CODE=8",
             versionCatalog to "flowbus_version = \"$releaseVersion\"",
             rootReadme to "flowbus:$releaseVersion",
             rootReadme to "flowbus-core:$releaseVersion",
@@ -160,9 +192,9 @@ class FlowBusReleaseReadinessTest {
             androidEnglishReadme to "flowbus:$releaseVersion",
             checklist to "VERSION_NAME=$releaseVersion",
             englishChecklist to "VERSION_NAME=$releaseVersion",
-            releaseNotes to "FlowBus 1.0.7",
-            englishReleaseNotes to "FlowBus 1.0.7",
-            changelog to "## 1.0.7"
+            releaseNotes to "FlowBus 1.1.0",
+            englishReleaseNotes to "FlowBus 1.1.0",
+            changelog to "## 1.1.0"
         ).forEach { (text, expected) ->
             assertTrue("Release target must include `$expected`.", text.contains(expected))
         }

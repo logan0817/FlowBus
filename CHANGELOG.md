@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.1.0（尚未发布）
+
+完整范围与迁移说明见[1.1.0 发布说明](docs/release-notes-1.1.0.md)，兼容性证据见[兼容性评估](docs/next-version-plan.md#兼容性评估)。基础依赖、minSdk 21 和 Java 8 字节码目标保持不变。
+
+| 类型 | 变更 | 影响 |
+| --- | --- | --- |
+| Android 兼容 | 替换 API 24 才提供的 ConcurrentHashMap.compute* 调用 | 保留原子更新与旧 store 清理隔离；API 21 运行证据按最终提交的 CI 报告验收 |
+| scope 可靠性 | closeSuspending 等待可取消 | 保留 1.0.7 状态语义；永久关闭请求不因取消、超时或中断丢失 |
+| core API | 新增 collectSuspending / collectStickySuspending 与 channel 入口 | 单订阅串行执行 suspend callback，旧 API 保留 |
+| Android API | 新增 onEventSuspending、collectEventSuspending、collectEventFrom / collectEventFromSuspending | 支持挂起回调和显式实例来源，来源生命周期由调用方管理 |
+| 投递契约 | 明确普通事件、背压、sticky replay 和取消边界 | 发送完成不代表业务完成；阻塞/NonCancellable 回调不能被强制停止 |
+| 消费者回归 | Java 8、Kotlin 编译器矩阵、隔离 Maven、release R8、旧 core 字节码与 Android 公开符号 | 验证范围明确记录，不等于完整 ABI 或任意工具链认证 |
+| 扩展示例 | 独立 Compose、Navigation 与实际 NavHost fixtures | 不进入发布产物，不增加基础坐标依赖 |
+| 发布整理 | 版本统一为 1.1.0，补齐中英文候选发布说明与清单，精简历史沟通记录 | 发布前核对最终提交的 API 21 与远端 CI 门禁 |
+
 ## 1.0.7
 
 完整发布说明见 [`docs/release-notes-1.0.7.md`](./docs/release-notes-1.0.7.md)。

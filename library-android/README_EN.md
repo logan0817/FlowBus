@@ -9,7 +9,7 @@ The Gradle module directory is `library-android`, and the published artifact is:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.0.7") // Use 1.0.7 after release; the badge above is the source of truth.
+implementation("io.github.logan0817:flowbus:1.1.0") // 1.1.0 is unreleased; use after publication. Published baseline: 1.0.7.
 ```
 
 If you are integrating FlowBus into an Android app, this is usually the place to start.
@@ -34,7 +34,7 @@ FlowBus is a good fit for asynchronous events where one place sends a notificati
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.0.7") // Use 1.0.7 after release; the badge above is the source of truth.
+implementation("io.github.logan0817:flowbus:1.1.0") // 1.1.0 is unreleased; use after publication. Published baseline: 1.0.7.
 ```
 
 ### 2. Define an event type
@@ -45,13 +45,7 @@ If it is just one simple action, a `data class` or `data object` is enough:
 data class RefreshHomeEvent(val source: String)
 ```
 
-### 3. Send the event
-
-```kotlin
-postEvent(RefreshHomeEvent(source = "login"))
-```
-
-### 4. Receive the event in UI
+### 3. Register the UI receiver first
 
 Shortest style:
 
@@ -69,6 +63,14 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 }
 ```
 
+### 4. Send after the receiver becomes active and starts collecting
+
+```kotlin
+postEvent(RefreshHomeEvent(source = "login"))
+```
+
+Registering `onEvent(...)` / `collectEvent(...)` does not make the underlying subscription immediately ready: lifecycle state and coroutine scheduling matter. Normal events have no replay and are not retained before collection or while the receiver is inactive. In the following scenarios, sending and receiving usually happen in different places: register the receiver first, then send from a user action or business flow once collection is active. Adjacent example statements are not a readiness barrier. Use sticky explicitly for a latest result needed by late subscribers, and `StateFlow` for recoverable UI state.
+
 At this point, you already know the main path: 1. send with `postEvent(...)`. 2. receive with `onEvent<T> { ... }`. 3. move to owner-based APIs only when the event should stay inside one Activity / Fragment / NavBackStackEntry scope.
 
 ## Remember these 7 rules first
@@ -78,7 +80,7 @@ At this point, you already know the main path: 1. send with `postEvent(...)`. 2.
 3. By default, events are routed by event type. If one payload type needs multiple channels, use `eventChannel<T>("name")`.
 4. `post*` tries immediately; `tryPost*` reports whether the underlying `tryEmit` call was rejected.
 5. `tryPost*Result` returns bus-layer diagnostics, but it still does not mean subscriber callbacks already finished.
-6. `emit*` suspends until the event is accepted by the underlying flow, which fits important send paths.
+6. `emit*` follows the configured overflow policy. `SUSPEND` can apply backpressure with active subscribers; it does not guarantee normal-event retention, business completion, or process-death recovery.
 7. `onEvent(...)` is the recommended shortest UI API; `collectEvent(flow)` is better when you already have a `Flow`.
 
 ## Why do the docs often use `onEvent(...)`, while the sample app sometimes uses `collectEvent(eventFlow(...))`
@@ -136,11 +138,11 @@ Good for:
 ```kotlin
 data class SyncFinishedEvent(val successCount: Int)
 
-postEvent(SyncFinishedEvent(successCount = 3))
-
 viewLifecycleOwner.onEvent<SyncFinishedEvent> { event ->
     showResult(event.successCount)
 }
+
+postEvent(SyncFinishedEvent(successCount = 3))
 ```
 
 ### Scenario 2: Fragment communicates with Activity
@@ -154,11 +156,11 @@ Good for:
 ```kotlin
 data object ReloadToolbarEvent
 
-requireActivity().postScopedEvent(ReloadToolbarEvent)
-
 viewLifecycleOwner.onEvent<ReloadToolbarEvent>(from = requireActivity()) {
     renderToolbar()
 }
+
+requireActivity().postScopedEvent(ReloadToolbarEvent)
 ```
 
 Here, `requireActivity()` is not the listener. It means “which scope the event bus is attached to”.
@@ -177,11 +179,11 @@ Recommended style:
 ```kotlin
 val toastChannel = eventChannel<String>("ui.toast")
 
-toastChannel.post("Saved")
-
 viewLifecycleOwner.onEvent(toastChannel) { message ->
     showToast(message)
 }
+
+toastChannel.post("Saved")
 ```
 
 If this should stay inside the current Activity scope:
@@ -189,11 +191,11 @@ If this should stay inside the current Activity scope:
 ```kotlin
 val activityCommand = eventChannel<String>("activity.command")
 
-activityCommand.postTo(requireActivity(), "reload")
-
 viewLifecycleOwner.onEvent(from = requireActivity(), channel = activityCommand) { command ->
     handleActivityCommand(command)
 }
+
+activityCommand.postTo(requireActivity(), "reload")
 ```
 
 ### Scenario 4: ViewModel / Repository / Worker notifies UI
@@ -202,7 +204,7 @@ Good for:
 
 1. notifying UI after background sync completes
 2. letting Repository notify multiple screens
-3. emitting results from Worker and receiving them when UI becomes active again
+3. notifying an actively collecting UI after Worker completion; use sticky or persistent business state when the result is needed after restoration
 
 ```kotlin
 data class UploadFinishedEvent(val taskId: String)
@@ -247,7 +249,7 @@ viewLifecycleOwner.onEvent<UploadFinishedEvent>(from = requireActivity()) { even
 | Named channel send | `eventChannel<T>("name")` + `channel.post(...)` | No | global or owner | normal / sticky | good for maintaining stable business channel names |
 | Lifecycle-safe listener | `onEvent(...)` | No | global or owner | controlled by `isSticky` | shortest UI receiving entry |
 | Get `Flow` first and compose | `eventFlow(...)` + `collectEvent(...)` | No | global or owner | controlled by `isSticky` | good for `map`, `filter`, and `debounce` |
-| Guaranteed write | `emitEvent(...)` / `emitStickyEvent(...)` | Yes | global or owner | normal / sticky | waits until the write is accepted under backpressure rules |
+| Suspending send under configured policy | `emitEvent(...)` / `emitStickyEvent(...)` | Yes | global or owner | normal / sticky | backpressure with `SUSPEND` and active subscribers; dropping policies still apply |
 | One-time latest sticky consumption | `consumeStickyLatestEvent(...)` / `channel.consumeStickyLatest()` | No | global or owner | cleared after read | returns the latest value; returns `null` when replay is empty |
 
 ## How to choose sending APIs
@@ -257,7 +259,7 @@ viewLifecycleOwner.onEvent<UploadFinishedEvent>(from = requireActivity()) { even
 | `postEvent(...)` | No | Yes | none | lightweight UI notifications | best-effort; may fail when the buffer cannot accept immediately |
 | `tryPostEvent(...)` | No | Yes | `Boolean` | checking whether underlying `tryEmit` was rejected | when `delayMillis > 0`, it only means the delayed task was scheduled |
 | `tryPostEventResult(...)` | No | No | `FlowBusPostResult` | logs, test assertions, subscription count and overflow-policy investigation | does not mean subscriber callbacks already completed |
-| `emitEvent(...)` | Yes | Yes | none | important paths that should wait under backpressure rules | caller must use it from a coroutine |
+| `emitEvent(...)` | Yes | Yes | none | active broadcasts that should wait for buffer space under the configured policy | coroutine call; normal events without subscribers are not retained, and dropping policies still apply |
 | `postStickyEvent(...)` / `emitStickyEvent(...)` | depends on API | Yes | depends on API | late subscribers need the latest value | not a replacement for long-lived state management |
 
 Common global send:
@@ -345,18 +347,20 @@ viewLifecycleOwner.collectEvent(toastChannel.flow()) { message ->
 | Dimension | `postEvent(...)` | `tryPostEvent(...)` | `tryPostEventResult(...)` | `emitEvent(...)` |
 | --- | --- | --- | --- | --- |
 | Suspends | No | No | No | Yes |
-| Write model | tries to write immediately | tries to write immediately | tries to write immediately and returns diagnostics | waits under backpressure rules |
+| Write model | tries to write immediately | tries to write immediately | tries to write immediately and returns diagnostics | follows the configured overflow policy; backpressure under `SUSPEND` |
 | Return information | none | `Boolean` | `FlowBusPostResult` | none |
-| Good for | UI clicks, lightweight hints, refresh notifications | checking whether `tryEmit` was rejected | logs, tests, subscription count and overflow-policy investigation | important notifications in Repository / Worker / ViewModel flows |
-| Does not mean | the event definitely reached business code | subscribers handled it | business handling succeeded | subscriber business logic cannot fail |
+| Good for | UI clicks, lightweight hints, refresh notifications | checking whether `tryEmit` was rejected | logs, tests, subscription count and overflow-policy investigation | active broadcasts that should wait under configured policy |
+| Does not mean | the event definitely reached business code | subscribers handled it | business handling succeeded | delivery or business completion is guaranteed |
 
 `FlowBusPostResult` includes: 1. event name. 2. subscription count. 3. sticky replay count. 4. overflow policy. 5. outcome. It only says whether this `tryEmit` call was rejected by the underlying flow. It does not mean subscriber callbacks already handled the event.
 
-`DROP_OLDEST` / `DROP_LATEST` are not reliable queue policies. The former may overwrite older events. The latter may keep the current event from entering the buffer. For critical paths, use `emitEvent(...)`, a business-owned queue, or a state machine.
+`emitEvent(...)` does not override the configured overflow policy. `SUSPEND` can apply backpressure with active subscribers; `DROP_OLDEST` can still drop older values, and `DROP_LATEST` can still drop the current live value. Normal events complete immediately without subscribers and are not retained for future subscribers. Completion does not mean business handling finished. Use business state, a database, or persistent tasks for operations that must recover or complete reliably.
 
 ## Sticky events
 
 Sticky events mean “keep the latest value after sending it, so late subscribers can receive that value first”.
+
+Sticky replay is managed separately from live broadcast. With `DROP_LATEST`, a value may not enter the live buffer, but can still become replay after underlying `tryEmit` returns `true`. For example, a slow subscriber may receive `[1, 2]` live while a new subscriber first reads `3`. This preserves the existing contract. `emitStickyEvent(...)` does not change the overflow policy, and replay does not prove all subscribers received or successfully handled a value.
 
 | State | Recommended API | Can late subscribers read the latest value | Clears replay | Good for | Poor fit |
 | --- | --- | --- | --- | --- | --- |
@@ -427,6 +431,75 @@ val toastChannel = eventChannel<String>("ui.toast")
 toastChannel.post("saved")
 viewLifecycleOwner.onEvent(toastChannel) { showToast(it) }
 ```
+
+## Next-version suspend callbacks and instance integration (unreleased)
+
+These APIs are in candidate source, not published `1.0.7`. Existing APIs remain. The candidate targets 1.1.0; Kotlin, Coroutines, Lifecycle, and minSdk requirements stay unchanged; no Compose, Hilt, or Koin dependency is added.
+
+### Call suspend work directly from callbacks
+
+```kotlin
+import com.logan.flowbus.onEventSuspending
+
+viewLifecycleOwner.onEventSuspending<RefreshHomeEvent> { event ->
+    viewModel.refreshSuspending(event.source)
+}
+
+viewLifecycleOwner.onEventSuspending<RefreshHomeEvent>(from = requireActivity()) { event ->
+    viewModel.refreshSuspending(event.source)
+}
+```
+
+`refreshSuspending` is application-provided. Global and owner sources both support reified types or Android `EventChannel<T>`: use `onEventSuspending(channel)` or `onEventSuspending(from = owner, channel = channel)`. The source owner and receiver lifecycle have different roles. These are source alternatives, not duplicate registrations for one requirement.
+
+`LifecycleOwner` variants default to `STARTED` and expose dispatcher, minLifecycleState, and isSticky. Register on the main thread; `INITIALIZED` is rejected immediately. Leaving the active state requests callback cancellation. Restart within the same repeatOnLifecycle waits for the previous callback to finish before resubscribing. Blocking or NonCancellable work cannot be forcibly stopped, and side effects are not rolled back. Normal events do not replay, while explicitly selected sticky collection can replay the latest value.
+
+`CoroutineScope.onEventSuspending` offers global/owner and type/channel variants managed by the caller's scope, without automatic UI lifecycle gating. Owner acquisition must occur on the main thread. These variants have no dispatcher parameter and use the collection coroutine context. Cancel the returned Job to stop collection. A custom `FlowEventBus` exposes `subscribeEventSuspending`: the lifecycle version returns a Job, and the suspending version runs in a caller-managed coroutine.
+
+Bus APIs reuse their source instance's type validation, logger, and errorHandler. Each subscription awaits callbacks sequentially without collectLatest; slow handling still follows the existing buffer/overflow policy. Ordinary callback exceptions use bus error policy; the default rethrows and terminates collection. Cancellation propagates directly without error reporting. Cooperative suspend work is cancelled with the subscription; blocking or non-cancellable work still requires application care.
+
+### Preserve instance isolation through constructor injection
+
+Create a bus once in application composition and give the same instance to sender and collector. An existing DI container can provide it; no extra DI integration module is required.
+
+```kotlin
+import com.logan.flowbus.collectEventFromSuspending
+import com.logan.flowbus.core.FlowBus
+import com.logan.flowbus.core.eventKey
+
+val refreshKey = eventKey<RefreshHomeEvent>("home.refresh")
+
+class RefreshNotifier(private val bus: FlowBus) {
+    fun notifyRefresh(source: String): Boolean =
+        bus.post(refreshKey, RefreshHomeEvent(source))
+}
+
+val featureBus = FlowBus()
+val notifier = RefreshNotifier(featureBus)
+
+viewLifecycleOwner.collectEventFromSuspending(from = featureBus, key = refreshKey) { event ->
+    viewModel.refreshSuspending(event.source)
+}
+// Once collection is active, call notifier.notifyRefresh("login") from business work.
+```
+
+`collectEventFrom` accepts an ordinary callback and `collectEventFromSuspending` a suspending callback. Both accept an explicit `FlowBus`, `ScopedFlowBus`, or `FlowBusScope` with a core `EventKey<T>`. Convert a core channel via `coreChannel.asEventKey()`. Defaults are `Dispatchers.Main.immediate`, `STARTED`, and `isSticky=false`; the source instance's error policy is used. Registration does not establish immediate subscription readiness.
+
+Stopping collection or destroying the receiver does not close the source. Each active lifecycle entry fetches Flow again. A `ScopedFlowBus` whose named store was rebuilt can use the new Flow on the next active entry; it does not switch held Flow while active. A `FlowBusScope` is a fixed handle: after closure, re-entry fails rather than silently replacing it with a reopened same-name handle. Source lookup errors propagate directly instead of becoming callback errors handled by errorHandler. The instance owner controls scope creation, replacement, and closure.
+
+Injected instances are not silently merged with DefaultFlowBus or Android global APIs. A send to another instance/owner or a different event key will not reach this subscription.
+
+### Collect an already composed arbitrary Flow
+
+```kotlin
+import com.logan.flowbus.collectEventSuspending
+
+viewLifecycleOwner.collectEventSuspending(eventFlow<RefreshHomeEvent>()) { event ->
+    viewModel.refreshSuspending(event.source)
+}
+```
+
+`collectEventSuspending` is a generic Flow helper with sequential lifecycle-bound suspend callbacks. Upstream and callback exceptions propagate directly without automatically applying FlowBus logger/errorHandler. Choose `collectEventFromSuspending` for instance policy. Use native Flow `collectLatest` explicitly when previous handling should be cancelled; that behavior is not the default for these APIs.
 
 ## Optional configuration
 

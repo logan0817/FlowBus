@@ -25,7 +25,7 @@ Android 项目优先使用 `flowbus`：
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.0.7")  // 发布后可使用 1.0.7，实际 latest 以 Maven Central 徽章为准
+implementation("io.github.logan0817:flowbus:1.1.0")  // 1.1.0 尚未发布；正式发布后可使用，当前已发布基准为 1.0.7
 ```
 
 纯 Kotlin / Coroutines / 非 Android 场景使用 `flowbus-core`：
@@ -33,7 +33,7 @@ implementation("io.github.logan0817:flowbus:1.0.7")  // 发布后可使用 1.0.7
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.0.7")  // 发布后可使用 1.0.7，实际 latest 以 Maven Central 徽章为准
+implementation("io.github.logan0817:flowbus-core:1.1.0")  // 1.1.0 尚未发布；正式发布后可使用，当前已发布基准为 1.0.7
 ```
 
 模块选择：
@@ -49,19 +49,21 @@ implementation("io.github.logan0817:flowbus-core:1.0.7")  // 发布后可使用 
 data class RefreshHomeEvent(val source: String)
 ```
 
-### 2. 发送事件
-
-```kotlin
-postEvent(RefreshHomeEvent(source = "login"))
-```
-
-### 3. 接收事件
+### 2. 先注册接收事件
 
 ```kotlin
 viewLifecycleOwner.onEvent<RefreshHomeEvent> { event ->
     viewModel.refreshFrom(event.source)
 }
 ```
+
+### 3. 在接收方进入活跃生命周期、订阅开始后发送
+
+```kotlin
+postEvent(RefreshHomeEvent(source = "login"))
+```
+
+`onEvent(...)` 注册不等于底层订阅立即就绪；它受生命周期和协程调度影响。普通事件没有 replay，接收方未开始收集或处于非活跃状态时不会补收。后订阅读取最近结果应显式使用 sticky；可恢复的页面状态应使用 `StateFlow`。
 
 这就是最短 Android 接入路径。先记住：发送用 `postEvent(...)`，页面接收用 `onEvent<T> { ... }`。
 
@@ -74,11 +76,11 @@ viewLifecycleOwner.onEvent<RefreshHomeEvent> { event ->
 ```kotlin
 data class SyncFinishedEvent(val successCount: Int)
 
-postEvent(SyncFinishedEvent(successCount = 3))
-
 viewLifecycleOwner.onEvent<SyncFinishedEvent> { event ->
     showResult(event.successCount)
 }
+
+postEvent(SyncFinishedEvent(successCount = 3))
 ```
 
 ### 场景 2：Fragment 通知 Activity
@@ -88,11 +90,11 @@ viewLifecycleOwner.onEvent<SyncFinishedEvent> { event ->
 ```kotlin
 data object ReloadToolbarEvent
 
-requireActivity().postScopedEvent(ReloadToolbarEvent)
-
 viewLifecycleOwner.onEvent<ReloadToolbarEvent>(from = requireActivity()) {
     renderToolbar()
 }
+
+requireActivity().postScopedEvent(ReloadToolbarEvent)
 ```
 
 这里的 `requireActivity()` 表示事件挂在哪个 owner 作用域，不表示监听者。
@@ -104,11 +106,11 @@ viewLifecycleOwner.onEvent<ReloadToolbarEvent>(from = requireActivity()) {
 ```kotlin
 val toastChannel = eventChannel<String>("ui.toast")
 
-toastChannel.post("保存成功")
-
 viewLifecycleOwner.onEvent(toastChannel) { message ->
     showToast(message)
 }
+
+toastChannel.post("保存成功")
 ```
 
 ### 场景 4：非 Android 或底层 scope 控制
@@ -118,14 +120,16 @@ viewLifecycleOwner.onEvent(toastChannel) { message ->
 ```kotlin
 val syncScope = DefaultFlowBus.openScope("sync-task", closeWhen = scope)
 
-syncScope.post(SyncProgress(percent = 10))
-
-scope.launch {
+scope.launch(start = CoroutineStart.UNDISPATCHED) {
     syncScope.flow<SyncProgress>().collect { progress ->
         render(progress)
     }
 }
+
+syncScope.post(SyncProgress(percent = 10))
 ```
+
+示例直接收集普通 Flow，使用 `CoroutineStart.UNDISPATCHED` 先执行收集再发送；上游挂起、`flowOn` 或生命周期门控等组合仍需另行确认实际订阅就绪。
 
 ## API 选择速记
 
@@ -134,7 +138,7 @@ scope.launch {
 | 全局轻量广播 | `postEvent(...)` | 否 | 否 | best-effort，极端情况下可能发送失败 |
 | 只想知道 `tryEmit` 有没有被拒绝 | `tryPostEvent(...)` | 否 | 否 | 返回 `Boolean`，不代表业务处理成功 |
 | 需要发送诊断结果 | `tryPostEventResult(...)` | 否 | 普通 / sticky 都可用 | 返回订阅数、sticky replay 数、溢出策略和结果分类 |
-| 必须等待写入成功 | `emitEvent(...)` | 是 | 普通 / sticky 都可用 | 按背压规则等待底层流接收 |
+| 按配置进行挂起发送 | `emitEvent(...)` | 是 | 普通 / sticky 都可用 | `SUSPEND` 且存在活跃订阅者时可背压；仍遵循既定溢出策略 |
 | 发送到某个 owner | `postEventTo(owner, ...)` / `owner.postScopedEvent(...)` | 否 | 否 | 事件只进入该 owner 对应的局部总线 |
 | 命名通道 | `eventChannel<T>("name")` + `channel.post(...)` | 否 | 普通 / sticky 都可用 | 适合长期复用的业务通道 |
 | 最短一行监听 | `onEvent(...)` | 否 | 由 `isSticky` 决定 | 自动绑定 `LifecycleOwner` |
@@ -159,14 +163,35 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 1. 页面内部长期状态优先用 `StateFlow`，不要把 FlowBus 当状态容器。
 2. 明确的一对一调用优先直接方法调用、use case 或挂起函数。
 3. `tryPost*Result.accepted = true` 只说明底层 `tryEmit` 没有拒绝，不代表订阅者已经处理完成。
-4. `DROP_OLDEST` / `DROP_LATEST` 不是可靠队列策略，关键链路应使用 `emit*`、业务队列或状态机。
-5. sticky event 只保留最近值，适合初始化结果和页面恢复，不适合替代长期状态管理。
+4. `emit*` 仍遵循既定溢出策略；`SUSPEND` 且存在活跃订阅者时可通过挂起施加背压。普通事件无人订阅时不保存，发送完成不等于业务处理成功。必须恢复或可靠完成的操作使用业务状态、数据库或持久化任务机制。
+5. sticky replay 与实时广播独立管理；`DROP_LATEST` 下新值即使未送入活跃订阅者的缓冲，也可能成为后订阅者的 replay。sticky 不适合替代长期状态管理。
 6. `consumeStickyLatestEvent(...)` 只读取并清空当前 sticky replay，不会阻止其他线程后续写入新的 sticky 值。
 7. 日志里的 `eventName`、`scopeName` 不要包含手机号、token、订单号、用户 ID 等敏感信息。
 
+## 下一版接入能力（尚未发布）
+
+当前候选源码新增挂起回调和显式实例的 Android 收集入口，旧 API 保留。下面入口不属于已发布的 `1.0.7`；候选版本为 1.1.0，基础依赖和 minSdk 目标保持不变。
+
+| 需求 | 候选入口 | 行为 |
+| --- | --- | --- |
+| core 直接执行挂起函数 | `collectSuspending` / `collectStickySuspending` | 单条订阅串行处理，复用实例的错误策略和 dispatcher |
+| Android 全局或 owner 挂起订阅 | `onEventSuspending` | 提供 LifecycleOwner / CoroutineScope、reified / channel 入口 |
+| Android 收集注入实例 | `collectEventFrom` / `collectEventFromSuspending` | 显式 `FlowBus` / `ScopedFlowBus` / `FlowBusScope` 与 `EventKey`，不关闭来源 |
+| 通用 Flow 挂起收集 | `collectEventSuspending(flow)` | 生命周期收集，异常直接传播，不自动应用总线错误策略 |
+
+```kotlin
+viewLifecycleOwner.onEventSuspending<RefreshHomeEvent> { event ->
+    viewModel.refreshSuspending(event.source)
+}
+```
+
+这里的 `refreshSuspending` 是业务提供的挂起函数。上一条回调完成后才处理下一条；页面离开收集状态会请求取消当前回调，业务应遵循协作式取消。同一次生命周期收集重启会等待旧回调结束；阻塞或 NonCancellable 工作不能被强制停止，取消也不回滚副作用。慢回调仍受原有缓冲和溢出策略影响，注册也不意味着订阅立即就绪。需要最新值或实例隔离时，分别显式选择 sticky 和实例来源。详见 [Android 候选接入](library-android/README.md#下一版挂起回调与实例接入尚未发布) 和 [core 挂起订阅](flowbus-core/README.md#下一版挂起订阅尚未发布)。
+
+Compose 提供[独立消费者示例](compatibility/compose-consumer/README.md)，并可选择 [Navigation](compatibility/navigation-consumer/README.md) 或[实际 NavHost](compatibility/navhost-consumer/README.md) 验证生命周期行为。它们不进入发布产物，也不增加基础坐标依赖。已测组合及未验证范围统一见[兼容性评估](docs/next-version-plan.md#兼容性评估)。
+
 ## 兼容与发布状态
 
-当前文档对应 `1.0.7`。远端 Maven Central 的实际可用版本以徽章和 Central 页面为准。
+当前文档对应尚未发布的 `1.1.0` 候选，已发布基准为 `1.0.7`。远端 Maven Central 的实际可用版本以徽章和 Central 页面为准。
 
 | 项目 | 版本 |
 | --- | --- |
@@ -193,9 +218,11 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 1. Android 接入与完整场景：[`library-android/README.md`](./library-android/README.md)
 2. Core 能力、多实例和 scope 生命周期：[`flowbus-core/README.md`](./flowbus-core/README.md)
 3. 发布清单：[`docs/release-checklist.md`](./docs/release-checklist.md)
-4. 发布说明：[`docs/release-notes-1.0.7.md`](./docs/release-notes-1.0.7.md)
+4. 发布说明：[`docs/release-notes-1.1.0.md`](./docs/release-notes-1.1.0.md)
 5. 版本记录：[`CHANGELOG.md`](./CHANGELOG.md)
 6. 英文文档：[`README_EN.md`](./README_EN.md)
+7. 下一版本路线与兼容性评估：[`docs/next-version-plan.md`](./docs/next-version-plan.md)（计划，不代表已发布能力）
+8. [1.0.7 core 二进制消费者回归](compatibility/core-binary-consumer/README.md)：相同旧消费者字节码在原版和候选 JAR 上分别通过 Java 8 运行，另核对旧 JVM 成员描述符；范围不等于完整 ABI 认证。
 
 ## 仓库结构
 

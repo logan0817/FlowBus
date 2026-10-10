@@ -1,159 +1,79 @@
-# Release Checklist
+# 1.1.0 release checklist
 
 [中文](../release-checklist.md)
 
-Run this checklist before publishing `1.0.7`.
+Target: unreleased 1.1.0, with VERSION_NAME=1.1.0, APP_VERSION_NAME=1.1.0, APP_VERSION_CODE=8, and catalog version 1.1.0. Verify final artifacts rather than relying only on earlier reports.
 
-The goal is to verify that `flowbus-core` and `flowbus` are built from the FlowBus main repository, and that local verification plus the remote release task graph can be checked.
+## Local quality and artifact gates
 
-Release script locations:
-
-| Logic | File |
-| --- | --- |
-| Publication entry points, Maven local cleanup, remote publication task graph, signing task trigger conditions | `gradle/release-publishing.gradle.kts` |
-| Maven local artifact checks, POM / module metadata checks, real consumer build checks | `gradle/release-verification.gradle.kts` |
-
-The root `build.gradle.kts` only keeps shared plugins, API validation configuration, project version configuration, and script entry points. Manual publication commands still run from the repository root; no submodule directory switch is needed.
-
-## 1. Pre-Release Verification Command
+Use the existing JDK 17, Android SDK, and wrapper from the repository root. Root publishToMavenLocal removes the selected repository's two current-version directories before publishing; use an isolated candidate repository.
 
 ```bash
-./gradlew apiCheck --rerun-tasks --warning-mode=all
-./gradlew :flowbus-core:test :library-android:testDebugUnitTest :app:testDebugUnitTest :library-android:lintRelease :app:lintRelease :app:assembleDebug :app:assembleRelease verifyMavenLocalArtifacts verifyMavenLocalCoreConsumer verifyMavenLocalConsumer --rerun-tasks --warning-mode=all
+./gradlew apiCheck :flowbus-core:test :library-android:testDebugUnitTest :app:testDebugUnitTest :library-android:lintRelease :app:lintRelease :app:assembleDebug :app:assembleRelease --warning-mode=all
+./gradlew verifyMavenLocalArtifacts verifyMavenLocalCoreConsumer verifyMavenLocalBinaryCoreConsumer verifyMavenLocalConsumer verifyMavenLocalComposeConsumer "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8 --warning-mode=all
 ./gradlew releaseToMavenCentral --dry-run --warning-mode=all
-git diff --check -- . ':(exclude)flowbus-core/api/*.api' ':(exclude)library-android/api/*.api'
+git diff --check HEAD -- . ':(exclude)flowbus-core/api/*.api' ':(exclude)library-android/api/*.api'
 ```
 
-Note: `*.api` files are generated API snapshots and are validated by `apiCheck`. The raw diff whitespace check excludes them to avoid false positives from the generator's trailing blank line format.
+The Java parameter selects only the consumer runtime; Gradle still uses JDK 17. Use an existing JDK 8. Review apiDump changes for intentional public API changes; do not bypass apiCheck. Generated API snapshot trailing lines are excluded from ordinary whitespace checks.
 
-Expected result:
-1. `flowbus-core` JVM unit tests pass.
-2. `library-android` and `app` debug unit tests pass.
-3. `library-android` and `app` release lint pass.
-4. sample app debug and release APKs build.
-5. `apiCheck` blocks public API drift unless the API baseline is intentionally updated.
-6. `:app:assembleRelease` must run R8/minify so the sample app validates a consumer shrink scenario.
-7. `verifyMavenLocalArtifacts` creates and checks local Maven artifacts, POM, module metadata, license / developer metadata, public dependency scopes, and AAR contents for both `flowbus-core` and `flowbus`.
-8. `verifyMavenLocalCoreConsumer` generates a real Kotlin/JVM consumer from Maven local coordinates and directly compiles against the `flowbus-core` coordinate.
-9. `verifyMavenLocalConsumer` generates a real Android consumer from Maven local coordinates and passes release R8/minify.
-10. `releaseToMavenCentral --dry-run` works as a smoke check for the unified remote publication task graph and confirms `clean` is part of the graph.
-11. When a build fails, inspect the actual failed task first; record AGP / Gradle compatibility warnings separately instead of treating them as the release failure root cause.
+Repository documentation and release configuration are explicit JVM test inputs. Changes to those files must rerun the gates rather than reuse earlier passing results.
 
-If this change intentionally modifies public API, run:
+- Core/Android/app JVM tests and release lint pass; sample release uses R8/minify.
+- flowbus-core-1.1.0.jar, flowbus-1.1.0.aar, sources/javadoc, POM, and module metadata exist.
+- Check dependency scopes, license, developer, SCM, and versions: core exposes Coroutines; Android exposes matching core and Lifecycle runtime/viewmodel.
+- AAR includes classes.jar and proguard.txt; both coordinates use Java 8 bytecode without fixture, Compose/Navigation, or local configuration.
+- Run the Maven core consumer on JDK 8. Compile the binary consumer only against Central 1.0.7 and run identical bytecode against original and candidate. Android/Compose consumers pass release R8.
+- Verify published 1.0.7 JVM symbols using consumer READMEs. Preserve raw internal differences; static symbols are not full ABI certification.
+- Remote dry-run verifies the unified graph and cleanup order; it executes neither clean nor upload/signature verification.
+
+## Device and minimum API gates
+
+Confirm target API/boot and run instrumentation and UI drivers serially. Set each animation scale to zero only on the selected test device, then restore original values.
 
 ```bash
-./gradlew apiDump
+adb devices -l
+# Replace the serial with the selected test device.
+adb -s device-serial shell settings put global window_animation_scale 0
+adb -s device-serial shell settings put global transition_animation_scale 0
+adb -s device-serial shell settings put global animator_duration_scale 0
+ANDROID_SERIAL=device-serial ./gradlew :library-android:connectedDebugAndroidTest :app:connectedReleaseAndroidTest --warning-mode=all
 ```
 
-Then manually review these 2 files:
+1. Run library instrumentation and minified sample release instrumentation.
+2. minSdk 21 requires API 21 library and test-signed minified Maven consumer execution. API 24, filenames, and static D8 checks cannot replace it.
+3. Verify each selected version combination independently: [Android](../../compatibility/android-consumer/README.md) four stages, [Compose](../../compatibility/compose-consumer/README_EN.md) nine effect/eight policy stages, [Navigation](../../compatibility/navigation-consumer/README_EN.md) seven stages, and [actual NavHost](../../compatibility/navhost-consumer/README_EN.md) eight stages. Drivers require current runId logs, same-package UI, and every stage.
+4. Mocks verify protocol only. Missing devices, timeouts, missing stages, and stale results are not passes.
+5. CI configures API 21 and API 35 gates; remote success must match the final commit.
 
-1. `flowbus-core/api/flowbus-core.api`
-2. `library-android/api/library-android.api`
+The API 21 step records and asserts the selected emulator's actual API and boot state before testing. Whether the workflow succeeds or fails, it uploads `flowbus-verification-<commit SHA>` reports for 14 days: unit tests, lint, instrumentation, JVM symbols, and current consumer logs/UI. Download reports matching the commit when diagnosing failures. Missing files can indicate an earlier step never ran and do not establish a pass.
 
-## 2. Device Test Command
+emulator-runner executes each `script` line in a separate shell, so multiline heredocs and continued commands must live in a standalone script. API 21 uses one `bash compatibility/run-api21.sh` command for device identity checks, test signing, and consumer verification, stopping at the first failure. Keep compound commands in that script. Mocked-ADB script regression checks identity rejection and failure propagation; it does not replace device verification. JDK keytool generates consumer test signing material in `build/api21-signing/`, without depending on a user-home debug keystore. Keys are neither uploaded nor committed and are not used for publication.
 
-Run the following commands after a local emulator or device is connected. The three animation scale reads must return `0` before connected tests run.
+API 35 UI checks use `bash compatibility/run-api35.sh` to wake the emulator and dismiss a non-secure keyguard before library and sample release tests. Before exit, the script saves `build/api35-environment/window.txt` and `power.txt` to diagnose resumed Activities without Espresso window focus. Diagnostics preserve the original test exit code. When an Activity lacks focus, the sample test rule prints window state before finishing it. Use that in-test evidence; Launcher focus after the whole suite does not identify the failure-time owner.
 
-```bash
-adb shell settings put global window_animation_scale 0
-adb shell settings put global transition_animation_scale 0
-adb shell settings put global animator_duration_scale 0
-adb shell settings get global window_animation_scale
-adb shell settings get global transition_animation_scale
-adb shell settings get global animator_duration_scale
-./gradlew :library-android:connectedDebugAndroidTest :app:connectedReleaseAndroidTest --rerun-tasks --warning-mode=all
-```
+A Google emulator Launcher ANR dialog can steal sample window focus. Before launch, the test rule checks window state; only when it finds `Application Not Responding: com.google.android.apps.nexuslauncher` does it preserve the evidence and stop that Launcher process before starting the sample normally. Target-app ANRs, other system errors, and Espresso focus assertions still fail as usual. Environment recovery does not establish a test pass.
 
-Expected result:
-1. `library-android` connected tests pass with animations disabled.
-2. `app` connected release tests cover global, scope, sticky, channel, non-UI, and login sample flows after R8/minify.
-3. `testBuildType = "release"` means the app instrumentation task only generates the release test variant, so the app keeps only the release device-test entry.
-4. If device tests fail, inspect emulator readiness, AndroidX Test Runner, and the three animation scale settings before checking business assertions.
+The shared consumer device protocol writes UI hierarchy files under `/data/local/tmp/` with the current runId, avoiding shared-storage assumptions on older emulators and stale hierarchy reuse. It saves dump output as `ui-dump.txt`; command failures, ERROR output, missing hierarchy files, or invalid XML cannot pass. Inspect this output before comparing `current.log` and `current-ui.xml`. A log PASS alone does not establish successful verification.
 
-## 3. Artifact Checks
+CI SDK setup explicitly selects `platform-tools`; the setup-android Action prepares command-line tools separately. Do not restore its default package list containing the removed `tools` package. The next installation step selects platform and Build Tools versions.
 
-Local Maven artifacts must satisfy:
-1. `flowbus-core-1.0.7.jar` and `flowbus-1.0.7.aar` exist.
-2. Both modules generate `-sources.jar`, `-javadoc.jar`, and `.module`.
-3. The `flowbus` main artifact is an AAR and does not fall back to a plain Jar.
-4. The `flowbus` POM depends on `flowbus-core` with the same release version.
-5. The `flowbus-core` POM and module metadata expose `kotlinx-coroutines-core` as a compile/API dependency.
-6. The `flowbus` POM and module metadata expose `flowbus-core`, `androidx.lifecycle:lifecycle-runtime-ktx`, and `androidx.lifecycle:lifecycle-viewmodel-ktx` as compile/API dependencies.
-7. The `flowbus` AAR contains `classes.jar` and `proguard.txt`.
-8. Both `flowbus-core` and `flowbus` use publication metadata from the root `gradle.properties`.
-9. POM files must contain license and developer metadata, so Maven Central displays complete project information.
-10. `verifyMavenLocalCoreConsumer` must depend directly on `flowbus-core`, so the core coordinate is resolved and compiled by a plain Kotlin/JVM consumer.
-11. `verifyMavenLocalConsumer` must enable `android.useAndroidX=true`, Java/Kotlin 1.8 targets, and release minify so Maven local coordinates are resolved and shrunk by a real Android consumer.
+Current remote candidate status is available in [PR #4 CI checks](https://github.com/logan0817/FlowBus/pull/4/checks). No API 21 image is available locally. Before release, confirm complete CI success for the final commit, the actual API 21 device identity, and all consumer reports. Started/queued runs and older successful commits do not replace this check. See the [compatibility assessment](next-version-plan.md#compatibility-assessment) for tested combinations and uncertified toolchains.
 
-Publication metadata includes: 1. `GROUP`. 2. `VERSION_NAME`. 3. POM. 4. SCM. 5. issue metadata. 6. license metadata. 7. developer metadata.
+## Compatibility, sources, and documentation
 
-`verifyMavenLocalArtifacts`, `verifyMavenLocalCoreConsumer`, and `verifyMavenLocalConsumer` run these assertions in one place.
+Keep Kotlin 1.9.25, Coroutines 1.8.1, Lifecycle 2.6.2, AGP 8.6.1, Gradle 8.7, build JDK 17, Java 8 bytecode, and minSdk 21 / compileSdk 35 / targetSdk 35. Consumer compiler/compileSdk matrices do not certify every older toolchain.
 
-## 4. Repository Ownership Checks
+Check bilingual root/module READMEs, CHANGELOG, 1.1.0 notes, API comments, versions, and CI paths. Preserve 1.0.7 only for baseline/history/semantics. Delivery, sticky replay, closure, error policy, and cooperative cancellation documentation must match implementation.
 
-Before publishing, confirm:
-1. The root repository no longer contains `.gitmodules`.
-2. `flowbus-core` no longer contains `.git`, an independent Gradle Wrapper, an independent `settings.gradle.kts`, or an independent `gradle.properties`.
-3. `settings.gradle.kts` still includes `flowbus-core` and `library-android`.
-4. The root `.github/workflows/ci.yml` covers submitted-diff whitespace checks, `apiCheck`, unit tests, release lint, sample app assemble, library debug connected tests, app release connected tests, local Maven artifacts, core consumer, minified Android consumer, and release dry-run.
+Inspect git status and working/staged diffs. Exclude generated artifacts, signing material, secrets, logs, local configuration, temporary conversation records, and unrelated changes. Retain useful fixtures, API baselines, and tests. Both modules belong to the main repository without nested Git/submodule or independent publication configuration.
 
-## 5. Compatibility Checks
+## Remote publication and rollback
 
-Before publishing, confirm:
+Remote actions require separate authorization. Configure Central token/GPG signing only after all gates pass; never commit credentials.
 
-| Item | Requirement |
-| --- | --- |
-| Kotlin | `1.9.25` |
-| AGP | `8.6.1` |
-| Gradle | `8.7` |
-| Gradle runtime JDK | `17` |
-| Published bytecode | Java 8 |
-| Android SDK | `minSdk=21`, `compileSdk=35`, `targetSdk=35` |
+Publication is in gradle/release-publishing.gradle.kts and validation in gradle/release-verification.gradle.kts. publishToMavenCentral / releaseToMavenCentral upload a Central Portal deployment; this does not automatically release it. Inspect both coordinates, sources/javadoc, .asc signatures, and checksums before releasing or dropping in Portal. Maven local does not generate remote signatures.
 
-Kotlin 1.8 or lower and AGP 7.x projects are not promised frictionless integration. Legacy projects need separate validation.
+After authorized publication and Central availability, resolve 1.1.0 from the remote repository in an independent consumer and run a normal/sticky delivery smoke check. Verify the resolved version so local candidates or old caches cannot stand in for the published artifacts.
 
-Current compatibility floor in one line: Kotlin 1.9.25, AGP 8.6.1, Gradle 8.7, JDK 17, Java 8.
-
-## 6. Documentation And Version Checks
-
-Before publishing, use this table:
-
-| Check | Responsible docs | Pass criteria | How to check |
-| --- | --- | --- | --- |
-| Version name | root `gradle.properties`, `gradle/libs.versions.toml` | `VERSION_NAME=1.0.7`, `APP_VERSION_NAME=1.0.7`, `APP_VERSION_CODE=7`, `flowbus_version = "1.0.7"` | `rg "1\\.0\\.6|1\\.0\\.7" gradle.properties gradle/libs.versions.toml` |
-| Install coordinates | root README, Android README, and core README in Chinese and English | `flowbus` and `flowbus-core` coordinates use this release version | `rg "flowbus(:|-core:)?1\\.0\\.7" README.md README_EN.md library-android flowbus-core` |
-| Chinese / English links | root README, module README files, and `docs` pages | Chinese and English docs link to each other | open each link and confirm the current version no longer points to old release notes |
-| Documentation map | root README | links to the Android module, core module, version history, and Chinese document | follow the root README navigation |
-| Send-result boundary | root README, Android README, core README, release notes | `tryPostEventResult(...)` / `tryPostResult(...)` only describe whether `tryEmit` was rejected, not business handling success | search `accepted = true` and confirm it is not described as business success |
-| Overflow-policy boundary | root README, Android README, core README, release notes | `DROP_OLDEST` / `DROP_LATEST` are not reliable-queue policies | search `DROP_` and confirm critical paths point to `emit*` or a business queue |
-| Scope-close boundary | core README, release notes | `close()` invalidates the handle immediately, while `closeSuspending()` / `tryClose(timeoutMillis)` wait for cleanup or return a timeout result | run `FlowBusScopeCloseTest` and inspect the close comparison table |
-| One-time sticky consumption boundary | root README, Android README, core README, release notes | `consumeStickyLatest(...)` / `consumeStickyLatestEvent(...)` only reads and clears the current sticky replay, and does not prevent another thread from writing a new sticky value later | search `consumeStickyLatest` and confirm it is not described as global mutual exclusion |
-| Old-layout troubleshooting | `TROUBLESHOOTING.md` | keeps only local old-structure troubleshooting for the main-repository layout, without old child-repository initialization or release workflow | search `.gitmodules` and old child-repository publish commands |
-
-## 7. Before Remote Publication
-
-Before remote publication, confirm the local machine or CI has Maven Central tokens and GPG signing configured.
-
-Local tasks do not require signing:
-
-1. `verifyMavenLocalArtifacts`
-2. `verifyMavenLocalCoreConsumer`
-3. `verifyMavenLocalConsumer`
-4. `publishToMavenLocal`
-
-Remote tasks require publishing credentials and signing:
-
-1. `publishToMavenCentral`
-2. `releaseToMavenCentral`
-
-After a remote upload succeeds, confirm that each artifact in the Central Portal deployment has `.asc` signature files and checksum files. Local `publishToMavenLocal` does not create remote signature files, so it only verifies artifact structure.
-
-The current configuration uploads a Central Portal deployment and does not automatically release it.
-
-```bash
-./gradlew releaseToMavenCentral
-```
-
-After the publication task succeeds, check deployment status, signature files, and checksum files in Central Portal, then decide whether to release or drop it.
-
-Do not commit tokens, GPG private keys, `signing.properties`, or `release.properties`.
+Rollback consumers to published 1.0.7 and revert new API calls when necessary. Drop unpublished deployments; never overwrite a released version.

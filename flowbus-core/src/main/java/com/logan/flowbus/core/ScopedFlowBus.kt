@@ -30,7 +30,7 @@ class ScopedFlowBus internal constructor(
     }
 
     /**
-     * 挂起直到普通事件成功发送到当前 scoped bus。
+     * 按既定溢出策略发送普通事件到当前 scoped bus；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
      */
     suspend fun <T : Any> emit(key: EventKey<T>, value: T) {
         storeProvider(scopeName).emit(key = key, value = value, isSticky = false, scopeName = scopeName)
@@ -51,7 +51,7 @@ class ScopedFlowBus internal constructor(
     }
 
     /**
-     * 挂起直到粘性事件成功发送到当前 scoped bus。
+     * 按既定溢出策略发送粘性事件到当前 scoped bus；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
      */
     suspend fun <T : Any> emitSticky(key: EventKey<T>, value: T) {
         storeProvider(scopeName).emit(key = key, value = value, isSticky = true, scopeName = scopeName)
@@ -87,6 +87,24 @@ class ScopedFlowBus internal constructor(
         )
     }
 
+    /** 按顺序执行可挂起回调，沿用当前总线的类型校验、日志和错误策略。 */
+    suspend fun <T : Any> collectSuspending(
+        key: EventKey<T>,
+        dispatcher: CoroutineDispatcher? = null,
+        onReceived: suspend (T) -> Unit
+    ) {
+        val config = currentConfig()
+        collectFlowBusSuspendingSequentially(
+            flow = flow(key),
+            eventKey = key,
+            scopeName = scopeName,
+            dispatcher = dispatcher,
+            logger = config.logger,
+            errorHandler = config.errorHandler,
+            onReceived = onReceived
+        )
+    }
+
     /**
      * 按顺序收集当前 scoped bus 中的粘性事件，并自动使用所属 [FlowBus] 的日志和错误处理策略。
      */
@@ -97,6 +115,25 @@ class ScopedFlowBus internal constructor(
     ) {
         val config = currentConfig()
         collectFlowBusSequentially(
+            flow = stickyFlow(key),
+            eventKey = key,
+            scopeName = scopeName,
+            isSticky = true,
+            dispatcher = dispatcher,
+            logger = config.logger,
+            errorHandler = config.errorHandler,
+            onReceived = onReceived
+        )
+    }
+
+    /** 按顺序执行可挂起回调，沿用当前总线的类型校验、日志和错误策略。 */
+    suspend fun <T : Any> collectStickySuspending(
+        key: EventKey<T>,
+        dispatcher: CoroutineDispatcher? = null,
+        onReceived: suspend (T) -> Unit
+    ) {
+        val config = currentConfig()
+        collectFlowBusSuspendingSequentially(
             flow = stickyFlow(key),
             eventKey = key,
             scopeName = scopeName,

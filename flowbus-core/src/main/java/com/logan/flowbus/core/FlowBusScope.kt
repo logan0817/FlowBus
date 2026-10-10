@@ -1,15 +1,20 @@
 package com.logan.flowbus.core
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.DisposableHandle
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
@@ -45,11 +50,13 @@ class FlowBusScope internal constructor(
     private val lifecycleBindings = CopyOnWriteArrayList<DisposableHandle>()
     private val operationLock = ReentrantLock()
     private val operationFinished = operationLock.newCondition()
+    private val operationChanges = MutableStateFlow(0L)
     private var isClosing: Boolean = false
     private var closeActionStarted: Boolean = false
     private var closeActionCompleted: Boolean = false
     private var closeCompletionAction: (() -> Unit)? = null
     private var inFlightOperationCount: Int = 0
+    private var permanentCloseRequested: Boolean = false
 
     /** 当前 scope 是否已经关闭。 */
     @Volatile
@@ -74,7 +81,7 @@ class FlowBusScope internal constructor(
         }
     }
 
-    /** 挂起直到普通事件成功发送到当前 scope。 */
+    /** 按既定溢出策略发送普通事件到当前 scope；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。 */
     suspend fun <T : Any> emit(key: EventKey<T>, value: T) {
         withOpenOperationSuspend { operationBus ->
             operationBus.emit(key, value)
@@ -95,7 +102,7 @@ class FlowBusScope internal constructor(
         }
     }
 
-    /** 挂起直到粘性事件成功发送到当前 scope。 */
+    /** 按既定溢出策略发送粘性事件到当前 scope；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。 */
     suspend fun <T : Any> emitSticky(key: EventKey<T>, value: T) {
         withOpenOperationSuspend { operationBus ->
             operationBus.emitSticky(key, value)
@@ -137,6 +144,25 @@ class FlowBusScope internal constructor(
         )
     }
 
+    /** 按顺序执行可挂起回调，沿用当前总线的类型校验、日志和错误策略。 */
+    suspend fun <T : Any> collectSuspending(
+        key: EventKey<T>,
+        dispatcher: CoroutineDispatcher? = null,
+        onReceived: suspend (T) -> Unit
+    ) {
+        val targetFlow = flow(key)
+        val config = scopedBus.currentConfig()
+        collectFlowBusSuspendingSequentially(
+            flow = targetFlow,
+            eventKey = key,
+            scopeName = scopeName,
+            dispatcher = dispatcher,
+            logger = config.logger,
+            errorHandler = config.errorHandler,
+            onReceived = onReceived
+        )
+    }
+
     /**
      * 按顺序收集当前 scope 中的粘性事件，并自动使用所属 [FlowBus] 的日志和错误处理策略。
      */
@@ -148,6 +174,26 @@ class FlowBusScope internal constructor(
         val targetFlow = stickyFlow(key)
         val config = scopedBus.currentConfig()
         collectFlowBusSequentially(
+            flow = targetFlow,
+            eventKey = key,
+            scopeName = scopeName,
+            isSticky = true,
+            dispatcher = dispatcher,
+            logger = config.logger,
+            errorHandler = config.errorHandler,
+            onReceived = onReceived
+        )
+    }
+
+    /** 按顺序执行可挂起回调，沿用当前总线的类型校验、日志和错误策略。 */
+    suspend fun <T : Any> collectStickySuspending(
+        key: EventKey<T>,
+        dispatcher: CoroutineDispatcher? = null,
+        onReceived: suspend (T) -> Unit
+    ) {
+        val targetFlow = stickyFlow(key)
+        val config = scopedBus.currentConfig()
+        collectFlowBusSuspendingSequentially(
             flow = targetFlow,
             eventKey = key,
             scopeName = scopeName,
@@ -231,11 +277,14 @@ class FlowBusScope internal constructor(
      * 关闭当前 scope，并清理该 scope 下的事件流与缓存。
      *
      * 该调用会立即让当前句柄失效，不会阻塞等待挂起中的发送。
+     * 若已有等待关闭正在进行，会保留永久关闭请求；isClosed 沿用该等待的状态直到准备清理。
      * 已经开始的发送 / 订阅获取动作会继续使用原 store，等这些动作结束后再完成 store 清理。
      * 如果调用方需要等待清理完成，请使用 [closeSuspending]；如果需要带超时结果，请使用 [tryClose]。
      */
     override fun close() {
         val action = operationLock.withLock {
+            // 即使已有可取消/超时的等待，也必须保留显式 close（含 removeScope）的永久关闭请求。
+            permanentCloseRequested = true
             if (isClosing || isClosed) return
             isClosing = true
             closeCompletionAction = prepareCloseAction(scopeName, this)
@@ -248,12 +297,59 @@ class FlowBusScope internal constructor(
     }
 
     /**
-     * 在后台调度器上等待当前 scope 关闭，避免把调用线程卡在同步等待里。
+     * 可取消地挂起等待当前 scope 关闭，不占用线程等待在途发送。
+     *
+     * 本次调用发起关闭、尚未准备清理且无永久关闭请求时，取消会恢复句柄可用状态。
+     * 若等待期间调用了 close/removeScope 或绑定 Job 已完成，会继续关闭，不恢复句柄。
+     * 若 close() 或生命周期绑定已让句柄失效，取消只结束本次等待，不回滚关闭。
      */
     suspend fun closeSuspending(): FlowBusCloseResult {
-        return withContext(Dispatchers.Default) {
-            closeInternal(timeoutMillis = null)
+        currentCoroutineContext().ensureActive()
+        val initiatedClose = operationLock.withLock {
+            if (closeActionCompleted) return closeResult(FlowBusCloseOutcome.AlreadyClosed)
+            if (isClosed && isClosing) {
+                false
+            } else if (isClosing) {
+                return FlowBusCloseResult(scopeName, false, FlowBusCloseOutcome.ClosingInProgress, inFlightOperationCount)
+            } else {
+                isClosing = true
+                true
+            }
         }
+        try {
+            while (true) {
+                currentCoroutineContext().ensureActive()
+                var action: (() -> Unit)? = null
+                val observedVersion = operationLock.withLock {
+                    if (closeActionCompleted) return closeResult(FlowBusCloseOutcome.Closed)
+                    if (initiatedClose && inFlightOperationCount == 0) {
+                        closeCompletionAction = prepareCloseAction(scopeName, this)
+                        action = claimCloseActionIfIdleLocked()
+                    }
+                    operationChanges.value
+                }
+                if (action != null) {
+                    finishClose(requireNotNull(action))
+                    return closeResult(FlowBusCloseOutcome.Closed)
+                }
+                // 版本在同一锁内读取，状态变化先于订阅也不会丢失唤醒。
+                operationChanges.first { it != observedVersion }
+            }
+        } catch (e: CancellationException) {
+            val permanentCloseStart = operationLock.withLock {
+                if (initiatedClose && !closeActionStarted) {
+                    resetFailedCloseWaitLocked()
+                } else {
+                    null
+                }
+            }
+            permanentCloseStart?.let { completePreparedCloseStart(it) }
+            throw e
+        }
+    }
+
+    private fun closeResult(outcome: FlowBusCloseOutcome): FlowBusCloseResult {
+        return FlowBusCloseResult(scopeName, true, outcome, 0)
     }
 
     internal fun isCloseCompletedForRemoval(): Boolean {
@@ -263,8 +359,8 @@ class FlowBusScope internal constructor(
     /**
      * 尝试在 [timeoutMillis] 内关闭当前 scope。
      *
-     * 如果本次调用刚开始关闭且等待在途操作超时，scope 会恢复为可继续使用状态，调用方可以稍后重试。
-     * 如果已有 [close] 或生命周期绑定先让句柄失效，本次超时只表示等待清理未完成，旧句柄不会恢复可用。
+     * 如果本次调用刚开始关闭且等待在途操作超时，且无永久关闭请求，scope 会恢复可用以便稍后重试。
+     * 如果等待期间收到 [close] 或生命周期关闭请求，本次超时只结束等待，旧句柄不会恢复可用。
      */
     fun tryClose(timeoutMillis: Long): FlowBusCloseResult {
         require(timeoutMillis >= 0) { "timeoutMillis must be >= 0" }
@@ -310,12 +406,15 @@ class FlowBusScope internal constructor(
     }
 
     private fun endOperation() {
-        operationLock.withLock {
+        val notifyCloseWaiters = operationLock.withLock {
             inFlightOperationCount--
             if (inFlightOperationCount == 0) {
                 operationFinished.signalAll()
             }
+            isClosing && inFlightOperationCount == 0
         }
+        // 在 operation 锁外恢复挂起等待者，避免 Unconfined 回调重入时反向获取 registry 锁。
+        if (notifyCloseWaiters) operationChanges.update { it + 1 }
         completeCloseIfIdle()
     }
 
@@ -328,63 +427,70 @@ class FlowBusScope internal constructor(
         }
     }
 
-    private fun closeInternal(timeoutMillis: Long?): FlowBusCloseResult {
-        val action = operationLock.withLock {
-            if (closeActionCompleted) {
-                return FlowBusCloseResult(
-                    scopeName = scopeName,
-                    closed = true,
-                    outcome = FlowBusCloseOutcome.AlreadyClosed,
-                    inFlightOperationCount = inFlightOperationCount
-                )
-            }
-            if (isClosed && isClosing) {
-                return waitPreparedCloseCompletionLocked(timeoutMillis)
-            }
-            if (isClosing) {
-                return FlowBusCloseResult(
-                    scopeName = scopeName,
-                    closed = false,
-                    outcome = FlowBusCloseOutcome.ClosingInProgress,
-                    inFlightOperationCount = inFlightOperationCount
-                )
-            }
-
-            isClosing = true
-            try {
-                if (!awaitInFlightOperationsLocked(timeoutMillis)) {
-                    isClosing = false
-                    operationFinished.signalAll()
+    private fun closeInternal(timeoutMillis: Long): FlowBusCloseResult {
+        var permanentCloseStart: CloseStart? = null
+        try {
+            val action = operationLock.withLock {
+                if (closeActionCompleted) {
                     return FlowBusCloseResult(
                         scopeName = scopeName,
-                        closed = false,
-                        outcome = FlowBusCloseOutcome.Timeout,
+                        closed = true,
+                        outcome = FlowBusCloseOutcome.AlreadyClosed,
                         inFlightOperationCount = inFlightOperationCount
                     )
                 }
-                closeCompletionAction = prepareCloseAction(scopeName, this)
-                claimCloseActionIfIdleLocked()
-            } catch (e: InterruptedException) {
-                isClosing = false
-                operationFinished.signalAll()
-                throw e
+                if (isClosed && isClosing) {
+                    return waitPreparedCloseCompletionLocked(timeoutMillis)
+                }
+                if (isClosing) {
+                    return FlowBusCloseResult(
+                        scopeName = scopeName,
+                        closed = false,
+                        outcome = FlowBusCloseOutcome.ClosingInProgress,
+                        inFlightOperationCount = inFlightOperationCount
+                    )
+                }
+
+                isClosing = true
+                try {
+                    if (!awaitInFlightOperationsLocked(timeoutMillis)) {
+                        permanentCloseStart = resetFailedCloseWaitLocked()
+                        return FlowBusCloseResult(
+                            scopeName = scopeName,
+                            closed = false,
+                            outcome = FlowBusCloseOutcome.Timeout,
+                            inFlightOperationCount = inFlightOperationCount
+                        )
+                    }
+                    closeCompletionAction = prepareCloseAction(scopeName, this)
+                    claimCloseActionIfIdleLocked()
+                } catch (e: InterruptedException) {
+                    permanentCloseStart = resetFailedCloseWaitLocked()
+                    throw e
+                }
             }
-        }
 
-        if (action != null) {
-            finishClose(action)
-        }
+            if (action != null) {
+                finishClose(action)
+            }
 
-        return FlowBusCloseResult(
-            scopeName = scopeName,
-            closed = true,
-            outcome = FlowBusCloseOutcome.Closed,
-            inFlightOperationCount = 0
-        )
+            return FlowBusCloseResult(
+                scopeName = scopeName,
+                closed = true,
+                outcome = FlowBusCloseOutcome.Closed,
+                inFlightOperationCount = 0
+            )
+        } finally {
+            permanentCloseStart?.let { completePreparedCloseStart(it) }
+        }
     }
 
     private fun closeFromLifecycleBinding() {
         val closeStart = markClosingForLifecycleBinding() ?: return
+        completePreparedCloseStart(closeStart)
+    }
+
+    private fun completePreparedCloseStart(closeStart: CloseStart) {
         if (closeStart.action != null) {
             finishClose(requireNotNull(closeStart.action))
             return
@@ -392,27 +498,40 @@ class FlowBusScope internal constructor(
         launchLifecycleCloseWait()
     }
 
+    private fun resetFailedCloseWaitLocked(): CloseStart? {
+        if (permanentCloseRequested) {
+            // 已有永久关闭请求时直接准备关闭，不先恢复开放状态，避免并发操作趁隙进入。
+            closeCompletionAction = prepareCloseAction(scopeName, this)
+            isClosed = true
+            return CloseStart(action = claimCloseActionIfIdleLocked())
+        }
+        isClosing = false
+        operationFinished.signalAll()
+        return null
+    }
+
     private fun launchLifecycleCloseWait() {
         autoCloseScope.launch {
-            val action = try {
-                operationLock.withLock {
-                    while (inFlightOperationCount > 0) {
-                        operationFinished.await()
-                    }
-                    claimCloseActionIfIdleLocked()
+            while (true) {
+                var action: (() -> Unit)?
+                val observedVersion = operationLock.withLock {
+                    if (closeActionStarted) return@launch
+                    action = claimCloseActionIfIdleLocked()
+                    operationChanges.value
                 }
-            } catch (_: InterruptedException) {
-                launchLifecycleCloseWait()
-                null
-            }
-            if (action != null) {
-                finishClose(action)
+                if (action != null) {
+                    finishClose(requireNotNull(action))
+                    return@launch
+                }
+                operationChanges.first { it != observedVersion }
             }
         }
     }
 
     private fun markClosingForLifecycleBinding(): CloseStart? {
         return operationLock.withLock {
+            // 显式关闭等待取消/超时后仍要履行已经到达的永久关闭请求。
+            permanentCloseRequested = true
             if (isClosed || isClosing) {
                 null
             } else {
@@ -433,14 +552,7 @@ class FlowBusScope internal constructor(
         return action
     }
 
-    private fun awaitInFlightOperationsLocked(timeoutMillis: Long?): Boolean {
-        if (timeoutMillis == null) {
-            while (inFlightOperationCount > 0) {
-                operationFinished.await()
-            }
-            return true
-        }
-
+    private fun awaitInFlightOperationsLocked(timeoutMillis: Long): Boolean {
         var remainingNanos = TimeUnit.MILLISECONDS.toNanos(timeoutMillis)
         while (inFlightOperationCount > 0 && remainingNanos > 0) {
             remainingNanos = operationFinished.awaitNanos(remainingNanos)
@@ -448,19 +560,7 @@ class FlowBusScope internal constructor(
         return inFlightOperationCount == 0
     }
 
-    private fun waitPreparedCloseCompletionLocked(timeoutMillis: Long?): FlowBusCloseResult {
-        if (timeoutMillis == null) {
-            while (!closeActionCompleted) {
-                operationFinished.await()
-            }
-            return FlowBusCloseResult(
-                scopeName = scopeName,
-                closed = true,
-                outcome = FlowBusCloseOutcome.Closed,
-                inFlightOperationCount = 0
-            )
-        }
-
+    private fun waitPreparedCloseCompletionLocked(timeoutMillis: Long): FlowBusCloseResult {
         var remainingNanos = TimeUnit.MILLISECONDS.toNanos(timeoutMillis)
         while (!closeActionCompleted && remainingNanos > 0) {
             remainingNanos = operationFinished.awaitNanos(remainingNanos)
@@ -493,6 +593,7 @@ class FlowBusScope internal constructor(
             closeActionCompleted = true
             operationFinished.signalAll()
         }
+        operationChanges.update { it + 1 }
     }
 
     private data class CloseStart(

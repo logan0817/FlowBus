@@ -9,7 +9,7 @@ Gradle 模块目录名是 `library-android`，对外发布的依赖坐标是：
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.0.7")  // 发布后可使用 1.0.7，实际 latest 以上方徽章为准
+implementation("io.github.logan0817:flowbus:1.1.0")  // 1.1.0 尚未发布；正式发布后可使用，当前已发布基准为 1.0.7
 ```
 
 如果你是 Android 项目接入 FlowBus，通常就从这个模块开始，不需要先研究 `flowbus-core`。
@@ -33,7 +33,7 @@ FlowBus 适合“某个地方发出通知，多个地方可能关心”的异步
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.0.7")  // 发布后可使用 1.0.7，实际 latest 以上方徽章为准
+implementation("io.github.logan0817:flowbus:1.1.0")  // 1.1.0 尚未发布；正式发布后可使用，当前已发布基准为 1.0.7
 ```
 
 ### 2. 定义一个事件类型
@@ -44,13 +44,7 @@ implementation("io.github.logan0817:flowbus:1.0.7")  // 发布后可使用 1.0.7
 data class RefreshHomeEvent(val source: String)
 ```
 
-### 3. 在任意地方发送事件
-
-```kotlin
-postEvent(RefreshHomeEvent(source = "login"))
-```
-
-### 4. 在页面里接收事件
+### 3. 先在页面里注册接收事件
 
 最短写法：
 
@@ -68,6 +62,14 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 }
 ```
 
+### 4. 在接收方进入活跃生命周期、订阅开始后发送
+
+```kotlin
+postEvent(RefreshHomeEvent(source = "login"))
+```
+
+`onEvent(...)` / `collectEvent(...)` 的注册不等于底层订阅立即就绪，它们受生命周期和协程调度影响。普通事件没有 replay，尚未开始收集或处于非活跃状态时不会补收。下面场景中的发送和接收通常位于不同位置，应先注册接收方，在实际订阅活跃后由用户操作或业务流程发送；不能把示例中的相邻语句当作就绪屏障。后订阅者需要最近结果时显式使用 sticky，可恢复的页面状态使用 `StateFlow`。
+
 看到这里就已经可以开始用了：1. 发送：`postEvent(...)`。2. 接收：`onEvent<T> { ... }`。3. 如果要限制在某个 Activity / Fragment / NavBackStackEntry 作用域内，再用 `owner` 版本。
 
 ## 先记住这 7 句话
@@ -77,7 +79,7 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 3. 默认按“事件类型”分发；如果同一类型要拆成多个业务通道，就用 `eventChannel<T>("name")`。
 4. `post*` 会立即尝试发送；`tryPost*` 会返回本次 `tryEmit` 有没有被底层流拒绝。
 5. `tryPost*Result` 会返回总线层诊断结果，但不代表订阅回调已经处理完成。
-6. `emit*` 会挂起到事件被底层流接收，适合关键发送链路。
+6. `emit*` 遵循既定溢出策略；`SUSPEND` 且存在活跃订阅者时可背压，不保证普通事件留存、业务成功或进程死亡后恢复。
 7. `onEvent(...)` 是推荐的 UI 最短路径；`collectEvent(flow)` 更适合你已经拿到了 `Flow`。
 
 ## 为什么文档常写 `onEvent(...)`，示例里有时会写 `collectEvent(eventFlow(...))`
@@ -135,11 +137,11 @@ viewLifecycleOwner.collectEvent(requireActivity().scopedEventFlow<ReloadToolbarE
 ```kotlin
 data class SyncFinishedEvent(val successCount: Int)
 
-postEvent(SyncFinishedEvent(successCount = 3))
-
 viewLifecycleOwner.onEvent<SyncFinishedEvent> { event ->
     showResult(event.successCount)
 }
+
+postEvent(SyncFinishedEvent(successCount = 3))
 ```
 
 这类事件没有 owner 限制，谁订阅谁就能收到。
@@ -155,11 +157,11 @@ viewLifecycleOwner.onEvent<SyncFinishedEvent> { event ->
 ```kotlin
 data object ReloadToolbarEvent
 
-requireActivity().postScopedEvent(ReloadToolbarEvent)
-
 viewLifecycleOwner.onEvent<ReloadToolbarEvent>(from = requireActivity()) {
     renderToolbar()
 }
+
+requireActivity().postScopedEvent(ReloadToolbarEvent)
 ```
 
 这里的 `requireActivity()` 不是监听者，而是“事件总线挂在哪个作用域上”的意思。
@@ -168,11 +170,11 @@ viewLifecycleOwner.onEvent<ReloadToolbarEvent>(from = requireActivity()) {
 如果你更喜欢 owner 在前的写法，也可以这样：
 
 ```kotlin
-requireActivity().postScopedEvent(ReloadToolbarEvent)
-
 viewLifecycleOwner.collectEvent(requireActivity().scopedEventFlow<ReloadToolbarEvent>()) {
     renderToolbar()
 }
+
+requireActivity().postScopedEvent(ReloadToolbarEvent)
 ```
 
 ### 场景 3：同样都是 `String`，但你不想到处写字符串通道名
@@ -188,11 +190,11 @@ viewLifecycleOwner.collectEvent(requireActivity().scopedEventFlow<ReloadToolbarE
 ```kotlin
 val toastChannel = eventChannel<String>("ui.toast")
 
-toastChannel.post("保存成功")
-
 viewLifecycleOwner.onEvent(toastChannel) { message ->
     showToast(message)
 }
+
+toastChannel.post("保存成功")
 ```
 
 如果这个事件只想在当前 Activity 范围内传播：
@@ -200,20 +202,21 @@ viewLifecycleOwner.onEvent(toastChannel) { message ->
 ```kotlin
 val activityCommand = eventChannel<String>("activity.command")
 
-activityCommand.postTo(requireActivity(), "reload")
-
 viewLifecycleOwner.onEvent(from = requireActivity(), channel = activityCommand) { command ->
     handleActivityCommand(command)
 }
+
+activityCommand.postTo(requireActivity(), "reload")
 ```
 
 你当然也可以继续直接写 `eventName`：
 
 ```kotlin
-postEvent(event = "保存成功", eventName = "ui.toast")
 viewLifecycleOwner.collectEvent(eventFlow<String>(eventName = "ui.toast")) {
     showToast(it)
 }
+
+postEvent(event = "保存成功", eventName = "ui.toast")
 ```
 
 但对外公开或复用频繁的通道，优先推荐 `eventChannel(...)`，更清楚，也更不容易写错。
@@ -224,7 +227,7 @@ viewLifecycleOwner.collectEvent(eventFlow<String>(eventName = "ui.toast")) {
 
 1. 后台同步完成后提示 UI 刷新
 2. Repository 完成某个动作后发通知给多个页面
-3. Worker 执行完任务后，页面恢复时自动拿到结果
+3. Worker 执行完任务后，通知正在活跃收集的页面；恢复时必须读到的结果改用 sticky 或持久化业务状态
 
 ```kotlin
 data class UploadFinishedEvent(val taskId: String)
@@ -269,7 +272,7 @@ viewLifecycleOwner.onEvent<UploadFinishedEvent>(from = requireActivity()) { even
 | 命名通道发送 | `eventChannel<T>("name")` + `channel.post(...)` | 否 | 全局或 owner | 普通 / sticky 都可用 | 适合集中维护稳定业务通道名 |
 | 生命周期安全监听 | `onEvent(...)` | 否 | 全局或 owner | 由 `isSticky` 决定 | 最短 UI 接收入口 |
 | 先拿 `Flow` 再组合 | `eventFlow(...)` + `collectEvent(...)` | 否 | 全局或 owner | 由 `isSticky` 决定 | 适合 `map`、`filter`、`debounce` |
-| 保证写入成功 | `emitEvent(...)` / `emitStickyEvent(...)` | 是 | 全局或 owner | 普通 / sticky 都可用 | 按背压规则等待写入完成 |
+| 按配置进行挂起发送 | `emitEvent(...)` / `emitStickyEvent(...)` | 是 | 全局或 owner | 普通 / sticky 都可用 | `SUSPEND` 且存在活跃订阅者时可背压；丢弃策略仍生效 |
 | 一次性读取 sticky 最新值 | `consumeStickyLatestEvent(...)` / `channel.consumeStickyLatest()` | 否 | 全局或 owner | 读取后清空 | 返回最新值；没有 replay 时返回 `null` |
 
 ## 发送 API 怎么选
@@ -279,7 +282,7 @@ viewLifecycleOwner.onEvent<UploadFinishedEvent>(from = requireActivity()) { even
 | `postEvent(...)` | 否 | 是 | 无 | UI 层轻量通知 | best-effort，缓冲无法立刻接收时可能失败 |
 | `tryPostEvent(...)` | 否 | 是 | `Boolean` | 想知道底层 `tryEmit` 是否被拒绝 | `delayMillis > 0` 时只代表延迟任务已安排 |
 | `tryPostEventResult(...)` | 否 | 否 | `FlowBusPostResult` | 日志、测试断言、排查订阅数和溢出策略 | 不代表订阅回调已执行成功 |
-| `emitEvent(...)` | 是 | 是 | 无 | 关键链路，需要按背压规则等待写入 | 调用方必须在协程中使用 |
+| `emitEvent(...)` | 是 | 是 | 无 | 活跃广播需要按配置等待缓冲可用 | 协程调用；无人订阅普通事件不保存，丢弃策略仍生效 |
 | `postStickyEvent(...)` / `emitStickyEvent(...)` | 取决于具体 API | 是 | 取决于具体 API | 后订阅者需要收到最近值 | 不适合替代长期状态管理 |
 
 常见全局发送：
@@ -367,18 +370,20 @@ viewLifecycleOwner.collectEvent(toastChannel.flow()) { message ->
 | 维度 | `postEvent(...)` | `tryPostEvent(...)` | `tryPostEventResult(...)` | `emitEvent(...)` |
 | --- | --- | --- | --- | --- |
 | 是否挂起 | 否 | 否 | 否 | 是 |
-| 写入方式 | 立即尝试写入 | 立即尝试写入 | 立即尝试写入并返回诊断结果 | 按背压规则等待写入 |
+| 写入方式 | 立即尝试写入 | 立即尝试写入 | 立即尝试写入并返回诊断结果 | 按既定溢出策略发送；`SUSPEND` 下可背压 |
 | 返回信息 | 无 | `Boolean` | `FlowBusPostResult` | 无 |
-| 适合场景 | UI 点击、轻量提示、刷新通知 | 需要知道 `tryEmit` 是否被拒绝 | 日志、单测、排查订阅数和溢出策略 | 关键通知、Repository / Worker / ViewModel 内的重要链路 |
-| 不代表什么 | 不代表一定送达 | 不代表订阅者已处理 | 不代表业务处理成功 | 不代表订阅者业务逻辑不会失败 |
+| 适合场景 | UI 点击、轻量提示、刷新通知 | 需要知道 `tryEmit` 是否被拒绝 | 日志、单测、排查订阅数和溢出策略 | 需要按配置等待缓冲可用的活跃广播 |
+| 不代表什么 | 不代表一定送达 | 不代表订阅者已处理 | 不代表业务处理成功 | 不保证一定送达或业务处理成功 |
 
 `FlowBusPostResult` 包含：1. 事件名。2. 订阅数。3. sticky replay 数。4. 溢出策略。5. 结果分类。它只说明本次 `tryEmit` 有没有被底层流拒绝，不说明订阅回调已经处理成功。
 
-`DROP_OLDEST` / `DROP_LATEST` 都不是可靠队列策略。前者可能覆盖旧事件，后者可能让当前事件不进入缓冲。关键链路要么用 `emitEvent(...)`，要么使用业务专用队列或状态机。
+`emitEvent(...)` 不会覆盖配置的溢出策略。`SUSPEND` 且存在活跃订阅者时可以通过挂起施加背压；`DROP_OLDEST` 仍可能丢旧值，`DROP_LATEST` 仍可能丢本次实时值。普通事件无人订阅时立即完成，不为未来订阅者保留；返回也不等于订阅者业务处理完成。必须恢复或可靠完成的操作应使用业务状态、数据库或持久化任务机制。
 
 ## sticky event 什么时候该用
 
 sticky event 的核心语义是“事件发出后保留最近值，后来订阅的人也能先拿到这个值”。
+
+sticky replay 与实时广播独立管理。`DROP_LATEST` 下，本次值可能未进入活跃订阅者的实时缓冲，但底层 `tryEmit` 返回 `true` 后仍可能成为 replay。例如慢订阅者实时收到 `[1, 2]`，新订阅者却先读到 `3`。这沿用现有契约，`emitStickyEvent(...)` 也不会改变溢出策略；replay 不表示所有订阅者已经接收或处理成功。
 
 | 状态 | 推荐 API | 后订阅者能否拿到最近值 | 是否清 replay | 适合场景 | 不适合场景 |
 | --- | --- | --- | --- | --- | --- |
@@ -488,6 +493,75 @@ val toastChannel = eventChannel<String>("ui.toast")
 toastChannel.post("保存成功")
 viewLifecycleOwner.onEvent(toastChannel) { showToast(it) }
 ```
+
+## 下一版挂起回调与实例接入（尚未发布）
+
+下面 API 已加入候选源码，不属于已发布的 `1.0.7`。旧入口保留；候选版本为 1.1.0，Kotlin、Coroutines、Lifecycle、minSdk 等基础要求不因这些入口提高，不新增 Compose、Hilt 或 Koin 依赖。
+
+### 在回调中直接调用挂起函数
+
+```kotlin
+import com.logan.flowbus.onEventSuspending
+
+viewLifecycleOwner.onEventSuspending<RefreshHomeEvent> { event ->
+    viewModel.refreshSuspending(event.source)
+}
+
+viewLifecycleOwner.onEventSuspending<RefreshHomeEvent>(from = requireActivity()) { event ->
+    viewModel.refreshSuspending(event.source)
+}
+```
+
+`refreshSuspending` 由业务提供。全局和 owner 来源都支持 reified 类型或 Android `EventChannel<T>`；channel 写法为 `onEventSuspending(channel)`，owner 写法为 `onEventSuspending(from = owner, channel = channel)`。`from` 决定来源，接收方决定收集生命周期，两个示例是来源选择，不应为同一需求重复注册。
+
+`LifecycleOwner` 入口默认在 `STARTED` 收集，支持 `dispatcher`、`minLifecycleState` 和 `isSticky`；须在主线程注册。`INITIALIZED` 会立即被拒绝。降到收集阈值以下会请求取消当前处理；同一次 repeatOnLifecycle 再次活跃时，等待旧回调结束后重新订阅。阻塞或 NonCancellable 工作不能被强制停止，也不回滚已发生的副作用；普通事件不补收，sticky 显式开启后可重放最近值。
+
+`CoroutineScope.onEventSuspending` 提供相同的全局/owner、类型/channel 来源选择，由调用方 scope 管理订阅，不自动绑定 UI 生命周期；owner 来源须在主线程获取。它不提供 dispatcher 参数，回调沿用收集协程上下文。返回的 `Job` 可主动取消。自建 `FlowEventBus` 可以使用 `subscribeEventSuspending`：生命周期版本返回 `Job`，协程内的挂起版本由调用方管理收集。
+
+这些总线入口沿用来源实例的类型校验、logger 和 errorHandler。单条订阅逐个等待回调，不采用 `collectLatest`；慢处理仍遵循原有缓冲/溢出策略。普通回调异常交给总线策略，默认重新抛出并终止订阅；取消直接传播，不作为错误上报。协作式挂起函数会随订阅取消，阻塞或不可取消工作不会自动变得可取消。
+
+### 用构造注入保持实例隔离
+
+先在应用的组装入口创建一次 bus，并把同一个实例传给发送方和收集方。可以由现有 DI 容器提供，不要求额外的 DI 框架模块。
+
+```kotlin
+import com.logan.flowbus.collectEventFromSuspending
+import com.logan.flowbus.core.FlowBus
+import com.logan.flowbus.core.eventKey
+
+val refreshKey = eventKey<RefreshHomeEvent>("home.refresh")
+
+class RefreshNotifier(private val bus: FlowBus) {
+    fun notifyRefresh(source: String): Boolean =
+        bus.post(refreshKey, RefreshHomeEvent(source))
+}
+
+val featureBus = FlowBus()
+val notifier = RefreshNotifier(featureBus)
+
+viewLifecycleOwner.collectEventFromSuspending(from = featureBus, key = refreshKey) { event ->
+    viewModel.refreshSuspending(event.source)
+}
+// 订阅实际活跃后，在业务操作中调用：notifier.notifyRefresh("login")。
+```
+
+`collectEventFrom` 使用普通回调，`collectEventFromSuspending` 使用挂起回调；两者接收显式 `FlowBus`、`ScopedFlowBus` 或 `FlowBusScope` 与 core `EventKey<T>`。可用 `coreChannel.asEventKey()` 转换 core 通道。默认 `Dispatchers.Main.immediate`、`STARTED`、`isSticky=false`，复用传入实例的错误策略。注册不等于底层订阅就绪。
+
+取消订阅或销毁接收方不会关闭来源。每次重新进入活跃状态都会从传入实例重新取 Flow：`ScopedFlowBus` 同名 store 重建后可在下一次活跃阶段取新流；活跃期间不自动切换旧 Flow。`FlowBusScope` 是固定句柄，关闭后重新活跃会取流失败，不会偷偷改用同名新句柄；来源取流失败直接传播，不作为回调异常交给 errorHandler。scope 的创建、替换与关闭由实例持有者负责。
+
+注入实例不会与 `DefaultFlowBus` 或 Android 全局入口静默合并。发送到别的实例或 owner、事件 key 不同，都不会被这里订阅到。
+
+### 收集已经组合好的任意 Flow
+
+```kotlin
+import com.logan.flowbus.collectEventSuspending
+
+viewLifecycleOwner.collectEventSuspending(eventFlow<RefreshHomeEvent>()) { event ->
+    viewModel.refreshSuspending(event.source)
+}
+```
+
+`collectEventSuspending` 是通用 Flow 工具，按生命周期顺序执行挂起回调；上游和回调异常直接传播，不自动套用 FlowBus logger/errorHandler。需要实例策略时选择 `collectEventFromSuspending`。需要取消上一条处理时使用原生 Flow 的 `collectLatest` 并明确业务取消含义，不把它作为这些新入口的默认行为。
 
 ## 可选配置
 

@@ -113,7 +113,8 @@ class RepositoryOwnershipTest {
     fun `release guardrails include api compatibility and device stability checks`() {
         val versionCatalog = File(rootDir, "gradle/libs.versions.toml").readText()
         val rootBuildFile = File(rootDir, "build.gradle.kts").readText()
-        val ciWorkflow = File(rootDir, ".github/workflows/ci.yml").readText()
+        val ciWorkflow = File(rootDir, ".github/workflows/ci.yml").readText() +
+            File(rootDir, "compatibility/run-api35.sh").readText()
         val releaseChecklist = File(rootDir, "docs/release-checklist.md").readText()
         val releaseChecklistEn = File(rootDir, "docs/en/release-checklist.md").readText()
         val releaseDocs = releaseChecklist + "\n" + releaseChecklistEn

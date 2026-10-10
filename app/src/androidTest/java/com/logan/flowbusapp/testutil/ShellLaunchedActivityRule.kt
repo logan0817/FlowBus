@@ -21,6 +21,14 @@ class ShellLaunchedActivityRule(
         val targetContext = instrumentation.targetContext
         ResumedActivityRegistry.ensureRegistered()
         ResumedActivityRegistry.clearCurrentActivity()
+        val windowState = executeShellCommand(instrumentation, "dumpsys window windows")
+        // Google 模拟器的 Launcher ANR 对话框会抢占焦点；只恢复已确认的系统进程。
+        // 不处理目标应用的 ANR，也不隐藏系统错误或放宽 Espresso 的焦点要求。
+        if (windowState.contains("Application Not Responding: com.google.android.apps.nexuslauncher")) {
+            println("FlowBus test environment: resetting unresponsive Google Launcher before launch:")
+            println(windowState)
+            executeShellCommand(instrumentation, "am force-stop com.google.android.apps.nexuslauncher")
+        }
         launchTargetApp(instrumentation, targetContext.packageName)
         if (activityClass.name != "${targetContext.packageName}.MainActivity") {
             val intent = Intent(targetContext, activityClass)
@@ -33,6 +41,16 @@ class ShellLaunchedActivityRule(
     override fun after() {
         val activity = launchedActivity
         if (activity != null && !activity.isFinishing) {
+            val instrumentation = InstrumentationRegistry.getInstrumentation()
+            val hasWindowFocus = AtomicBoolean(false)
+            instrumentation.runOnMainSync {
+                hasWindowFocus.set(activity.hasWindowFocus())
+            }
+            // 在 finish 前捕获失焦现场；结束整批测试后的 Launcher 焦点无法定位占用方。
+            if (!hasWindowFocus.get()) {
+                println("FlowBus UI focus diagnostics before finishing ${activity.javaClass.name}:")
+                println(executeShellCommand(instrumentation, "dumpsys window windows"))
+            }
             InstrumentationRegistry.getInstrumentation().runOnMainSync {
                 activity.finish()
             }

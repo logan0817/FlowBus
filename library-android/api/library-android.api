@@ -1,6 +1,8 @@
 public final class com/logan/flowbus/CollectEventExtensionKt {
 	public static final fun collectEvent (Landroidx/lifecycle/LifecycleOwner;Lkotlinx/coroutines/flow/Flow;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;Lkotlin/jvm/functions/Function1;)Lkotlinx/coroutines/Job;
 	public static synthetic fun collectEvent$default (Landroidx/lifecycle/LifecycleOwner;Lkotlinx/coroutines/flow/Flow;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;Lkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+	public static final fun collectEventSuspending (Landroidx/lifecycle/LifecycleOwner;Lkotlinx/coroutines/flow/Flow;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;Lkotlin/jvm/functions/Function2;)Lkotlinx/coroutines/Job;
+	public static synthetic fun collectEventSuspending$default (Landroidx/lifecycle/LifecycleOwner;Lkotlinx/coroutines/flow/Flow;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
 }
 
 public final class com/logan/flowbus/EventChannelExtensionKt {
@@ -69,12 +71,31 @@ public final class com/logan/flowbus/FlowEventBus : androidx/lifecycle/ViewModel
 	public final fun subscribeEvent (Landroidx/lifecycle/LifecycleOwner;Ljava/lang/String;Lkotlin/reflect/KClass;Landroidx/lifecycle/Lifecycle$State;Lkotlinx/coroutines/CoroutineDispatcher;ZLkotlin/jvm/functions/Function1;)Lkotlinx/coroutines/Job;
 	public final fun subscribeEvent (Ljava/lang/String;Lkotlin/reflect/KClass;ZLkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun subscribeEvent$default (Lcom/logan/flowbus/FlowEventBus;Landroidx/lifecycle/LifecycleOwner;Ljava/lang/String;Lkotlin/reflect/KClass;Landroidx/lifecycle/Lifecycle$State;Lkotlinx/coroutines/CoroutineDispatcher;ZLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+	public final fun subscribeEventSuspending (Landroidx/lifecycle/LifecycleOwner;Ljava/lang/String;Lkotlin/reflect/KClass;Landroidx/lifecycle/Lifecycle$State;Lkotlinx/coroutines/CoroutineDispatcher;ZLkotlin/jvm/functions/Function2;)Lkotlinx/coroutines/Job;
+	public final fun subscribeEventSuspending (Ljava/lang/String;Lkotlin/reflect/KClass;ZLkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+	public static synthetic fun subscribeEventSuspending$default (Lcom/logan/flowbus/FlowEventBus;Landroidx/lifecycle/LifecycleOwner;Ljava/lang/String;Lkotlin/reflect/KClass;Landroidx/lifecycle/Lifecycle$State;Lkotlinx/coroutines/CoroutineDispatcher;ZLkotlin/jvm/functions/Function2;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+	public static synthetic fun subscribeEventSuspending$default (Lcom/logan/flowbus/FlowEventBus;Ljava/lang/String;Lkotlin/reflect/KClass;ZLkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 }
 
 public final class com/logan/flowbus/GlobalViewModelStore : androidx/lifecycle/ViewModelStoreOwner {
 	public static final field INSTANCE Lcom/logan/flowbus/GlobalViewModelStore;
 	public final fun get (Ljava/lang/Class;)Landroidx/lifecycle/ViewModel;
 	public fun getViewModelStore ()Landroidx/lifecycle/ViewModelStore;
+}
+
+public final class com/logan/flowbus/InstanceCollectEventExtensionKt {
+	public static final fun collectEventFrom (Landroidx/lifecycle/LifecycleOwner;Lcom/logan/flowbus/core/FlowBus;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function1;)Lkotlinx/coroutines/Job;
+	public static final fun collectEventFrom (Landroidx/lifecycle/LifecycleOwner;Lcom/logan/flowbus/core/FlowBusScope;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function1;)Lkotlinx/coroutines/Job;
+	public static final fun collectEventFrom (Landroidx/lifecycle/LifecycleOwner;Lcom/logan/flowbus/core/ScopedFlowBus;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function1;)Lkotlinx/coroutines/Job;
+	public static synthetic fun collectEventFrom$default (Landroidx/lifecycle/LifecycleOwner;Lcom/logan/flowbus/core/FlowBus;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+	public static synthetic fun collectEventFrom$default (Landroidx/lifecycle/LifecycleOwner;Lcom/logan/flowbus/core/FlowBusScope;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+	public static synthetic fun collectEventFrom$default (Landroidx/lifecycle/LifecycleOwner;Lcom/logan/flowbus/core/ScopedFlowBus;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+	public static final fun collectEventFromSuspending (Landroidx/lifecycle/LifecycleOwner;Lcom/logan/flowbus/core/FlowBus;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function2;)Lkotlinx/coroutines/Job;
+	public static final fun collectEventFromSuspending (Landroidx/lifecycle/LifecycleOwner;Lcom/logan/flowbus/core/FlowBusScope;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function2;)Lkotlinx/coroutines/Job;
+	public static final fun collectEventFromSuspending (Landroidx/lifecycle/LifecycleOwner;Lcom/logan/flowbus/core/ScopedFlowBus;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function2;)Lkotlinx/coroutines/Job;
+	public static synthetic fun collectEventFromSuspending$default (Landroidx/lifecycle/LifecycleOwner;Lcom/logan/flowbus/core/FlowBus;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function2;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+	public static synthetic fun collectEventFromSuspending$default (Landroidx/lifecycle/LifecycleOwner;Lcom/logan/flowbus/core/FlowBusScope;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function2;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+	public static synthetic fun collectEventFromSuspending$default (Landroidx/lifecycle/LifecycleOwner;Lcom/logan/flowbus/core/ScopedFlowBus;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function2;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
 }
 
 public final class com/logan/flowbus/OnEventExtensionKt {
@@ -86,6 +107,17 @@ public final class com/logan/flowbus/OnEventExtensionKt {
 	public static synthetic fun onEvent$default (Landroidx/lifecycle/LifecycleOwner;Lcom/logan/flowbus/core/EventChannel;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
 	public static synthetic fun onEvent$default (Lkotlinx/coroutines/CoroutineScope;Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;ZLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
 	public static synthetic fun onEvent$default (Lkotlinx/coroutines/CoroutineScope;Lcom/logan/flowbus/core/EventChannel;ZLkotlin/jvm/functions/Function1;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+}
+
+public final class com/logan/flowbus/OnEventSuspendingExtensionKt {
+	public static final fun onEventSuspending (Landroidx/lifecycle/LifecycleOwner;Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function2;)Lkotlinx/coroutines/Job;
+	public static final fun onEventSuspending (Landroidx/lifecycle/LifecycleOwner;Lcom/logan/flowbus/core/EventChannel;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function2;)Lkotlinx/coroutines/Job;
+	public static final fun onEventSuspending (Lkotlinx/coroutines/CoroutineScope;Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;ZLkotlin/jvm/functions/Function2;)Lkotlinx/coroutines/Job;
+	public static final fun onEventSuspending (Lkotlinx/coroutines/CoroutineScope;Lcom/logan/flowbus/core/EventChannel;ZLkotlin/jvm/functions/Function2;)Lkotlinx/coroutines/Job;
+	public static synthetic fun onEventSuspending$default (Landroidx/lifecycle/LifecycleOwner;Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function2;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+	public static synthetic fun onEventSuspending$default (Landroidx/lifecycle/LifecycleOwner;Lcom/logan/flowbus/core/EventChannel;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function2;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+	public static synthetic fun onEventSuspending$default (Lkotlinx/coroutines/CoroutineScope;Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;ZLkotlin/jvm/functions/Function2;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
+	public static synthetic fun onEventSuspending$default (Lkotlinx/coroutines/CoroutineScope;Lcom/logan/flowbus/core/EventChannel;ZLkotlin/jvm/functions/Function2;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
 }
 
 public final class com/logan/flowbus/OwnerEventExtensionKt {

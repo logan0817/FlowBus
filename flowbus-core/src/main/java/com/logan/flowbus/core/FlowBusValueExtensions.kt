@@ -19,9 +19,9 @@ inline fun <reified T : Any> T.send(eventName: String = defaultEventName<T>()): 
 }
 
 /**
- * 挂起直到当前对象成功发送到 [DefaultFlowBus] 的默认事件通道。
+ * 按既定溢出策略发送当前对象到 [DefaultFlowBus] 的默认事件通道；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
  *
- * 行为上与 `DefaultFlowBus.emit(...)` 一致：遵循背压，直到写入成功才返回。
+ * 行为上与 `DefaultFlowBus.emit(...)` 一致：遵循既定溢出策略；普通事件无订阅者时不保留，返回不代表业务处理完成。
  * 如果你需要显式指定目标 bus / scope，请改用 [awaitSendOn]。
  */
 suspend inline fun <reified T : Any> T.awaitSend(eventName: String = defaultEventName<T>()) {
@@ -38,9 +38,9 @@ inline fun <reified T : Any> T.sendSticky(eventName: String = defaultEventName<T
 }
 
 /**
- * 挂起直到当前对象作为粘性事件成功发送到 [DefaultFlowBus]。
+ * 按既定溢出策略发送当前对象作为粘性事件到 [DefaultFlowBus]；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
  *
- * 行为上与 `DefaultFlowBus.emitSticky(...)` 一致：遵循背压，直到写入成功才返回。
+ * 行为上与 `DefaultFlowBus.emitSticky(...)` 一致：遵循既定溢出策略；普通事件无订阅者时不保留，返回不代表业务处理完成。
  */
 suspend inline fun <reified T : Any> T.awaitSendSticky(eventName: String = defaultEventName<T>()) {
     DefaultFlowBus.emitSticky(value = this, eventName = eventName)
@@ -59,7 +59,7 @@ inline fun <reified T : Any> T.sendOn(
 }
 
 /**
- * 挂起直到当前对象成功发送到指定 [FlowBus]。
+ * 按既定溢出策略发送当前对象到指定 [FlowBus]；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
  *
  * 这里不会落到默认单例，而是只会进入你传入的这个 [FlowBus] 实例。
  */
@@ -83,7 +83,7 @@ inline fun <reified T : Any> T.sendStickyOn(
 }
 
 /**
- * 挂起直到当前对象作为粘性事件成功发送到指定 [FlowBus]。
+ * 按既定溢出策略发送当前对象作为粘性事件到指定 [FlowBus]；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
  *
  * 这里不会落到默认单例，而是只会进入你传入的这个 [FlowBus] 实例的 sticky 通道。
  */
@@ -107,7 +107,7 @@ inline fun <reified T : Any> T.sendOn(
 }
 
 /**
- * 挂起直到当前对象成功发送到指定 [ScopedFlowBus]。
+ * 按既定溢出策略发送当前对象到指定 [ScopedFlowBus]；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
  *
  * 这条调用只会进入当前命名 scope，对根总线和其他 scope 都不生效。
  */
@@ -131,7 +131,7 @@ inline fun <reified T : Any> T.sendStickyOn(
 }
 
 /**
- * 挂起直到当前对象作为粘性事件成功发送到指定 [ScopedFlowBus]。
+ * 按既定溢出策略发送当前对象作为粘性事件到指定 [ScopedFlowBus]；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
  *
  * 这条调用只会进入当前命名 scope 的 sticky 通道。
  */
@@ -155,7 +155,7 @@ inline fun <reified T : Any> T.sendOn(
 }
 
 /**
- * 挂起直到当前对象成功发送到指定 [FlowBusScope]。
+ * 按既定溢出策略发送当前对象到指定 [FlowBusScope]；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
  *
  * 这条调用只会进入该 scope 句柄当前绑定的 scope；如果句柄已关闭，会直接失败。
  */
@@ -179,7 +179,7 @@ inline fun <reified T : Any> T.sendStickyOn(
 }
 
 /**
- * 挂起直到当前对象作为粘性事件成功发送到指定 [FlowBusScope]。
+ * 按既定溢出策略发送当前对象作为粘性事件到指定 [FlowBusScope]；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
  *
  * 这条调用只会进入该 scope 句柄当前绑定的 sticky 通道；如果句柄已关闭，会直接失败。
  */

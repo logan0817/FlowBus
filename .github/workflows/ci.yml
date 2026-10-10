@@ -20,11 +20,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up JDK 17
+      - name: Set up consumer JDK 8 and build JDK 17
         uses: actions/setup-java@v5.2.0
         with:
           distribution: temurin
-          java-version: 17
+          java-version: |
+            8
+            17
 
       - name: Set up Gradle cache
         uses: gradle/actions/setup-gradle@v6.1.0
@@ -33,9 +35,12 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4.0.1
+        with:
+          # tools 已从 SDK 仓库下架；命令行工具由 Action 单独准备。
+          packages: platform-tools
 
       - name: Install Android SDK packages
-        run: sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+        run: sdkmanager "platform-tools" "platforms;android-33" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Check submitted diff whitespace
         run: |
@@ -51,8 +56,19 @@ jobs:
       - name: Run unit tests
         run: ./gradlew :flowbus-core:test :library-android:testDebugUnitTest :app:testDebugUnitTest --rerun-tasks --warning-mode=all
 
+      - name: Check consumer device verification driver
+        run: |
+          python3 -B compatibility/verify_api35_test.py
+          python3 -B -m unittest discover -s compatibility/android-consumer -p '*_test.py' -v
+          python3 -B -m unittest discover -s compatibility/compose-consumer -p '*_test.py' -v
+          python3 -B -m unittest discover -s compatibility/navigation-consumer -p '*_test.py' -v
+          python3 -B -m unittest discover -s compatibility/core-binary-consumer -p '*_test.py' -v
+
       - name: Check public API compatibility
         run: ./gradlew apiCheck --rerun-tasks --warning-mode=all
+
+      - name: Run core consumer on Java 8
+        run: ./gradlew :flowbus-core:verifyCoreRuntime "-Pflowbus.consumer.java=$JAVA_HOME_8_X64/bin/java" -Pflowbus.consumer.expectedJava=1.8 --warning-mode=all
 
       - name: Run Android release lint
         run: ./gradlew :library-android:lintRelease :app:lintRelease --rerun-tasks --warning-mode=all
@@ -75,22 +91,93 @@ jobs:
           profile: pixel_5
           disable-animations: true
           script: |
-            adb shell settings put global window_animation_scale 0
-            adb shell settings put global transition_animation_scale 0
-            adb shell settings put global animator_duration_scale 0
-            adb shell settings get global window_animation_scale
-            adb shell settings get global transition_animation_scale
-            adb shell settings get global animator_duration_scale
-            ./gradlew :library-android:connectedDebugAndroidTest :app:connectedReleaseAndroidTest --rerun-tasks --warning-mode=all
+            bash compatibility/run-api35.sh
 
-      - name: Verify Maven local publication and artifacts
-        run: ./gradlew verifyMavenLocalArtifacts --rerun-tasks --warning-mode=all
+      - name: Verify isolated candidate artifacts and consumers
+        run: |
+          ./gradlew verifyMavenLocalArtifacts verifyMavenLocalCoreConsumer verifyMavenLocalConsumer verifyMavenLocalComposeConsumer \
+            "-Dmaven.repo.local=$PWD/build/candidate-maven" \
+            "-Pflowbus.consumer.java=$JAVA_HOME_8_X64/bin/java" -Pflowbus.consumer.expectedJava=1.8 --warning-mode=all
 
-      - name: Verify Maven local minified consumer
-        run: ./gradlew verifyMavenLocalConsumer --rerun-tasks --warning-mode=all
+      - name: Verify unchanged 1.0.7 core consumer bytecode
+        run: |
+          ./gradlew verifyMavenLocalBinaryCoreConsumer \
+            "-Dmaven.repo.local=$PWD/build/candidate-maven" \
+            "-Pflowbus.consumer.java=$JAVA_HOME_8_X64/bin/java" -Pflowbus.consumer.expectedJava=1.8 --warning-mode=all
+          python3 -B compatibility/core-binary-consumer/verify_symbols.py \
+            --runtime-report build/maven-local-binary-core-consumer/build/reports/binary-compatibility.json \
+            --output build/core-jvm-symbol-verification.json
 
-      - name: Verify Maven local core consumer
-        run: ./gradlew verifyMavenLocalCoreConsumer --rerun-tasks --warning-mode=all
+      - name: Verify published Android JVM symbols
+        run: |
+          mkdir -p build/published-baseline
+          curl --fail --location --silent --show-error \
+            --output build/published-baseline/flowbus-1.0.7.aar \
+            https://repo.maven.apache.org/maven2/io/github/logan0817/flowbus/1.0.7/flowbus-1.0.7.aar
+          python3 -c 'import hashlib, pathlib; actual = hashlib.sha256(pathlib.Path("build/published-baseline/flowbus-1.0.7.aar").read_bytes()).hexdigest(); assert actual == "84380a3e456285a77133a4535dd4ff69b2eeb85ee516e3a24326411503ff5592", actual'
+          python3 -B compatibility/core-binary-consumer/verify_symbols.py \
+            --baseline-artifact build/published-baseline/flowbus-1.0.7.aar \
+            --candidate-artifact build/candidate-maven/io/github/logan0817/flowbus/1.1.0/flowbus-1.1.0.aar \
+            --baseline-api-snapshot compatibility/android-consumer/api/flowbus-1.0.7.api \
+            --output build/android-jvm-symbol-verification.json
+
+      - name: Verify Kotlin consumer compiler matrix
+        run: |
+          for consumer_kotlin in 1.8.22 1.9.22 2.0.21 2.1.0; do
+            ./gradlew verifyMavenLocalCoreConsumer verifyMavenLocalConsumer \
+              "-Dmaven.repo.local=$PWD/build/candidate-maven" \
+              "-Pflowbus.consumer.kotlinVersion=$consumer_kotlin" \
+              "-Pflowbus.consumer.java=$JAVA_HOME_8_X64/bin/java" -Pflowbus.consumer.expectedJava=1.8 --warning-mode=all
+          done
+
+      - name: Verify compileSdk 33 consumer
+        run: |
+          ./gradlew verifyMavenLocalConsumer \
+            "-Dmaven.repo.local=$PWD/build/candidate-maven" \
+            -Pflowbus.consumer.kotlinVersion=1.8.22 -Pflowbus.consumer.compileSdk=33 --warning-mode=all
+
+      - name: Run library and minified Maven consumer on API 21
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 21
+          target: default
+          arch: x86
+          disable-animations: true
+          script: |
+            bash compatibility/run-api21.sh
+
+      - name: Verify newer optional Navigation consumer
+        run: |
+          ./gradlew verifyMavenLocalComposeConsumer \
+            "-Dmaven.repo.local=$PWD/build/candidate-maven" \
+            -Pflowbus.consumer.navigationVersion=2.8.3 \
+            -Pflowbus.consumer.composeVersion=1.7.8 -Pflowbus.consumer.navHost=true --warning-mode=all
 
       - name: Verify Maven Central release task graph
         run: ./gradlew releaseToMavenCentral --dry-run --warning-mode=all
+
+      - name: Preserve verification reports even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flowbus-verification-${{ github.sha }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            flowbus-core/build/test-results/
+            library-android/build/test-results/
+            app/build/test-results/
+            library-android/build/reports/lint-results-release.*
+            app/build/reports/lint-results-release.*
+            library-android/build/outputs/androidTest-results/
+            app/build/outputs/androidTest-results/
+            build/maven-local-binary-core-consumer/build/reports/binary-compatibility.json
+            build/core-jvm-symbol-verification.json
+            build/android-jvm-symbol-verification.json
+            build/api21-environment/
+            build/api35-environment/
+            build/android-consumer-device/
+            build/compose-effects-device/
+            build/compose-policies-device/
+            build/navigation-device/
+            build/navhost-device/

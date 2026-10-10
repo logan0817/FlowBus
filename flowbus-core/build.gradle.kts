@@ -4,6 +4,7 @@ import org.gradle.kotlin.dsl.withType
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+import java.time.Duration
 
 plugins {
     `java-library`
@@ -95,5 +96,30 @@ mavenPublishing {
             url.set(metadataProperty("POM_ISSUE_URL"))
             system.set(metadataProperty("POM_ISSUE_SYSTEM"))
         }
+    }
+}
+
+// 消费者样例单独编译为 Java 8 字节码，复用 main 依赖，不进入发布产物。
+val compatibility by sourceSets.creating {
+    compileClasspath += sourceSets.main.get().output + sourceSets.main.get().compileClasspath
+    runtimeClasspath += sourceSets.main.get().output + sourceSets.main.get().runtimeClasspath
+}
+
+tasks.register<JavaExec>("verifyCoreRuntime") {
+    group = "verification"
+    description = "运行 core 消费者；可用 flowbus.consumer.java 指定 JVM，expectedJava 校验运行版本。"
+    dependsOn(compatibility.classesTaskName)
+    classpath = compatibility.runtimeClasspath
+    mainClass.set("com.logan.flowbus.compatibility.CoreRuntimeConsumer")
+    timeout.set(Duration.ofSeconds(30))
+
+    val consumerJava = providers.gradleProperty("flowbus.consumer.java")
+    if (consumerJava.isPresent) {
+        executable = consumerJava.get()
+    } else {
+        javaLauncher.set(javaToolchains.launcherFor(java.toolchain))
+    }
+    providers.gradleProperty("flowbus.consumer.expectedJava").orNull?.let {
+        systemProperty("flowbus.consumer.expectedJava", it)
     }
 }

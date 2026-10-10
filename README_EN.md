@@ -25,7 +25,7 @@ Android projects should usually start with `flowbus`:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.0.7") // Use 1.0.7 after release; the Maven Central badge is the source of truth for the latest published version.
+implementation("io.github.logan0817:flowbus:1.1.0") // 1.1.0 is unreleased; use after publication. Published baseline: 1.0.7.
 ```
 
 Pure Kotlin / Coroutines / non-Android projects should use `flowbus-core`:
@@ -33,7 +33,7 @@ Pure Kotlin / Coroutines / non-Android projects should use `flowbus-core`:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.0.7") // Use 1.0.7 after release; the Maven Central badge is the source of truth for the latest published version.
+implementation("io.github.logan0817:flowbus-core:1.1.0") // 1.1.0 is unreleased; use after publication. Published baseline: 1.0.7.
 ```
 
 Module choice:
@@ -49,19 +49,21 @@ Module choice:
 data class RefreshHomeEvent(val source: String)
 ```
 
-### 2. Send the event
-
-```kotlin
-postEvent(RefreshHomeEvent(source = "login"))
-```
-
-### 3. Receive the event
+### 2. Register the receiver first
 
 ```kotlin
 viewLifecycleOwner.onEvent<RefreshHomeEvent> { event ->
     viewModel.refreshFrom(event.source)
 }
 ```
+
+### 3. Send after the receiver becomes active and starts collecting
+
+```kotlin
+postEvent(RefreshHomeEvent(source = "login"))
+```
+
+Registering `onEvent(...)` does not mean the underlying subscription is immediately ready: lifecycle state and coroutine scheduling matter. Normal events have no replay and are not retained before collection or while the receiver is inactive. Use sticky explicitly for a latest result needed by late subscribers, and `StateFlow` for recoverable UI state.
 
 That is the shortest Android path. First remember this: send with `postEvent(...)`, receive in UI with `onEvent<T> { ... }`.
 
@@ -74,11 +76,11 @@ Use this after login, config updates, or background sync completion when multipl
 ```kotlin
 data class SyncFinishedEvent(val successCount: Int)
 
-postEvent(SyncFinishedEvent(successCount = 3))
-
 viewLifecycleOwner.onEvent<SyncFinishedEvent> { event ->
     showResult(event.successCount)
 }
+
+postEvent(SyncFinishedEvent(successCount = 3))
 ```
 
 ### Scenario 2: Fragment notifies Activity
@@ -88,11 +90,11 @@ Use this for toolbar refresh, navigation requests, or communication inside the c
 ```kotlin
 data object ReloadToolbarEvent
 
-requireActivity().postScopedEvent(ReloadToolbarEvent)
-
 viewLifecycleOwner.onEvent<ReloadToolbarEvent>(from = requireActivity()) {
     renderToolbar()
 }
+
+requireActivity().postScopedEvent(ReloadToolbarEvent)
 ```
 
 Here `requireActivity()` means the owner scope that stores the event bus, not the receiver.
@@ -104,11 +106,11 @@ Use this when several events are all `String`, but their business meanings are d
 ```kotlin
 val toastChannel = eventChannel<String>("ui.toast")
 
-toastChannel.post("Saved")
-
 viewLifecycleOwner.onEvent(toastChannel) { message ->
     showToast(message)
 }
+
+toastChannel.post("Saved")
 ```
 
 ### Scenario 4: non-Android or lower-level scope control
@@ -118,14 +120,16 @@ Use this for Repository / Worker / Session isolation, or when you need multiple 
 ```kotlin
 val syncScope = DefaultFlowBus.openScope("sync-task", closeWhen = scope)
 
-syncScope.post(SyncProgress(percent = 10))
-
-scope.launch {
+scope.launch(start = CoroutineStart.UNDISPATCHED) {
     syncScope.flow<SyncProgress>().collect { progress ->
         render(progress)
     }
 }
+
+syncScope.post(SyncProgress(percent = 10))
 ```
+
+This example directly collects the normal Flow with `CoroutineStart.UNDISPATCHED` before sending. Suspending upstream work, `flowOn`, or lifecycle gates still require separate subscription-readiness checks.
 
 ## API selection cheat sheet
 
@@ -134,7 +138,7 @@ scope.launch {
 | Global lightweight broadcast | `postEvent(...)` | No | No | best-effort; may fail in edge cases |
 | Only need to know whether `tryEmit` was rejected | `tryPostEvent(...)` | No | No | returns `Boolean`; not business handling success |
 | Need a diagnostic send result | `tryPostEventResult(...)` | No | normal / sticky | returns subscriber count, sticky replay count, overflow policy, and outcome |
-| Must wait for write acceptance | `emitEvent(...)` | Yes | normal / sticky | waits for the underlying flow under backpressure rules |
+| Suspending send under configured policy | `emitEvent(...)` | Yes | normal / sticky | backpressure with `SUSPEND` and active subscribers; still follows the configured overflow policy |
 | Send to an owner scope | `postEventTo(owner, ...)` / `owner.postScopedEvent(...)` | No | No | enters only the bus bound to that owner |
 | Named channel | `eventChannel<T>("name")` + `channel.post(...)` | No | normal / sticky | good for long-lived business channels |
 | Shortest one-line subscription | `onEvent(...)` | No | controlled by `isSticky` | automatically bound to `LifecycleOwner` |
@@ -159,14 +163,35 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 1. Use `StateFlow` for long-lived page-local state. Do not use FlowBus as a state container.
 2. Use direct method calls, use cases, or suspend functions for explicit one-to-one calls.
 3. `tryPost*Result.accepted = true` only means the underlying `tryEmit` call was not rejected. It does not mean subscribers already handled the event.
-4. `DROP_OLDEST` / `DROP_LATEST` are not reliable-queue policies. For critical paths, use `emit*`, a business queue, or a state machine.
-5. Sticky events only keep the latest value. They are good for initialization results and page restoration, not long-lived state management.
+4. `emit*` still follows the configured overflow policy. `SUSPEND` can apply backpressure when active subscribers exist. Normal events without subscribers are not retained, and emission completion does not mean business completion. Use business state, a database, or persistent tasks for operations that must recover or complete reliably.
+5. Sticky replay is managed separately from live broadcast. With `DROP_LATEST`, a value dropped from the live buffer can still become replay for late subscribers. Sticky is not a replacement for long-lived state management.
 6. `consumeStickyLatestEvent(...)` only reads and clears the current sticky replay. It does not prevent another thread from writing a new sticky value later.
 7. Do not put phone numbers, tokens, order IDs, user IDs, or similar sensitive values into `eventName` or `scopeName` logs.
 
+## Next-version integration APIs (unreleased)
+
+Candidate source adds suspending callbacks and Android collection from explicit instances while preserving existing APIs. These APIs are not in published `1.0.7`. The candidate version is 1.1.0; base dependencies and the minSdk target remain unchanged.
+
+| Need | Candidate API | Behavior |
+| --- | --- | --- |
+| Suspend work in core callbacks | `collectSuspending` / `collectStickySuspending` | sequential per subscription, using the instance's error policy and dispatcher |
+| Android global or owner suspend subscription | `onEventSuspending` | LifecycleOwner / CoroutineScope and reified / channel variants |
+| Collect an injected instance in Android | `collectEventFrom` / `collectEventFromSuspending` | explicit `FlowBus` / `ScopedFlowBus` / `FlowBusScope` and `EventKey`; does not close the source |
+| Generic Flow suspend collection | `collectEventSuspending(flow)` | lifecycle collection with direct exception propagation, without bus error policy |
+
+```kotlin
+viewLifecycleOwner.onEventSuspending<RefreshHomeEvent> { event ->
+    viewModel.refreshSuspending(event.source)
+}
+```
+
+`refreshSuspending` is an application-provided suspend function. Each callback completes before the next starts. Leaving the active lifecycle state requests callback cancellation; business code must cooperate. Restart within the same lifecycle collection waits for the previous callback. Blocking or NonCancellable work cannot be forcibly stopped, and cancellation does not roll back side effects. Slow callbacks still obey existing buffering/overflow policy, and registration does not establish immediate readiness. Select sticky and an explicit instance when latest-value replay or isolation is needed. See [Android candidate integration](library-android/README_EN.md#next-version-suspend-callbacks-and-instance-integration-unreleased) and [core suspend collection](flowbus-core/README_EN.md#next-version-suspend-collection-unreleased).
+
+Compose has an [independent consumer example](compatibility/compose-consumer/README_EN.md), with optional [Navigation](compatibility/navigation-consumer/README_EN.md) and [actual NavHost](compatibility/navhost-consumer/README_EN.md) verification. These fixtures are excluded from published artifacts and base dependencies. See the [compatibility assessment](docs/en/next-version-plan.md#compatibility-assessment) for tested combinations and limits.
+
 ## Compatibility and release status
 
-This documentation targets `1.0.7`. The actual published version on Maven Central is determined by the badge and Central artifact page.
+This documentation targets the unreleased `1.1.0` candidate; the published baseline is `1.0.7`. The actual published version on Maven Central is determined by the badge and Central artifact page.
 
 | Item | Version |
 | --- | --- |
@@ -193,9 +218,11 @@ Release gates:
 1. Android integration and full scenarios: [`library-android/README_EN.md`](./library-android/README_EN.md)
 2. Core capabilities, multi-instance usage, and scope lifecycle: [`flowbus-core/README_EN.md`](./flowbus-core/README_EN.md)
 3. Release checklist: [`docs/en/release-checklist.md`](./docs/en/release-checklist.md)
-4. Release notes: [`docs/en/release-notes-1.0.7.md`](./docs/en/release-notes-1.0.7.md)
+4. Release notes: [`docs/en/release-notes-1.1.0.md`](./docs/en/release-notes-1.1.0.md)
 5. Version history: [`CHANGELOG.md`](./CHANGELOG.md)
 6. Chinese document: [`README.md`](./README.md)
+7. Next-version roadmap and compatibility assessment: [`docs/en/next-version-plan.md`](./docs/en/next-version-plan.md) (planned work, not released features)
+8. [Core 1.0.7 binary consumer regression](compatibility/core-binary-consumer/README_EN.md): unchanged old consumer bytecode passed Java 8 runs against original and candidate JARs, with additional JVM descriptor checks; this is not full ABI certification.
 
 ## Repository layout
 

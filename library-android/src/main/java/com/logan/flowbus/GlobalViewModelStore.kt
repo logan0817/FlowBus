@@ -16,6 +16,7 @@ import androidx.lifecycle.ViewModelStoreOwner
  * 如果事件只属于某个页面或业务 owner，优先传入明确的 [ViewModelStoreOwner]，避免把生命周期放大到全局。
  */
 object GlobalViewModelStore : ViewModelStoreOwner {
+    private val viewModelStoreLock = Any()
     private val appViewModelStore by lazy { ViewModelStore() }
 
     override val viewModelStore: ViewModelStore
@@ -24,9 +25,10 @@ object GlobalViewModelStore : ViewModelStoreOwner {
     /**
      * 返回全局共享的 [ViewModel] 实例。
      */
-    @MainThread
     fun <T : ViewModel> get(modelClass: Class<T>): T {
-        return ViewModelProvider(this, ViewModelProvider.NewInstanceFactory())[modelClass]
+        return synchronized(viewModelStoreLock) {
+            ViewModelProvider(this, ViewModelProvider.NewInstanceFactory())[modelClass]
+        }
     }
 
     internal fun clearForTests() {

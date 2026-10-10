@@ -11,7 +11,7 @@ import com.logan.flowbus.core.FlowBusPostResult
  *
  * 这是 best-effort 发送；当底层缓冲已满时，事件可能不会被接收。
  * 如果你需要明确知道这次发送是否被当前总线接收，请使用 [tryPostEvent]；
- * 如果你需要遵循背压策略并保证发送成功，请使用 [emitEvent]。
+ * 如果你需要按既定溢出策略执行挂起发送，请使用 [emitEvent]。
  *
  * @param event 事件数据。
  * @param delayMillis 延迟发送时间，单位毫秒。
@@ -58,7 +58,7 @@ inline fun <reified T : Any> tryPostEventResult(
  *
  * 这是 best-effort 发送；当底层缓冲已满时，事件可能不会被接收。
  * 如果你需要明确知道这次发送是否被当前总线接收，请使用 [tryPostEventTo]；
- * 如果你需要遵循背压策略并保证发送成功，请使用 [emitEventTo]。
+ * 如果你需要按既定溢出策略执行挂起发送，请使用 [emitEventTo]。
  *
  * [owner] 用来决定“往哪个总线发”，它不限制具体类型，只要实现了
  * `ViewModelStoreOwner` 即可。
@@ -114,7 +114,7 @@ inline fun <reified T : Any> tryPostEventResultTo(
 }
 
 /**
- * 挂起直到全局事件成功发送。
+ * 按既定溢出策略发送全局事件；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
  */
 suspend inline fun <reified T : Any> emitEvent(
     event: T,
@@ -126,7 +126,7 @@ suspend inline fun <reified T : Any> emitEvent(
 }
 
 /**
- * 挂起直到指定 [owner] 对应的局部事件成功发送。
+ * 按既定溢出策略发送指定 [owner] 对应的局部事件；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
  */
 @MainThread
 suspend inline fun <reified T : Any> emitEventTo(
@@ -148,7 +148,7 @@ suspend inline fun <reified T : Any> emitEventTo(
  *
  * 这是 best-effort 发送；当底层缓冲已满时，事件可能不会被接收。
  * 如果你需要明确知道这次发送是否被当前总线接收，请使用 [tryPostStickyEvent]；
- * 如果你需要遵循背压策略并保证发送成功，请使用 [emitStickyEvent]。
+ * 如果你需要按既定溢出策略执行挂起发送，请使用 [emitStickyEvent]。
  */
 inline fun <reified T : Any> postStickyEvent(
     event: T,
@@ -242,7 +242,7 @@ inline fun <reified T : Any> tryPostStickyEventResultTo(
 }
 
 /**
- * 挂起直到全局粘性事件成功发送。
+ * 按既定溢出策略发送全局粘性事件；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
  */
 suspend inline fun <reified T : Any> emitStickyEvent(
     event: T,
@@ -260,7 +260,7 @@ suspend inline fun <reified T : Any> emitStickyEvent(
 }
 
 /**
- * 挂起直到指定 [owner] 对应的局部粘性事件成功发送。
+ * 按既定溢出策略发送指定 [owner] 对应的局部粘性事件；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
  */
 @MainThread
 suspend inline fun <reified T : Any> emitStickyEventTo(
