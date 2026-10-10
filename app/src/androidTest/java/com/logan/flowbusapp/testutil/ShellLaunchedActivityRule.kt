@@ -34,12 +34,12 @@ class ShellLaunchedActivityRule(
         val activity = launchedActivity
         if (activity != null && !activity.isFinishing) {
             val instrumentation = InstrumentationRegistry.getInstrumentation()
-            var hasWindowFocus = false
+            val hasWindowFocus = AtomicBoolean(false)
             instrumentation.runOnMainSync {
-                hasWindowFocus = activity.hasWindowFocus()
+                hasWindowFocus.set(activity.hasWindowFocus())
             }
             // 在 finish 前捕获失焦现场；结束整批测试后的 Launcher 焦点无法定位占用方。
-            if (!hasWindowFocus) {
+            if (!hasWindowFocus.get()) {
                 println("FlowBus UI focus diagnostics before finishing ${activity.javaClass.name}:")
                 println(executeShellCommand(instrumentation, "dumpsys window windows"))
             }
