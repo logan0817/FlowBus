@@ -31,7 +31,7 @@ FLOWBUS_NAVIGATION_SIGNED_APK="/path/to/test-signed-navigation-release.apk"
 python3 -B compatibility/navigation-consumer/verify-navigation-device.py --adb /path/to/android-sdk/platform-tools/adb --serial device-serial --expected-api 24 --apk "$FLOWBUS_NAVIGATION_SIGNED_APK" --report-dir build/navigation-device
 ```
 
-驱动薄入口复用 [共用设备协议](../device_verification.py)，检查 API/boot、安装已签名 APK、force-stop 自己的包，携带本次 runId 冷启动 NavigationConsumerActivity。fixture 整体超时 30 秒，driver 最多轮询 40 秒；仅接受 `FlowBusNavigation` tag 的本次 `PASS API=<实际 API> checks=7 runId=<本次 UUID>`，并要求当前 `com.logan.flowbus.composeconsumer` UI 匹配同一结果和七个阶段名称。失败、旧结果、错误前台包、缺阶段或超时均非零退出；证据位于 report-dir/runId 的 start.txt、current.log、current-ui.xml 和通过后才生成的 result.txt。请与 instrumentation/其他 UI driver 串行运行。
+驱动薄入口复用 [共用设备协议](../device_verification.py)，检查 API/boot、安装已签名 APK、force-stop 自己的包，携带本次 runId 冷启动 NavigationConsumerActivity。fixture 整体超时 30 秒，driver 最多轮询 40 秒；仅接受 `FlowBusNavigation` tag 的本次 `PASS API=<实际 API> checks=7 runId=<本次 UUID>`，并要求当前 `com.logan.flowbus.composeconsumer` UI 匹配同一结果和七个阶段名称。失败、旧结果、错误前台包、缺阶段或超时均非零退出；证据位于 report-dir/runId 的 start.txt、current.log、ui-dump.txt、current-ui.xml 和通过后才生成的 result.txt。请与 instrumentation/其他 UI driver 串行运行。
 
 普通 Android 与 Compose effect driver 也复用此协议，既有 CLI 和超时保持。导航集成协议 mock 可运行：
 

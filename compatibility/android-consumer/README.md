@@ -48,7 +48,7 @@ python3 compatibility/android-consumer/verify-device.py --adb /path/to/android-s
 
 Activity 最初显示 `FlowBus consumer: RUNNING`，自检整体超时为 10 秒。驱动使用 API 21 支持的按 tag 读取 logcat 方式，最多轮询 30 秒，只接受本次 `PASS API=<设备实际 API> checks=4 runId=<本次 UUID>`；匹配后解析当前 UI XML，要求该包下的文本同时包含同一 PASS 与四组完成名称。它不清理全局 logcat，也不依赖较新系统的进程日志筛选选项；本次 UUID 隔离历史 PASS 和其他运行。
 
-成功时脚本退出码为 0，打印同一 PASS 和证据目录；本次 FAIL、超时、启动/安装失败、API 不符或前台 UI 冲突均以非零退出。默认证据位于 `build/android-consumer-device/<本次 UUID>/`，包含 `start.txt`、持续更新的 `current.log`、成功匹配后读取的 `current-ui.xml`，以及通过全部检查后才写入的 `result.txt`；也可用 `--report-dir` 选择父目录。失败阶段尚未生成的文件可能不存在，应保留已有日志分析。持续 RUNNING、进程退出、缺少本次日志或只找到旧 PASS 均不能记录为通过。设备运行结果不能仅由 APK 存在、mapping 或编译成功推断。
+成功时脚本退出码为 0，打印同一 PASS 和证据目录；本次 FAIL、超时、启动/安装失败、API 不符或前台 UI 冲突均以非零退出。默认证据位于 `build/android-consumer-device/<本次 UUID>/`，包含 `start.txt`、持续更新的 `current.log`、UI 采集输出 `ui-dump.txt`、成功匹配后读取的 `current-ui.xml`，以及通过全部检查后才写入的 `result.txt`；也可用 `--report-dir` 选择父目录。失败阶段尚未生成的文件可能不存在，应保留已有日志分析。持续 RUNNING、进程退出、缺少本次日志或只找到旧 PASS 均不能记录为通过。设备运行结果不能仅由 APK 存在、mapping 或编译成功推断。
 
 ## 驱动回归与 CI 门禁
 
@@ -60,7 +60,7 @@ python3 -B compatibility/android-consumer/verify_device_test.py
 
 五项回归已通过，覆盖本次 PASS 与 UI 匹配、历史 PASS 超时拒绝、本次 FAIL 拒绝、其他前台包拒绝、错误 API 在安装前拒绝。它们模拟 ADB 输出，只验证驱动判断与报告行为，不是 Android API 21 上实际安装、Main/Lifecycle、自检或 R8 运行的证据。
 
-CI 入口通过 `bash compatibility/run-api21.sh` 执行完整复合命令，并在第一处失败停止。另有四项 Shell 入口回归，实际执行身份记录的 heredoc，覆盖错误 API、未完成启动、库测试失败及测试密钥生成失败后停止；不启动设备。运行全部九项回归：
+CI 入口通过 `bash compatibility/run-api21.sh` 执行完整复合命令，并在第一处失败停止。另有四项 Shell 入口回归，实际执行身份记录的 heredoc，覆盖错误 API、未完成启动、库测试失败及测试密钥生成失败后停止；不启动设备。运行全部十二项回归：
 
 ```bash
 python3 -B -m unittest discover -s compatibility/android-consumer -p '*_test.py' -v

@@ -66,7 +66,7 @@ FLOWBUS_COMPOSE_SIGNED_APK="/path/to/test-signed-compose-release.apk"
 python3 -B compatibility/compose-consumer/verify-effects-device.py --adb /path/to/android-sdk/platform-tools/adb --serial device-serial --expected-api 24 --apk "$FLOWBUS_COMPOSE_SIGNED_APK" --report-dir build/compose-effects-device
 ```
 
-驱动校验实际 API 和 boot_completed，安装 APK、force-stop 自己的包，携带 `flowbus.compose.verifyEffects=true` 和本次 `flowbus.consumer.runId` 冷启动。fixture 整体超时 30 秒，驱动最多轮询 40 秒；只有本次 `FlowBusCompose` 日志和当前 `com.logan.flowbus.composeconsumer` UI 同时匹配 `PASS API=<实际 API> checks=9 runId=<本次 UUID>` 与以下全部阶段才成功。FAIL、旧 runId、错误前台包、缺阶段或超时均不能通过；证据保存为 report-dir 下本次 UUID 的 start.txt、current.log、current-ui.xml 和最终 result.txt。请与 instrumentation 串行运行，避免争用 UiAutomation。
+驱动校验实际 API 和 boot_completed，安装 APK、force-stop 自己的包，携带 `flowbus.compose.verifyEffects=true` 和本次 `flowbus.consumer.runId` 冷启动。fixture 整体超时 30 秒，驱动最多轮询 40 秒；只有本次 `FlowBusCompose` 日志和当前 `com.logan.flowbus.composeconsumer` UI 同时匹配 `PASS API=<实际 API> checks=9 runId=<本次 UUID>` 与以下全部阶段才成功。FAIL、旧 runId、错误前台包、缺阶段或超时均不能通过；证据保存为 report-dir 下本次 UUID 的 start.txt、current.log、ui-dump.txt、current-ui.xml 和最终 result.txt。请与 instrumentation 串行运行，避免争用 UiAutomation。
 
 | 阶段 | 覆盖行为 |
 | --- | --- |

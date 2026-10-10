@@ -41,8 +41,16 @@ class VerifyDeviceTest(unittest.TestCase):
                     return f"FAIL runId={run_id} completed=legacy-android"
                 return f"PASS API=21 checks=4 runId={run_id}"
             if args[:3] == ["shell", "uiautomator", "dump"]:
+                self.assertEqual(args[-1], f"/data/local/tmp/flowbus-flowbusconsumer-{run_id}.xml")
+                if scenario == "dump-command-failed":
+                    raise consumer.verification.subprocess.CalledProcessError(1, command, output="dump command failed")
+                if scenario == "dump-failed":
+                    return "ERROR: could not get idle state."
                 return "UI hierarchy dumped"
             if args[:2] == ["shell", "cat"]:
+                self.assertEqual(args[-1], f"/data/local/tmp/flowbus-flowbusconsumer-{run_id}.xml")
+                if scenario == "missing-ui":
+                    return "cat: No such file or directory"
                 root = ET.Element("hierarchy")
                 text = chr(10).join([
                     f"PASS API=21 checks=4 runId={run_id}", "normal-sticky-scope",
@@ -66,12 +74,16 @@ class VerifyDeviceTest(unittest.TestCase):
                     consumer.main()
                     self.assertEqual(len(list((root / "reports").glob("*/result.txt"))), 1)
                 else:
-                    expected = TimeoutError if scenario == "stale" else AssertionError
+                    expected = (consumer.verification.subprocess.CalledProcessError if scenario == "dump-command-failed"
+                                else TimeoutError if scenario == "stale" else AssertionError)
                     with self.assertRaises(expected):
                         consumer.main()
                     self.assertEqual(list((root / "reports").glob("*/result.txt")), [])
             if scenario == "wrong-api":
                 self.assertFalse(any("install" in command for command in commands))
+            if scenario in ("dump-failed", "dump-command-failed"):
+                self.assertFalse(any("cat" in command for command in commands))
+                self.assertEqual(len(list((root / "reports").glob("*/ui-dump.txt"))), 1)
 
     def test_current_pass_requires_matching_ui(self):
         self.run_driver("passed")
@@ -87,6 +99,15 @@ class VerifyDeviceTest(unittest.TestCase):
 
     def test_wrong_api_is_rejected_before_install(self):
         self.run_driver("wrong-api")
+
+    def test_ui_dump_error_does_not_read_or_accept_a_hierarchy(self):
+        self.run_driver("dump-failed")
+
+    def test_missing_hierarchy_does_not_create_success_report(self):
+        self.run_driver("missing-ui")
+
+    def test_ui_dump_command_failure_preserves_output(self):
+        self.run_driver("dump-command-failed")
 
 
 if __name__ == "__main__":

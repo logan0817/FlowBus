@@ -54,11 +54,24 @@ def run_self_check(description, *, package, activity, tag, phases, report_dir, e
         if f"FAIL runId={run_id}" in logs:
             raise AssertionError(f"本次设备自检失败，证据见 {report}")
         if expected in logs:
-            ui_path = "/sdcard/flowbus-" + tag.lower() + "-current.xml"
-            adb("shell", "uiautomator", "dump", ui_path)
+            # 使用 shell 临时目录，避免旧模拟器依赖共享存储；runId 隔离旧层级文件。
+            ui_path = f"/data/local/tmp/flowbus-{tag.lower()}-{run_id}.xml"
+            try:
+                dump = adb("shell", "uiautomator", "dump", ui_path)
+            except subprocess.CalledProcessError as error:
+                (report / "ui-dump.txt").write_text(error.output or "")
+                raise
+            (report / "ui-dump.txt").write_text(dump)
+            # 旧平台的 adb shell 可能返回 0，但 uiautomator 实际已失败。
+            if "ERROR:" in dump:
+                raise AssertionError(f"UI 层级采集失败，证据见 {report}")
             ui = adb("shell", "cat", ui_path)
             (report / "current-ui.xml").write_text(ui)
-            texts = [node.get("text", "") for node in ET.fromstring(ui).iter("node") if node.get("package") == package]
+            try:
+                hierarchy = ET.fromstring(ui)
+            except ET.ParseError as error:
+                raise AssertionError(f"UI 层级文件缺失或无效，证据见 {report}") from error
+            texts = [node.get("text", "") for node in hierarchy.iter("node") if node.get("package") == package]
             if not all(any(value in text for text in texts) for value in (expected, *phases)):
                 raise AssertionError(f"本次日志与前台 UI 不一致，证据见 {report}")
             (report / "result.txt").write_text(expected + os.linesep)

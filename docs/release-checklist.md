@@ -54,6 +54,8 @@ API 35 UI 门禁通过 `bash compatibility/run-api35.sh` 显式唤醒模拟器�
 
 Google 模拟器的 Launcher ANR 系统窗口可能抢占示例焦点。测试规则在启动前检查窗口状态，仅在发现 `Application Not Responding: com.google.android.apps.nexuslauncher` 时保留现场并停止该 Launcher 进程，再正常启动示例。目标应用 ANR、其他系统错误和 Espresso 焦点断言仍按原规则失败；恢复环境本身不代表测试通过。
 
+消费者共用设备协议将 UI 层级写入 `/data/local/tmp/` 下包含本次 runId 的文件，避免依赖旧模拟器共享存储或读到上次层级。采集输出保存在 `ui-dump.txt`；命令失败、输出 ERROR、层级缺失或 XML 无效均不能通过。出现采集失败时先检查该输出，再核对 `current.log` 和 `current-ui.xml`，不能仅凭日志 PASS 认定验收成功。
+
 CI 的 SDK 初始化显式选择 `platform-tools`，命令行工具由 setup-android Action 准备；不要恢复其包含已下架 `tools` 包的默认安装列表。平台和 Build Tools 版本由后续安装步骤指定。
 
 当前候选的远端状态见 [PR #4 的 CI 检查](https://github.com/logan0817/FlowBus/pull/4/checks)。本机无 API 21 image，最低系统验收依赖远端设备。发布前必须核对最终提交的完整 CI 成功状态、API 21 实际设备身份和全部消费者报告；启动、排队或旧提交通过均不能替代。其余已测组合及未认证工具链见[兼容性评估](next-version-plan.md#兼容性评估)。
