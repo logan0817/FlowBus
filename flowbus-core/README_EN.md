@@ -2,7 +2,7 @@ Chinese document [中文文档](./README.md)
 
 # flowbus-core
 
-`flowbus-core` is the platform-neutral core module of FlowBus.
+`flowbus-core` is the Android-independent Kotlin/JVM core of FlowBus. It does not currently publish Kotlin Multiplatform artifacts.
 
 Built on Kotlin Coroutines and Flow, it provides:
 
@@ -36,7 +36,7 @@ If you are building an Android app, the Android adapter is usually the faster st
 4. If one payload type needs multiple channels, use `eventChannel<T>("name")` or an explicit `eventName`.
 5. `EventChannel` is better for stable reusable business channels, while event extension helpers are better for shorter send calls.
 6. `scoped(...)` gives you a shared named scope view, while `openScope(...)` gives you a scope handle with explicit lifecycle.
-7. `post*` / `send()` try immediately and return `Boolean`; switch to `emit*` / `awaitSend*` if silent failure is not acceptable.
+7. `post*` / `send()` try immediately and return `Boolean`; `emit*` / `awaitSend*` are suspending APIs that still follow the configured overflow policy and do not guarantee delivery.
 8. `tryPost*Result` returns bus-layer diagnostics; `consumeStickyLatest(...)` only reads and clears current sticky replay.
 9. `DefaultFlowBus.configure(...)` / `install(...)` must happen before the first real use.
 
@@ -49,7 +49,7 @@ Cleanup APIs have 2 extra rules:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.0.7") // Use 1.0.7 after release; the badge above is the source of truth.
+implementation("io.github.logan0817:flowbus-core:1.1.0") // 1.1.0 is unreleased; use after publication. Published baseline: 1.0.7.
 ```
 
 ## Start with the shortest path
@@ -59,23 +59,29 @@ For a first pass, only remember these 4 patterns:
 1. Send on the default singleton: `DefaultFlowBus.post(MyEvent(...))`
 2. Subscribe on the default singleton: `DefaultFlowBus.flow<MyEvent>()`
 3. If you prefer the “event sends itself” style, use `MyEvent(...).send()`
-4. If silent send failure is not acceptable, switch from `post(...)` / `send()` to `emit(...)` / `awaitSend()`
+4. Use `emit(...)` / `awaitSend()` when `SUSPEND` should wait for active subscribers to make buffer space
 
 Smallest usable example:
 
 ```kotlin
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
+
 data class SyncFinishedEvent(val taskId: String)
 
-DefaultFlowBus.post(SyncFinishedEvent(taskId = "task-1"))
-
-scope.launch {
+scope.launch(start = CoroutineStart.UNDISPATCHED) {
     DefaultFlowBus.flow<SyncFinishedEvent>().collect { event ->
         handle(event.taskId)
     }
 }
+
+DefaultFlowBus.post(SyncFinishedEvent(taskId = "task-1"))
 ```
 
-Use `send()` if you prefer the “event sends itself” style. Use `awaitSend()` if delivery must succeed before continuing.
+Use `send()` if you prefer the “event sends itself” style. Use `awaitSend()` for suspending emission under the configured policy.
+
+Here `scope` is an active `CoroutineScope` managed by the caller. When collecting this library's normal Flow directly, `CoroutineStart.UNDISPATCHED` executes collection to its first suspension before sending. It is not a subscription-readiness guarantee for arbitrary upstream Flows: suspending initialization, `flowOn`, buffering operators, or lifecycle gates can delay the actual subscription. Confirm readiness for the specific pipeline.
 
 If you want to replace the default singleton configuration, call `DefaultFlowBus.configure(...)` or `install(...)` before the first real use.
 
@@ -103,13 +109,13 @@ Example:
 ```kotlin
 val bus = FlowBus()
 
-bus.post(SyncFinishedEvent(taskId = "task-1"))
-
-scope.launch {
+scope.launch(start = CoroutineStart.UNDISPATCHED) {
     bus.flow<SyncFinishedEvent>().collect { event ->
         handle(event.taskId)
     }
 }
+
+bus.post(SyncFinishedEvent(taskId = "task-1"))
 ```
 
 In that case, all events stay inside this `bus` instance and never mix with `DefaultFlowBus`.
@@ -124,19 +130,19 @@ Promote the channel itself to a first-class object when either case applies:
 ```kotlin
 val toastChannel = eventChannel<String>("ui.toast")
 
-toastChannel.post("Saved")
-
-scope.launch {
+scope.launch(start = CoroutineStart.UNDISPATCHED) {
     toastChannel.flow().collect { message ->
         showToast(message)
     }
 }
 
-scope.launch {
+scope.launch(start = CoroutineStart.UNDISPATCHED) {
     toastChannel.collect { message ->
         showToast(message)
     }
 }
+
+toastChannel.post("Saved")
 ```
 
 If you created your own bus, you can also target it explicitly:
@@ -145,19 +151,19 @@ If you created your own bus, you can also target it explicitly:
 val bus = FlowBus()
 val toastChannel = eventChannel<String>("ui.toast")
 
-toastChannel.postOn(bus, "Saved")
-
-scope.launch {
+scope.launch(start = CoroutineStart.UNDISPATCHED) {
     toastChannel.flowOn(bus).collect { message ->
         showToast(message)
     }
 }
 
-scope.launch {
+scope.launch(start = CoroutineStart.UNDISPATCHED) {
     toastChannel.collectOn(bus) { message ->
         showToast(message)
     }
 }
+
+toastChannel.postOn(bus, "Saved")
 ```
 
 ### When to use `eventChannel` vs plain `eventName`
@@ -201,13 +207,13 @@ Good for:
 ```kotlin
 val featureBus = DefaultFlowBus.scoped("feature-a")
 
-featureBus.post(FeatureRefreshEvent(reason = "manual"))
-
-scope.launch {
+scope.launch(start = CoroutineStart.UNDISPATCHED) {
     featureBus.flow<FeatureRefreshEvent>().collect { event ->
         refresh(event.reason)
     }
 }
+
+featureBus.post(FeatureRefreshEvent(reason = "manual"))
 ```
 
 ### `openScope(...)`
@@ -224,13 +230,13 @@ Good for:
 ```kotlin
 val syncScope = DefaultFlowBus.openScope("sync-task", closeWhen = scope)
 
-syncScope.post(SyncProgress(percent = 10))
-
-scope.launch {
+scope.launch(start = CoroutineStart.UNDISPATCHED) {
     syncScope.flow<SyncProgress>().collect { progress ->
         render(progress)
     }
 }
+
+syncScope.post(SyncProgress(percent = 10))
 ```
 
 If you want to finish it manually:
@@ -263,13 +269,13 @@ If you want to hold a stable key explicitly, or you need Java / lower-level inte
 val refreshKey = eventKey<FeatureRefreshEvent>("feature.refresh")
 val bus = FlowBus()
 
-bus.post(refreshKey, FeatureRefreshEvent(reason = "manual"))
-
-scope.launch {
+scope.launch(start = CoroutineStart.UNDISPATCHED) {
     bus.flow(refreshKey).collect { event ->
         refresh(event.reason)
     }
 }
+
+bus.post(refreshKey, FeatureRefreshEvent(reason = "manual"))
 ```
 
 `EventChannel<T>` can always be converted back to `EventKey<T>`:
@@ -287,7 +293,7 @@ val key = channel.asEventKey()
 | Multi-instance isolation | `FlowBus()` | each instance owns its own root bus and scopes | test isolation, tenant isolation, repository-owned lifecycle |
 | Shortest non-suspending send | `post(...)` / `send()` | tries to write immediately and returns `Boolean` | lightweight broadcasts where occasional dropping is acceptable |
 | Diagnostic send result | `tryPostResult(...)` / `tryPostStickyResult(...)` | returns subscriber count, overflow policy, sticky replay count, and outcome | logs, tests, send-failure investigation |
-| Guarantee delivery | `emit(...)` / `awaitSend()` | suspends until the underlying flow accepts the value | important notifications that must not be silently dropped |
+| Suspending send under configured policy | `emit(...)` / `awaitSend()` | backpressure with `SUSPEND` and active subscribers; still follows overflow policy | active broadcasts that should wait for buffer space |
 | Subscribe with FlowBus error handling | `collect(...)` / `collectSticky(...)` | applies the logger and error handler from `FlowBusConfig` | avoiding repeated try/catch and logging boilerplate |
 | Compose Flow operators yourself | `flow(...)` / `stickyFlow(...)` | returns the raw `Flow<T>` | `map`, `filter`, `debounce`, `combine`, and custom collection |
 | Named channel | `eventChannel<T>("name")` | binds the event name and type into a stable object | same-type events with different meanings, reuse across files, public business channels |
@@ -317,7 +323,7 @@ val sessionScope = DefaultFlowBus.openScope("session")
 MyEvent(...).sendOn(sessionScope)
 ```
 
-### Delivery must succeed
+### Suspending send under the configured policy
 
 ```kotlin
 scope.launch {
@@ -348,11 +354,44 @@ if (!result.accepted) {
 | Result | Meaning | What to do |
 | --- | --- | --- |
 | `accepted = true` | `tryEmit` did not immediately reject this call | treat it only as bus-layer acceptance; add a business ACK or state update if business completion matters |
-| `accepted = false` | the underlying flow rejected this non-suspending write | use `emit(...)` for important events, or inspect buffer, subscribers, and overflow policy |
+| `accepted = false` | the underlying flow rejected this non-suspending write | inspect buffer, subscribers, and overflow policy; use `emit(...)` to wait under `SUSPEND` |
 | `AcceptedWithDropOldestPolicy` | the new value may overwrite an older value | use only for discardable refresh-style notifications |
-| `AcceptedWithDropLatestPolicy` | the call may be accepted, but the current value still may not enter the buffer | do not treat it as reliable delivery; use suspending send or a business queue if reliability matters |
+| `AcceptedWithDropLatestPolicy` | the call may be accepted, but the current value still may not enter the live buffer | `emit(...)` does not change this policy; use business state, a database, or persistent tasks for reliability |
 
 It does not mean subscribers already handled the event. `DROP_OLDEST` / `DROP_LATEST` are not reliable-queue policies.
+
+## Next-version suspend collection (unreleased)
+
+Candidate source adds separately named suspend-callback APIs and retains existing `collect` / `collectSticky` APIs. These APIs are not in published `1.0.7` and target candidate 1.1.0 without adding dependencies or raising base toolchain requirements.
+
+`FlowBus`, `DefaultFlowBus`, `ScopedFlowBus`, and `FlowBusScope` provide `collectSuspending` / `collectStickySuspending` with `EventKey<T>` and reified variants. Core `EventChannel<T>` provides `collectSuspending` / `collectStickySuspending` on the default instance and `collectSuspendingOn` / `collectStickySuspendingOn` for an explicit `FlowBus`, `ScopedFlowBus`, or `FlowBusScope`.
+
+```kotlin
+import com.logan.flowbus.core.FlowBus
+import com.logan.flowbus.core.eventKey
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.launch
+
+val bus = FlowBus()
+val refreshKey = eventKey<SyncFinishedEvent>("sync.finished")
+
+val subscription = scope.launch(start = CoroutineStart.UNDISPATCHED) {
+    bus.collectSuspending(refreshKey) { event ->
+        refreshSuspending(event.taskId)
+    }
+}
+bus.post(refreshKey, SyncFinishedEvent(taskId = "task-1"))
+
+// Call subscription.cancel() when its business lifecycle ends; this does not close the bus.
+```
+
+`scope` is an active caller-managed coroutine scope, and `refreshSuspending` is application suspend work. Without a dispatcher and with direct collection, UNDISPATCHED reaches collection suspension before sending; other upstream pipelines still require readiness checks. Import `com.logan.flowbus.core.collectSuspending` for the reified extension or the corresponding channel extension such as `collectSuspendingOn`.
+
+Callbacks execute sequentially within each subscription. The API does not launch per-event work concurrently or use `collectLatest`. An explicit dispatcher changes the callback context while preserving sequence; otherwise the current collection context is used. Separate subscriptions are not globally serialized. Suspend callbacks do not change broadcast, buffering, dropping, sticky replay, or business acknowledgement semantics.
+
+Type validation, logger, and errorHandler are shared with existing APIs. Ordinary callback exceptions are logged and passed to the instance errorHandler. Default `Rethrow` terminates that collection; collection continues only when the handler returns normally. A handler's own failure propagates. `CancellationException` propagates directly without entering the bus error policy. Cancelling the subscription requests callback cancellation; blocking or NonCancellable work cannot be forcibly stopped, and cancellation does not roll back side effects.
+
+Closing a `FlowBusScope` does not actively cancel subscriptions holding old Flow references, but starting collection through a closed handle fails. Bus/scope lifecycle remains with its owner; subscriptions do not acquire close ownership.
 
 ## How to choose subscription APIs
 
@@ -498,20 +537,20 @@ Good for:
 
 Characteristics:
 
-1. suspending
-2. respects backpressure
-3. does not silently drop because `tryEmit` failed
+1. Suspending, but follows the configured `overflowPolicy`; it does not turn a dropping policy into `SUSPEND`.
+2. With `SUSPEND` and active subscribers, it can wait for buffer space and apply backpressure.
+3. `DROP_OLDEST` can still drop older values, and `DROP_LATEST` can still drop the current live value.
+4. Normal events complete immediately without subscribers and are not retained for future subscribers. Emission completion does not mean callback or business completion.
 
-Good for:
-
-1. more important events
-2. flows where delivery must complete before continuing
+Use it for active broadcasts that should wait under the configured policy. Use business state, a database, or persistent tasks when operations must survive process death or confirm business success.
 
 ## Sticky events
 
 Sticky events are for “late subscribers should still see the latest value”.
 
 Replay means the latest-value cache stored inside the sticky channel. It solves “I subscribed late but still need the latest result”, but it should not become long-lived state management. Keep page state, form state, and complex business state in `StateFlow`, a database, or a business state machine.
+
+Sticky replay is managed separately from live broadcast. After the underlying send is accepted, the independent replay cache is committed. With `DROP_LATEST`, the live buffer can drop the current value while `tryEmit` still returns `true`, so that value can still enter replay. For example, a slow live subscriber may receive `[1, 2]` while a new subscriber first reads `3`. This is the existing contract: live reception does not determine replay, and replay is not a receipt or business-completion record. `emitSticky(...)` also follows the configured overflow policy.
 
 | State | Recommended API | Can late subscribers read the latest value | Clears replay | Good for | Boundary |
 | --- | --- | --- | --- | --- | --- |
@@ -572,9 +611,7 @@ sealed interface SyncEvent {
     data object Finish : SyncEvent
 }
 
-DefaultFlowBus.post(SyncEvent.Start)
-
-scope.launch {
+scope.launch(start = CoroutineStart.UNDISPATCHED) {
     DefaultFlowBus.flow<SyncEvent>().collect { event ->
         when (event) {
             SyncEvent.Start -> onStart()
@@ -583,6 +620,8 @@ scope.launch {
         }
     }
 }
+
+DefaultFlowBus.post<SyncEvent>(SyncEvent.Start)
 ```
 
 ## Default singleton configuration
@@ -655,12 +694,18 @@ Close API comparison:
 | API | Invalidates the handle immediately | Waits for store cleanup | Best for | Check first if it behaves unexpectedly |
 | --- | --- | --- | --- | --- |
 | `close()` | Yes | No | UI code, lifecycle callbacks, and cases that only need to stop using the current handle | whether a started send or flow lookup is still running |
-| `closeSuspending()` | Yes | Yes | coroutine code that must wait for cleanup | whether a suspending send is stuck behind backpressure |
-| `tryClose(timeoutMillis)` | Yes | Up to the timeout | tests, shutdown flows, and explicit timeout handling | whether the timeout is too short, or a collector is blocking send completion |
+| `closeSuspending()` | When initiating closure, rejects new operations first; `isClosed=false` while waiting for in-flight operations | Yes, cancellable waiting | coroutine code that must wait for cleanup | backpressured sends and which call initiated closure |
+| `tryClose(timeoutMillis)` | When initiating closure, rejects new operations first; `isClosed=false` while waiting for in-flight operations | Up to the timeout | tests, shutdown flows, and explicit timeout handling | timeout duration and whether an earlier close invalidated the handle |
 
 If the scope follows an outer lifecycle, prefer `openScope(name, closeWhen = job)` or `bindTo(job)` so the scope is not forgotten.
 
-If a close result reports `ClosingInProgress`, another close call is already handling that scope and this call did not take over.
+If a close result reports `ClosingInProgress`, another waiting API initiated closure and is still waiting for in-flight operations. This call did not take over. New sends and flow lookups are rejected during this stage, but `isClosed` remains `false`, preserving the 1.0.7 state semantics.
+
+Cancellation in the unreleased revision: if `closeSuspending()` initiates closure and is cancelled before store cleanup is prepared, and no permanent close request has arrived, that wait is withdrawn and the scope becomes usable again for a later retry. If `close()` or a lifecycle binding already invalidated the handle and prepared closure, `closeSuspending()` only waits for that closure: cancellation ends this caller's wait without restoring the handle or undoing cleanup. Cancellation after cleanup preparation does not roll back closure either. Explicit `close()`, `removeScope()`, and bound Job completion requests arriving during the wait are retained: cancelling the initiating waiter still proceeds with closure instead of restoring the scope. Waiting suspends cancellably without blocking a thread on a condition variable.
+
+Calling `close()` during another closing wait retains a permanent close request while new operations are already rejected. `isClosed` follows the initiating wait's existing state until successful waiting, cancellation, timeout, or interruption prepares cleanup.
+
+`tryClose(timeoutMillis)` restores the scope after a timeout while its own closure waits for in-flight operations if no permanent close request has arrived; a timeout waiting for a prepared `close()` or lifecycle closure only means cleanup has not finished. Explicit `close()`, `removeScope()`, and bound Job completion requests arriving during the wait are retained through timeout or thread interruption.
 
 What it does not do:
 

@@ -40,11 +40,14 @@ class FlowBus(
     private val scopedStores = ConcurrentHashMap<String, ScopedStoreEntry>()
     private val openScopes = ConcurrentHashMap<String, FlowBusScope>()
     private val scopeRegistryLock = Any()
+    // API 21–23 没有 ConcurrentHashMap.compute*；仅在此锁内更新 store 映射和 closing 状态。
+    // 持有此锁时不获取 registry/operation 锁，避免关闭与新操作形成反向锁顺序。
+    private val scopedStoreLock = Any()
 
     /**
      * 尝试向根总线发送普通事件。
      *
-     * 返回 `false` 表示当前共享流未能立刻接收该事件；如果你需要挂起直到发送成功，
+     * 返回 `false` 表示当前共享流未能立刻接收该事件；如果你需要按既定溢出策略执行挂起发送，
      * 请改用 [emit]。
      */
     fun <T : Any> post(key: EventKey<T>, value: T): Boolean {
@@ -59,7 +62,7 @@ class FlowBus(
     }
 
     /**
-     * 挂起直到普通事件成功发送到根总线。
+     * 按既定溢出策略发送普通事件到根总线；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
      */
     suspend fun <T : Any> emit(key: EventKey<T>, value: T) {
         rootStore.emit(key = key, value = value, isSticky = false)
@@ -68,7 +71,7 @@ class FlowBus(
     /**
      * 尝试向根总线发送粘性事件。
      *
-     * 返回 `false` 表示当前共享流未能立刻接收该事件；如果你需要挂起直到发送成功，
+     * 返回 `false` 表示当前共享流未能立刻接收该事件；如果你需要按既定溢出策略执行挂起发送，
      * 请改用 [emitSticky]。
      */
     fun <T : Any> postSticky(key: EventKey<T>, value: T): Boolean {
@@ -83,7 +86,7 @@ class FlowBus(
     }
 
     /**
-     * 挂起直到粘性事件成功发送到根总线。
+     * 按既定溢出策略发送粘性事件到根总线；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
      */
     suspend fun <T : Any> emitSticky(key: EventKey<T>, value: T) {
         rootStore.emit(key = key, value = value, isSticky = true)
@@ -117,6 +120,22 @@ class FlowBus(
         )
     }
 
+    /** 按顺序执行可挂起回调，沿用当前总线的类型校验、日志和错误策略。 */
+    suspend fun <T : Any> collectSuspending(
+        key: EventKey<T>,
+        dispatcher: CoroutineDispatcher? = null,
+        onReceived: suspend (T) -> Unit
+    ) {
+        collectFlowBusSuspendingSequentially(
+            flow = flow(key),
+            eventKey = key,
+            dispatcher = dispatcher,
+            logger = config.logger,
+            errorHandler = config.errorHandler,
+            onReceived = onReceived
+        )
+    }
+
     /**
      * 按顺序收集根总线中的粘性事件，并自动使用当前 [config] 的日志和错误处理策略。
      */
@@ -126,6 +145,23 @@ class FlowBus(
         onReceived: (T) -> Unit
     ) {
         collectFlowBusSequentially(
+            flow = stickyFlow(key),
+            eventKey = key,
+            isSticky = true,
+            dispatcher = dispatcher,
+            logger = config.logger,
+            errorHandler = config.errorHandler,
+            onReceived = onReceived
+        )
+    }
+
+    /** 按顺序执行可挂起回调，沿用当前总线的类型校验、日志和错误策略。 */
+    suspend fun <T : Any> collectStickySuspending(
+        key: EventKey<T>,
+        dispatcher: CoroutineDispatcher? = null,
+        onReceived: suspend (T) -> Unit
+    ) {
+        collectFlowBusSuspendingSequentially(
             flow = stickyFlow(key),
             eventKey = key,
             isSticky = true,
@@ -358,14 +394,15 @@ class FlowBus(
 
     private fun getScopedStore(scopeName: String): FlowBusStore {
         require(scopeName.isNotBlank()) { "scopeName must not be blank" }
-        val entry = scopedStores.compute(scopeName) { _, existing ->
+        val entry = synchronized(scopedStoreLock) {
+            val existing = scopedStores[scopeName]
             if (existing == null || existing.isClosing) {
-                ScopedStoreEntry(FlowBusStore(config))
+                ScopedStoreEntry(FlowBusStore(config)).also { scopedStores[scopeName] = it }
             } else {
                 existing
             }
         }
-        return requireNotNull(entry).store
+        return entry.store
     }
 
     private fun scopedWithStore(scopeName: String, store: FlowBusStore): ScopedFlowBus {
@@ -386,15 +423,14 @@ class FlowBus(
 
     private fun prepareScopeClose(scopeName: String, scope: FlowBusScope): () -> Unit {
         require(scopeName.isNotBlank()) { "scopeName must not be blank" }
-        var closingEntry: ScopedStoreEntry? = null
-        scopedStores.computeIfPresent(scopeName) { _, existing ->
-            existing.isClosing = true
-            closingEntry = existing
-            existing
+        val closingEntry = synchronized(scopedStoreLock) {
+            scopedStores[scopeName]?.also { it.isClosing = true }
         }
         return {
             closingEntry?.let { entry ->
-                scopedStores.remove(scopeName, entry)
+                synchronized(scopedStoreLock) {
+                    scopedStores.remove(scopeName, entry)
+                }
                 entry.store.clearAll()
             }
             synchronized(scopeRegistryLock) {
@@ -404,7 +440,8 @@ class FlowBus(
     }
 
     private fun removeScopedStore(scopeName: String) {
-        scopedStores.remove(scopeName)?.store?.clearAll()
+        val entry = synchronized(scopedStoreLock) { scopedStores.remove(scopeName) }
+        entry?.store?.clearAll()
     }
 
     private data class ScopedStoreEntry(

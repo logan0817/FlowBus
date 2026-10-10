@@ -1,4 +1,6 @@
 import org.gradle.plugins.signing.Sign
+import org.gradle.api.publish.maven.tasks.PublishToMavenLocal
+import org.gradle.api.publish.maven.tasks.PublishToMavenRepository
 
 val mavenLocalPublishTasks = listOf(
     ":flowbus-core:publishToMavenLocal",
@@ -11,7 +13,10 @@ val mavenCentralPublishTasks = listOf(
 val artifactGroup = providers.gradleProperty("GROUP").get()
 val artifactVersion = providers.gradleProperty("VERSION_NAME").get()
 val groupPath = artifactGroup.replace('.', '/')
-val mavenLocalRoot = file("${System.getProperty("user.home")}/.m2/repository/$groupPath")
+val mavenRepositoryRoot = System.getProperty("maven.repo.local")
+    ?.let { file(it) }
+    ?: file("${System.getProperty("user.home")}/.m2/repository")
+val mavenLocalRoot = mavenRepositoryRoot.resolve(groupPath)
 val coreArtifactDir = mavenLocalRoot.resolve("flowbus-core/$artifactVersion")
 val androidArtifactDir = mavenLocalRoot.resolve("flowbus/$artifactVersion")
 
@@ -23,6 +28,13 @@ fun Project.remoteMavenPublicationRequested(): Boolean =
     }
 
 subprojects {
+    // 排序约束放在真正写仓库的叶任务上，聚合任务的约束不会传递给它的依赖。
+    tasks.withType<PublishToMavenLocal>().configureEach {
+        mustRunAfter(rootProject.tasks.matching { it.name == "cleanMavenLocalArtifacts" })
+    }
+    tasks.withType<PublishToMavenRepository>().configureEach {
+        mustRunAfter(rootProject.tasks.named("clean"))
+    }
     plugins.withId("signing") {
         tasks.withType<Sign>().configureEach {
             onlyIf("remote Maven publication requires signatures") {
@@ -41,12 +53,6 @@ val cleanMavenLocalArtifacts = tasks.register("cleanMavenLocalArtifacts") {
     description = "Remove this release version from Maven local before publishing fresh artifacts."
     doLast {
         delete(coreArtifactDir, androidArtifactDir)
-    }
-}
-
-gradle.projectsEvaluated {
-    mavenLocalPublishTasks.forEach { taskPath ->
-        tasks.getByPath(taskPath).mustRunAfter(cleanMavenLocalArtifacts)
     }
 }
 

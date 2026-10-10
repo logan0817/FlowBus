@@ -44,3 +44,25 @@ inline fun <T> LifecycleOwner.collectEvent(
         }
     }
 }
+
+/**
+ * 按生命周期顺序执行任意 Flow 的挂起回调。
+ * 这是通用 Flow 工具，异常直接传播，不自动使用 FlowBus 的 logger/errorHandler。
+ * 收集显式总线并复用错误策略时使用 collectEventFromSuspending。
+ */
+@MainThread
+fun <T> LifecycleOwner.collectEventSuspending(
+    flow: Flow<T>,
+    dispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
+    minLifecycleState: Lifecycle.State = Lifecycle.State.STARTED,
+    onReceived: suspend (T) -> Unit
+): Job {
+    require(minLifecycleState != Lifecycle.State.INITIALIZED) {
+        "Lifecycle.State.INITIALIZED is not supported by repeatOnLifecycle. Use CREATED, STARTED, or RESUMED."
+    }
+    return lifecycleScope.launch {
+        repeatOnLifecycle(minLifecycleState) {
+            flow.collect { value -> withContext(dispatcher) { onReceived(value) } }
+        }
+    }
+}

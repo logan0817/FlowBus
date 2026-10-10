@@ -11,6 +11,7 @@ import com.logan.flowbus.core.EventKey
 import com.logan.flowbus.core.FlowBus
 import com.logan.flowbus.core.FlowBusPostResult
 import com.logan.flowbus.core.collectFlowBusSequentially
+import com.logan.flowbus.core.collectFlowBusSuspendingSequentially
 import com.logan.flowbus.core.eventKey
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -31,7 +32,7 @@ import kotlin.reflect.KClass
  * [FlowBusAndroid.configure]。
  */
 class FlowEventBus : ViewModel() {
-    private val bus = FlowBus(config = FlowBusAndroid.createFlowBusConfig())
+    private val bus = FlowBusAndroid.createFlowBus()
 
     /**
      * 以 `LifecycleOwner` 感知的方式订阅当前总线中的事件。
@@ -136,6 +137,50 @@ class FlowEventBus : ViewModel() {
     }
 
     /**
+     * 按生命周期顺序执行挂起订阅回调，使用当前实例的日志与错误策略。
+     * 离开活跃阶段会请求取消当前处理；阻塞或 NonCancellable 工作仍需自行结束。取消异常继续传播，不作为订阅错误报告。
+     */
+    @MainThread
+    fun <T : Any> subscribeEventSuspending(
+        lifecycleOwner: LifecycleOwner,
+        eventName: String,
+        valueType: KClass<T>,
+        startState: Lifecycle.State = Lifecycle.State.STARTED,
+        dispatcher: CoroutineDispatcher,
+        isSticky: Boolean,
+        onReceived: suspend (T) -> Unit
+    ): Job {
+        require(startState != Lifecycle.State.INITIALIZED) {
+            "Lifecycle.State.INITIALIZED is not supported by repeatOnLifecycle. Use CREATED, STARTED, or RESUMED."
+        }
+        return lifecycleOwner.lifecycleScope.launch {
+            lifecycleOwner.repeatOnLifecycle(startState) {
+                subscribeEventSuspending(eventName, valueType, isSticky, dispatcher, onReceived)
+            }
+        }
+    }
+
+    /** 在调用方协程内顺序执行挂起回调；调用方负责订阅生命周期。 */
+    suspend fun <T : Any> subscribeEventSuspending(
+        eventName: String,
+        valueType: KClass<T>,
+        isSticky: Boolean = false,
+        dispatcher: CoroutineDispatcher? = null,
+        onReceived: suspend (T) -> Unit
+    ) {
+        val key = eventKey(name = eventName, valueType = valueType)
+        collectFlowBusSuspendingSequentially(
+            flow = if (isSticky) bus.stickyFlow(key) else bus.flow(key),
+            eventKey = key,
+            isSticky = isSticky,
+            dispatcher = dispatcher,
+            logger = bus.config.logger,
+            errorHandler = bus.config.errorHandler,
+            onReceived = onReceived
+        )
+    }
+
+    /**
      * 向当前总线发送事件。
      *
      * 这是 best-effort 发送：如果底层缓冲无法立即接收，当前调用不会挂起等待。
@@ -208,9 +253,9 @@ class FlowEventBus : ViewModel() {
     }
 
     /**
-     * 挂起直到事件成功发送到当前总线。
+     * 按既定溢出策略发送事件到当前总线；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
      *
-     * 与 [post] 不同，该方法会遵循底层缓冲与背压策略，不会因为 `tryEmit` 失败而静默丢失。
+     * 与 [post] 不同，该方法会遵循底层缓冲与背压策略，SUSPEND 下可等待慢订阅者；DROP 策略仍允许丢弃，普通事件无订阅者时不保留。
      */
     suspend fun <T : Any> emit(
         eventName: String,
@@ -267,7 +312,7 @@ class FlowEventBus : ViewModel() {
         if (!accepted) {
             bus.config.logger.warn(
                 tag = "FlowBus",
-                message = "Dropped event '${eventKey.name}' because the buffer is full. Use emitEvent(...) for guaranteed delivery."
+                message = "Dropped event '${eventKey.name}' because the buffer is full. Use emitEvent(...) with SUSPEND for backpressure; delivery is not guaranteed."
             )
         }
         return accepted
@@ -277,7 +322,7 @@ class FlowEventBus : ViewModel() {
         if (!result.accepted) {
             bus.config.logger.warn(
                 tag = "FlowBus",
-                message = "Dropped event '${result.eventName}' because the buffer is full. Use emitEvent(...) for guaranteed delivery."
+                message = "Dropped event '${result.eventName}' because the buffer is full. Use emitEvent(...) with SUSPEND for backpressure; delivery is not guaranteed."
             )
         }
     }

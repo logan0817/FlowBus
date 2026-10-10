@@ -1,0 +1,100 @@
+import groovy.json.JsonOutput
+import java.security.MessageDigest
+import java.time.Duration
+
+plugins {
+    kotlin("jvm") version "@KOTLIN@"
+}
+
+kotlin { jvmToolchain(17) }
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+    kotlinOptions.jvmTarget = "1.8"
+}
+
+// 原版只从 Maven Central 解析；同坐标候选以绝对文件路径加入第二次运行。
+val releasedCore = configurations.create("releasedCore") {
+    isCanBeResolved = true
+    isCanBeConsumed = false
+    isTransitive = false
+}
+dependencies {
+    releasedCore("@GROUP@:flowbus-core:1.0.7")
+    implementation(files(releasedCore))
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:@STDLIB@")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:@COROUTINES@")
+}
+
+val mainSourceSet = sourceSets.main.get()
+val candidateJar = file("@CANDIDATE@")
+fun sha256(file: File): String = MessageDigest.getInstance("SHA-256")
+    .digest(file.readBytes()).joinToString("") { "%02x".format(it.toInt() and 255) }
+fun compiledClasses(): Map<String, String> = mainSourceSet.output.classesDirs.files
+    .sortedBy { it.absolutePath }.flatMap { directory ->
+        directory.walkTopDown().filter { it.isFile && it.extension == "class" }.map {
+            directory.name + "/" + it.relativeTo(directory).invariantSeparatorsPath to sha256(it)
+        }.toList()
+    }.toMap().toSortedMap()
+
+var originalClasses: Map<String, String>? = null
+val runReleased = tasks.register<JavaExec>("runReleased") {
+    dependsOn(tasks.named("classes"))
+    mainClass.set("com.logan.flowbus.binaryconsumer.BinaryCoreConsumer")
+    classpath = mainSourceSet.runtimeClasspath
+    doFirst {
+        layout.buildDirectory.file("reports/binary-compatibility.json").get().asFile.delete()
+        val released = releasedCore.singleFile.canonicalFile
+        check(candidateJar.isFile) { "Missing candidate JAR: $candidateJar" }
+        check(sha256(released) != sha256(candidateJar)) { "Original and candidate must differ." }
+        val classes = compiledClasses()
+        check(classes.isNotEmpty()) { "No compiled consumer classes." }
+        originalClasses = classes
+        systemProperty("flowbus.binary.expectedJar", released.absolutePath)
+    }
+}
+val runCandidate = tasks.register<JavaExec>("runCandidate") {
+    dependsOn(runReleased)
+    mainClass.set("com.logan.flowbus.binaryconsumer.BinaryCoreConsumer")
+    doFirst {
+        val released = releasedCore.singleFile.canonicalFile
+        // 不把原版留在运行图中；消费者 class 输出复用第一次编译的结果。
+        classpath = files(mainSourceSet.output,
+            configurations.runtimeClasspath.get().filter { it.canonicalFile != released },
+            candidateJar)
+        check(compiledClasses() == originalClasses) { "Consumer bytecode changed before candidate run." }
+        systemProperty("flowbus.binary.expectedJar", candidateJar.canonicalPath)
+    }
+    doLast {
+        check(compiledClasses() == originalClasses) { "Consumer bytecode changed after candidate run." }
+        val report = layout.buildDirectory.file("reports/binary-compatibility.json").get().asFile
+        report.parentFile.mkdirs()
+        report.writeText(JsonOutput.prettyPrint(JsonOutput.toJson(mapOf(
+            "baselineCoordinate" to "@GROUP@:flowbus-core:1.0.7",
+            "baselineJar" to releasedCore.singleFile.canonicalPath,
+            "baselineSha256" to sha256(releasedCore.singleFile),
+            "candidateJar" to candidateJar.canonicalPath,
+            "candidateSha256" to sha256(candidateJar),
+            "consumerKotlin" to "@KOTLIN@",
+            "requestedJava" to providers.gradleProperty("flowbus.consumer.expectedJava").orNull,
+            "sameCompiledClasses" to true,
+            "compiledClasses" to originalClasses,
+            "runtimeDependencies" to configurations.runtimeClasspath.get().files
+                .filter { it.canonicalFile != releasedCore.singleFile.canonicalFile }
+                .map { it.name }.sorted(),
+            "releasedRun" to "passed",
+            "candidateRun" to "passed"
+        ))))
+        logger.lifecycle("PASS unchanged consumer bytecode: " + report.absolutePath)
+    }
+}
+tasks.withType<JavaExec>().configureEach {
+    providers.gradleProperty("flowbus.consumer.java").orNull?.let { executable = it }
+    providers.gradleProperty("flowbus.consumer.expectedJava").orNull?.let {
+        systemProperty("flowbus.consumer.expectedJava", it)
+    }
+    timeout.set(Duration.ofSeconds(30))
+}
+tasks.register("verifyBinaryCompatibility") { dependsOn(runCandidate) }

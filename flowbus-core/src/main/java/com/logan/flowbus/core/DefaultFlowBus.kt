@@ -150,7 +150,7 @@ object DefaultFlowBus {
     }
 
     /**
-     * 挂起直到指定 key 的普通事件成功发送。
+     * 按既定溢出策略发送指定 key 的普通事件；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
      */
     suspend fun <T : Any> emit(key: EventKey<T>, value: T) {
         raw().emit(key = key, value = value)
@@ -171,7 +171,7 @@ object DefaultFlowBus {
     }
 
     /**
-     * 挂起直到指定 key 的粘性事件成功发送。
+     * 按既定溢出策略发送指定 key 的粘性事件；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
      */
     suspend fun <T : Any> emitSticky(key: EventKey<T>, value: T) {
         raw().emitSticky(key = key, value = value)
@@ -198,6 +198,15 @@ object DefaultFlowBus {
         raw().collect(key = key, dispatcher = dispatcher, onReceived = onReceived)
     }
 
+    /** 按顺序执行可挂起回调，沿用当前总线的类型校验、日志和错误策略。 */
+    suspend fun <T : Any> collectSuspending(
+        key: EventKey<T>,
+        dispatcher: CoroutineDispatcher? = null,
+        onReceived: suspend (T) -> Unit
+    ) {
+        raw().collectSuspending(key = key, dispatcher = dispatcher, onReceived = onReceived)
+    }
+
     /**
      * 按顺序收集指定 key 的粘性事件，并自动使用默认总线的错误处理配置。
      */
@@ -207,6 +216,15 @@ object DefaultFlowBus {
         onReceived: (T) -> Unit
     ) {
         raw().collectSticky(key = key, dispatcher = dispatcher, onReceived = onReceived)
+    }
+
+    /** 按顺序执行可挂起回调，沿用当前总线的类型校验、日志和错误策略。 */
+    suspend fun <T : Any> collectStickySuspending(
+        key: EventKey<T>,
+        dispatcher: CoroutineDispatcher? = null,
+        onReceived: suspend (T) -> Unit
+    ) {
+        raw().collectStickySuspending(key = key, dispatcher = dispatcher, onReceived = onReceived)
     }
 
     /**
@@ -255,7 +273,7 @@ object DefaultFlowBus {
     }
 
     /**
-     * 挂起直到普通事件成功发送。
+     * 按既定溢出策略发送普通事件；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
      */
     suspend inline fun <reified T : Any> emit(value: T, eventName: String = defaultEventName<T>()) {
         raw().emit<T>(value = value, eventName = eventName)
@@ -279,7 +297,7 @@ object DefaultFlowBus {
     }
 
     /**
-     * 挂起直到粘性事件成功发送。
+     * 按既定溢出策略发送粘性事件；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
      */
     suspend inline fun <reified T : Any> emitSticky(value: T, eventName: String = defaultEventName<T>()) {
         raw().emitSticky<T>(value = value, eventName = eventName)
@@ -307,6 +325,15 @@ object DefaultFlowBus {
         raw().collect<T>(eventName = eventName, dispatcher = dispatcher, onReceived = onReceived)
     }
 
+    /** 按顺序执行可挂起回调，沿用当前总线的类型校验、日志和错误策略。 */
+    suspend inline fun <reified T : Any> collectSuspending(
+        eventName: String = defaultEventName<T>(),
+        dispatcher: CoroutineDispatcher? = null,
+        noinline onReceived: suspend (T) -> Unit
+    ) {
+        raw().collectSuspending<T>(eventName = eventName, dispatcher = dispatcher, onReceived = onReceived)
+    }
+
     /**
      * 按顺序收集粘性事件，并自动使用默认总线的错误处理配置。
      */
@@ -316,6 +343,15 @@ object DefaultFlowBus {
         noinline onReceived: (T) -> Unit
     ) {
         raw().collectSticky<T>(eventName = eventName, dispatcher = dispatcher, onReceived = onReceived)
+    }
+
+    /** 按顺序执行可挂起回调，沿用当前总线的类型校验、日志和错误策略。 */
+    suspend inline fun <reified T : Any> collectStickySuspending(
+        eventName: String = defaultEventName<T>(),
+        dispatcher: CoroutineDispatcher? = null,
+        noinline onReceived: suspend (T) -> Unit
+    ) {
+        raw().collectStickySuspending<T>(eventName = eventName, dispatcher = dispatcher, onReceived = onReceived)
     }
 
     /**

@@ -24,7 +24,7 @@ fun <T : Any> EventChannel<T>.tryPostResult(value: T): FlowBusPostResult {
 }
 
 /**
- * 挂起直到普通事件成功发送到 [DefaultFlowBus] 的默认根总线。
+ * 按既定溢出策略发送普通事件到 [DefaultFlowBus] 的默认根总线；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
  */
 suspend fun <T : Any> EventChannel<T>.emit(value: T) {
     DefaultFlowBus.raw().emit(asEventKey(), value)
@@ -45,7 +45,7 @@ fun <T : Any> EventChannel<T>.tryPostStickyResult(value: T): FlowBusPostResult {
 }
 
 /**
- * 挂起直到粘性事件成功发送到 [DefaultFlowBus] 的默认根总线。
+ * 按既定溢出策略发送粘性事件到 [DefaultFlowBus] 的默认根总线；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
  */
 suspend fun <T : Any> EventChannel<T>.emitSticky(value: T) {
     DefaultFlowBus.raw().emitSticky(asEventKey(), value)
@@ -71,6 +71,14 @@ suspend fun <T : Any> EventChannel<T>.collect(
     DefaultFlowBus.raw().collect(key = asEventKey(), dispatcher = dispatcher, onReceived = onReceived)
 }
 
+/** 按顺序执行可挂起回调，沿用当前总线的类型校验、日志和错误策略。 */
+suspend fun <T : Any> EventChannel<T>.collectSuspending(
+    dispatcher: CoroutineDispatcher? = null,
+    onReceived: suspend (T) -> Unit
+) {
+    DefaultFlowBus.raw().collectSuspending(key = asEventKey(), dispatcher = dispatcher, onReceived = onReceived)
+}
+
 /**
  * 按顺序收集 [DefaultFlowBus] 默认根总线上的粘性事件。
  */
@@ -79,6 +87,14 @@ suspend fun <T : Any> EventChannel<T>.collectSticky(
     onReceived: (T) -> Unit
 ) {
     DefaultFlowBus.raw().collectSticky(key = asEventKey(), dispatcher = dispatcher, onReceived = onReceived)
+}
+
+/** 按顺序执行可挂起回调，沿用当前总线的类型校验、日志和错误策略。 */
+suspend fun <T : Any> EventChannel<T>.collectStickySuspending(
+    dispatcher: CoroutineDispatcher? = null,
+    onReceived: suspend (T) -> Unit
+) {
+    DefaultFlowBus.raw().collectStickySuspending(key = asEventKey(), dispatcher = dispatcher, onReceived = onReceived)
 }
 
 /**
@@ -172,6 +188,15 @@ suspend fun <T : Any> EventChannel<T>.collectOn(
     flowBus.collect(key = asEventKey(), dispatcher = dispatcher, onReceived = onReceived)
 }
 
+/** 按顺序执行可挂起回调，沿用当前总线的类型校验、日志和错误策略。 */
+suspend fun <T : Any> EventChannel<T>.collectSuspendingOn(
+    flowBus: FlowBus,
+    dispatcher: CoroutineDispatcher? = null,
+    onReceived: suspend (T) -> Unit
+) {
+    flowBus.collectSuspending(key = asEventKey(), dispatcher = dispatcher, onReceived = onReceived)
+}
+
 /**
  * 按顺序收集指定 [FlowBus] 上的粘性事件。
  */
@@ -181,6 +206,15 @@ suspend fun <T : Any> EventChannel<T>.collectStickyOn(
     onReceived: (T) -> Unit
 ) {
     flowBus.collectSticky(key = asEventKey(), dispatcher = dispatcher, onReceived = onReceived)
+}
+
+/** 按顺序执行可挂起回调，沿用当前总线的类型校验、日志和错误策略。 */
+suspend fun <T : Any> EventChannel<T>.collectStickySuspendingOn(
+    flowBus: FlowBus,
+    dispatcher: CoroutineDispatcher? = null,
+    onReceived: suspend (T) -> Unit
+) {
+    flowBus.collectStickySuspending(key = asEventKey(), dispatcher = dispatcher, onReceived = onReceived)
 }
 
 /**
@@ -274,6 +308,15 @@ suspend fun <T : Any> EventChannel<T>.collectOn(
     scopedFlowBus.collect(key = asEventKey(), dispatcher = dispatcher, onReceived = onReceived)
 }
 
+/** 按顺序执行可挂起回调，沿用当前总线的类型校验、日志和错误策略。 */
+suspend fun <T : Any> EventChannel<T>.collectSuspendingOn(
+    scopedFlowBus: ScopedFlowBus,
+    dispatcher: CoroutineDispatcher? = null,
+    onReceived: suspend (T) -> Unit
+) {
+    scopedFlowBus.collectSuspending(key = asEventKey(), dispatcher = dispatcher, onReceived = onReceived)
+}
+
 /**
  * 按顺序收集指定 [ScopedFlowBus] 上的粘性事件。
  */
@@ -283,6 +326,15 @@ suspend fun <T : Any> EventChannel<T>.collectStickyOn(
     onReceived: (T) -> Unit
 ) {
     scopedFlowBus.collectSticky(key = asEventKey(), dispatcher = dispatcher, onReceived = onReceived)
+}
+
+/** 按顺序执行可挂起回调，沿用当前总线的类型校验、日志和错误策略。 */
+suspend fun <T : Any> EventChannel<T>.collectStickySuspendingOn(
+    scopedFlowBus: ScopedFlowBus,
+    dispatcher: CoroutineDispatcher? = null,
+    onReceived: suspend (T) -> Unit
+) {
+    scopedFlowBus.collectStickySuspending(key = asEventKey(), dispatcher = dispatcher, onReceived = onReceived)
 }
 
 /**
@@ -376,6 +428,15 @@ suspend fun <T : Any> EventChannel<T>.collectOn(
     flowBusScope.collect(key = asEventKey(), dispatcher = dispatcher, onReceived = onReceived)
 }
 
+/** 按顺序执行可挂起回调，沿用当前总线的类型校验、日志和错误策略。 */
+suspend fun <T : Any> EventChannel<T>.collectSuspendingOn(
+    flowBusScope: FlowBusScope,
+    dispatcher: CoroutineDispatcher? = null,
+    onReceived: suspend (T) -> Unit
+) {
+    flowBusScope.collectSuspending(key = asEventKey(), dispatcher = dispatcher, onReceived = onReceived)
+}
+
 /**
  * 按顺序收集指定 [FlowBusScope] 上的粘性事件。
  */
@@ -385,6 +446,15 @@ suspend fun <T : Any> EventChannel<T>.collectStickyOn(
     onReceived: (T) -> Unit
 ) {
     flowBusScope.collectSticky(key = asEventKey(), dispatcher = dispatcher, onReceived = onReceived)
+}
+
+/** 按顺序执行可挂起回调，沿用当前总线的类型校验、日志和错误策略。 */
+suspend fun <T : Any> EventChannel<T>.collectStickySuspendingOn(
+    flowBusScope: FlowBusScope,
+    dispatcher: CoroutineDispatcher? = null,
+    onReceived: suspend (T) -> Unit
+) {
+    flowBusScope.collectStickySuspending(key = asEventKey(), dispatcher = dispatcher, onReceived = onReceived)
 }
 
 /**

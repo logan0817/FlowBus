@@ -3,6 +3,7 @@ package com.logan.flowbus
 import com.logan.flowbus.core.FlowBusConfig
 import com.logan.flowbus.core.FlowBusErrorHandler
 import com.logan.flowbus.core.FlowBusLogger
+import com.logan.flowbus.core.FlowBus
 
 /**
  * Android 层的 FlowBus 默认配置入口。
@@ -42,11 +43,12 @@ object FlowBusAndroid {
         }
     }
 
-    internal fun createFlowBusConfig(): FlowBusConfig {
-        synchronized(this) {
+    internal fun createFlowBus(): FlowBus {
+        return synchronized(this) {
             val config = flowBusConfigFactory.invoke()
+            val flowBus = FlowBus(config = config)
             hasCreatedFlowEventBus = true
-            return config
+            flowBus
         }
     }
 

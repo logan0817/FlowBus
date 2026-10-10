@@ -43,10 +43,49 @@ macOS / Linux：
 
 发布前请参考 [`docs/release-checklist.md`](./docs/release-checklist.md)。
 
+## 真实产物与消费者验证
+
+从项目根目录使用隔离 Maven 目录，避免替换用户已有本地产物：
+
+```bash
+./gradlew verifyMavenLocalArtifacts verifyMavenLocalCoreConsumer verifyMavenLocalBinaryCoreConsumer verifyMavenLocalConsumer verifyMavenLocalComposeConsumer "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8
+```
+
+构建仍用 JDK 17，Java 参数只选择已有 JDK 8 消费者运行环境。根 publishToMavenLocal 会先删除所选仓库中 flowbus-core/flowbus 的当前版本目录再发布；生成消费者使用 exclusiveContent 固定读取候选目录，不能回退远端旧产物。生成工程、日志和测试签名不得提交。
+
+| 入口 | 验证范围 |
+| --- | --- |
+| verifyMavenLocalArtifacts | JAR/AAR、POM/module metadata、公开依赖 scope、sources/javadoc、license/developer |
+| verifyMavenLocalCoreConsumer | 候选 core Kotlin/Java 编译与指定 JVM 运行 |
+| [verifyMavenLocalBinaryCoreConsumer](compatibility/core-binary-consumer/README.md) | 原版 1.0.7 编译、同一字节码在原版/候选运行、稳定 JVM 符号 |
+| [verifyMavenLocalConsumer](compatibility/android-consumer/README.md) | 普通 Android release R8、设备四阶段、Android AAR 公开符号 |
+| [verifyMavenLocalComposeConsumer](compatibility/compose-consumer/README.md) | 独立 Compose release R8、effect 与错误/取消设备自检 |
+| [可选 Navigation](compatibility/navigation-consumer/README.md) / [实际 NavHost](compatibility/navhost-consumer/README.md) | 返回栈、动画生命周期阈值与 Activity 配置重建 |
+
+消费者参数不会修改基础库：
+
+```bash
+./gradlew verifyMavenLocalCoreConsumer verifyMavenLocalConsumer "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.kotlinVersion=1.8.22 -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8
+./gradlew verifyMavenLocalConsumer "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.kotlinVersion=1.8.22 -Pflowbus.consumer.compileSdk=33
+./gradlew :flowbus-core:verifyCoreRuntime -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8
+```
+
+Kotlin 参数只选择 core/普通 Android 消费者编译器，不用于 Compose compiler 配对。已测组合、实际依赖解析和未认证范围统一见[兼容性评估](docs/next-version-plan.md#兼容性评估)。
+
+设备测试使用 :library-android:connectedDebugAndroidTest 与 :app:connectedReleaseAndroidTest，必须与 UI driver 串行。driver 要求当前 runId 日志、同包 UI 与全部阶段一致；mock 不替代设备执行。API 21 与远端 CI 仍为发布门禁，不能从 API 24 结果推导通过。完整环境和签名步骤见[发布清单](docs/release-checklist.md)。
+
 ## PR 要求
 
-1. PR 标题说明改动范围，例如 `core: fix scope close cleanup` 或 `docs: update quick start`。2. PR 描述包含目的、主要改动、验证命令和结果。3. 涉及行为变化时补充测试或说明无法补测的原因。4. 涉及公开 API、依赖版本或使用方式时同步更新 README、README_EN、KDoc、API 基线和发布说明。5. 不提交本地密钥、签名文件、IDE 私有配置和构建产物。6. 不在一个 PR 中混合无关格式化、重命名和功能变化。
+1. PR 标题说明改动范围，例如 `core: fix scope close cleanup` 或 `docs: update quick start`。
+2. PR 描述包含目的、主要改动、验证命令和结果。
+3. 涉及行为变化时补充测试或说明无法补测的原因。
+4. 涉及公开 API、依赖版本或使用方式时同步更新 README、README_EN、KDoc、API 基线和发布说明。
+5. 不提交本地密钥、签名文件、IDE 私有配置和构建产物。
+6. 不在一个 PR 中混合无关格式化、重命名和功能变化。
 
 ## 代码与文档风格
 
-1. Kotlin 代码保持现有命名、包结构和测试风格。2. Android 相关改动优先放在 `library-android` 或 `app`，平台无关逻辑优先放在 `flowbus-core`。3. 中文文档保持简洁，中文与英文、数字之间保留空格。4. 示例代码优先给出可直接复制运行的最小片段。
+1. Kotlin 代码保持现有命名、包结构和测试风格。
+2. Android 相关改动优先放在 `library-android` 或 `app`，平台无关逻辑优先放在 `flowbus-core`。
+3. 中文文档保持简洁，中文与英文、数字之间保留空格。
+4. 示例代码优先给出可直接复制运行的最小片段。

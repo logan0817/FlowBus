@@ -2,7 +2,7 @@
 
 # flowbus-core
 
-`flowbus-core` 是 FlowBus 的平台无关核心模块。
+`flowbus-core` 是 FlowBus 不依赖 Android 的 Kotlin/JVM 核心模块，目前不包含 Kotlin Multiplatform 产物。
 
 它基于 Kotlin Coroutines 与 Flow，提供：
 
@@ -36,7 +36,7 @@
 4. 同一类型要拆多个通道时，用 `eventChannel<T>("name")` 或显式 `eventName`。
 5. `EventChannel` 适合长期复用和公开语义，对象式发送扩展适合把发送调用写短，直接写 `eventName` 适合局部少量使用。
 6. `scoped(...)` 是共享命名视图，`openScope(...)` 是带显式生命周期的 scope 句柄。
-7. `post*` / `send()` 是立即尝试写入并返回 `Boolean`；不能接受静默失败时，改用 `emit*` / `awaitSend*`。
+7. `post*` / `send()` 立即尝试写入并返回 `Boolean`；`emit*` / `awaitSend*` 是挂起入口，仍遵循既定溢出策略，不提供可靠投递保证。
 8. `tryPost*Result` 返回总线层诊断结果；`consumeStickyLatest(...)` 只读取并清理当前 sticky replay。
 9. `DefaultFlowBus.configure(...)` / `install(...)` 必须在第一次真正使用前完成。
 
@@ -49,7 +49,7 @@
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.0.7")  // 发布后可使用 1.0.7，实际 latest 以上方徽章为准
+implementation("io.github.logan0817:flowbus-core:1.1.0")  // 1.1.0 尚未发布；正式发布后可使用，当前已发布基准为 1.0.7
 ```
 
 ## 先看最短路径
@@ -59,23 +59,29 @@ implementation("io.github.logan0817:flowbus-core:1.0.7")  // 发布后可使用 
 1. 默认单例发送：`DefaultFlowBus.post(MyEvent(...))`
 2. 默认单例订阅：`DefaultFlowBus.flow<MyEvent>()`
 3. 偏好“事件自己发送自己”的写法：`MyEvent(...).send()`
-4. 不能接受静默失败时：把 `post(...)` / `send()` 换成 `emit(...)` / `awaitSend()`
+4. 需要在 `SUSPEND` 策略下等待活跃订阅者腾出缓冲时，使用 `emit(...)` / `awaitSend()`
 
 最短可用示例：
 
 ```kotlin
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
+
 data class SyncFinishedEvent(val taskId: String)
 
-DefaultFlowBus.post(SyncFinishedEvent(taskId = "task-1"))
-
-scope.launch {
+scope.launch(start = CoroutineStart.UNDISPATCHED) {
     DefaultFlowBus.flow<SyncFinishedEvent>().collect { event ->
         handle(event.taskId)
     }
 }
+
+DefaultFlowBus.post(SyncFinishedEvent(taskId = "task-1"))
 ```
 
-对象式发送就用 `send()`；必须保证写入成功就用 `awaitSend()`。
+对象式发送就用 `send()`；需要遵循配置进行挂起发送时用 `awaitSend()`。
+
+示例中的 `scope` 是调用方管理的活跃 `CoroutineScope`。直接收集本库普通 Flow 时，`CoroutineStart.UNDISPATCHED` 会先执行到收集的首次挂起点，再发送普通事件。这不是对任意上游 Flow 的订阅就绪保证：上游初始化挂起、`flowOn`、缓冲操作符或生命周期门控都可能推迟实际订阅，应按具体链路确认就绪。
 
 如果你准备替换默认单例配置，要先调用 `DefaultFlowBus.configure(...)` 或 `install(...)`，再第一次真正使用它。
 
@@ -103,13 +109,13 @@ scope.launch {
 ```kotlin
 val bus = FlowBus()
 
-bus.post(SyncFinishedEvent(taskId = "task-1"))
-
-scope.launch {
+scope.launch(start = CoroutineStart.UNDISPATCHED) {
     bus.flow<SyncFinishedEvent>().collect { event ->
         handle(event.taskId)
     }
 }
+
+bus.post(SyncFinishedEvent(taskId = "task-1"))
 ```
 
 这时所有事件都只在这个 `bus` 实例里流动，不会和 `DefaultFlowBus` 混在一起。
@@ -121,19 +127,19 @@ scope.launch {
 ```kotlin
 val toastChannel = eventChannel<String>("ui.toast")
 
-toastChannel.post("Saved")
-
-scope.launch {
+scope.launch(start = CoroutineStart.UNDISPATCHED) {
     toastChannel.flow().collect { message ->
         showToast(message)
     }
 }
 
-scope.launch {
+scope.launch(start = CoroutineStart.UNDISPATCHED) {
     toastChannel.collect { message ->
         showToast(message)
     }
 }
+
+toastChannel.post("Saved")
 ```
 
 如果你自己创建了 bus，也可以显式指定目标：
@@ -142,19 +148,19 @@ scope.launch {
 val bus = FlowBus()
 val toastChannel = eventChannel<String>("ui.toast")
 
-toastChannel.postOn(bus, "Saved")
-
-scope.launch {
+scope.launch(start = CoroutineStart.UNDISPATCHED) {
     toastChannel.flowOn(bus).collect { message ->
         showToast(message)
     }
 }
 
-scope.launch {
+scope.launch(start = CoroutineStart.UNDISPATCHED) {
     toastChannel.collectOn(bus) { message ->
         showToast(message)
     }
 }
+
+toastChannel.postOn(bus, "Saved")
 ```
 
 ### 什么时候用 `eventChannel`，什么时候直接写 `eventName`
@@ -198,13 +204,13 @@ bus.flow<String>(eventName = "ui.toast")
 ```kotlin
 val featureBus = DefaultFlowBus.scoped("feature-a")
 
-featureBus.post(FeatureRefreshEvent(reason = "manual"))
-
-scope.launch {
+scope.launch(start = CoroutineStart.UNDISPATCHED) {
     featureBus.flow<FeatureRefreshEvent>().collect { event ->
         refresh(event.reason)
     }
 }
+
+featureBus.post(FeatureRefreshEvent(reason = "manual"))
 ```
 
 ### `openScope(...)`
@@ -221,13 +227,13 @@ scope.launch {
 ```kotlin
 val syncScope = DefaultFlowBus.openScope("sync-task", closeWhen = scope)
 
-syncScope.post(SyncProgress(percent = 10))
-
-scope.launch {
+scope.launch(start = CoroutineStart.UNDISPATCHED) {
     syncScope.flow<SyncProgress>().collect { progress ->
         render(progress)
     }
 }
+
+syncScope.post(SyncProgress(percent = 10))
 ```
 
 如果你想手动结束：
@@ -260,13 +266,13 @@ sessionScope.close()
 val refreshKey = eventKey<FeatureRefreshEvent>("feature.refresh")
 val bus = FlowBus()
 
-bus.post(refreshKey, FeatureRefreshEvent(reason = "manual"))
-
-scope.launch {
+scope.launch(start = CoroutineStart.UNDISPATCHED) {
     bus.flow(refreshKey).collect { event ->
         refresh(event.reason)
     }
 }
+
+bus.post(refreshKey, FeatureRefreshEvent(reason = "manual"))
 ```
 
 `EventChannel<T>` 可以随时转回 `EventKey<T>`：
@@ -284,7 +290,7 @@ val key = channel.asEventKey()
 | 多实例隔离 | `FlowBus()` | 每个实例有独立 root bus 和 scope 容器 | 测试隔离、租户隔离、Repository 自持生命周期 |
 | 最短非挂起发送 | `post(...)` / `send()` | 立即尝试写入，返回 `Boolean` | 轻量广播、偶发丢失可接受 |
 | 发送诊断结果 | `tryPostResult(...)` / `tryPostStickyResult(...)` | 返回订阅数、溢出策略、sticky replay 数和结果分类 | 日志排查、单测断言、分析发送失败 |
-| 保证写入成功 | `emit(...)` / `awaitSend()` | 挂起等待底层流接收 | 关键通知、不希望静默丢事件 |
+| 按配置进行挂起发送 | `emit(...)` / `awaitSend()` | `SUSPEND` 且存在活跃订阅者时可背压；仍遵循溢出策略 | 需要等待缓冲可用的活跃广播 |
 | 直接订阅并复用错误处理 | `collect(...)` / `collectSticky(...)` | 内部套用 `FlowBusConfig` 的 logger 和 errorHandler | 不想每处手写 try/catch 和日志策略 |
 | 自己组合 Flow 操作符 | `flow(...)` / `stickyFlow(...)` | 返回原始 `Flow<T>` | 要做 `map`、`filter`、`debounce`、`combine` |
 | 命名通道 | `eventChannel<T>("name")` | 把事件名和类型绑定成稳定对象 | 同类型多语义、跨文件复用、公开业务通道 |
@@ -314,7 +320,7 @@ val sessionScope = DefaultFlowBus.openScope("session")
 MyEvent(...).sendOn(sessionScope)
 ```
 
-### 必须保证写入成功
+### 需要按配置进行挂起发送
 
 ```kotlin
 scope.launch {
@@ -345,11 +351,44 @@ if (!result.accepted) {
 | 结果 | 含义 | 你该怎么处理 |
 | --- | --- | --- |
 | `accepted = true` | `tryEmit` 没有立刻拒绝这次调用 | 只能说明总线层接收尝试通过，业务完成要另做 ACK 或状态更新 |
-| `accepted = false` | 底层流拒绝了这次非挂起写入 | 关键事件改用 `emit(...)`，或检查缓冲、订阅者和溢出策略 |
+| `accepted = false` | 底层流拒绝了这次非挂起写入 | 检查缓冲、订阅者和溢出策略；`SUSPEND` 下需要等待时用 `emit(...)` |
 | `AcceptedWithDropOldestPolicy` | 新值可能挤掉旧值 | 只用于可丢弃的刷新类通知，不要承载关键链路 |
-| `AcceptedWithDropLatestPolicy` | 调用可能被接受，但当前值仍可能不会进入缓冲 | 不要把它当可靠投递；需要可靠性时改用挂起发送或业务队列 |
+| `AcceptedWithDropLatestPolicy` | 调用可能被接受，但当前值仍可能不会进入实时缓冲 | `emit(...)` 不改变该策略；可靠业务使用状态、数据库或持久化任务 |
 
 它不表示订阅者已经处理事件。`DROP_OLDEST` / `DROP_LATEST` 也不是可靠队列策略。
+
+## 下一版挂起订阅（尚未发布）
+
+当前候选源码增加独立命名的挂起回调入口，旧 `collect` / `collectSticky` 与公开入口保留。下面 API 不属于已发布的 `1.0.7`，属于 1.1.0 候选，不要求新增依赖或升级现有基础工具链。
+
+`FlowBus`、`DefaultFlowBus`、`ScopedFlowBus`、`FlowBusScope` 提供 `collectSuspending` / `collectStickySuspending` 的 `EventKey<T>` 与 reified 类型入口。core `EventChannel<T>` 提供默认实例的 `collectSuspending` / `collectStickySuspending`，以及显式来源的 `collectSuspendingOn` / `collectStickySuspendingOn`；显式来源可以是 `FlowBus`、`ScopedFlowBus` 或 `FlowBusScope`。
+
+```kotlin
+import com.logan.flowbus.core.FlowBus
+import com.logan.flowbus.core.eventKey
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.launch
+
+val bus = FlowBus()
+val refreshKey = eventKey<SyncFinishedEvent>("sync.finished")
+
+val subscription = scope.launch(start = CoroutineStart.UNDISPATCHED) {
+    bus.collectSuspending(refreshKey) { event ->
+        refreshSuspending(event.taskId)
+    }
+}
+bus.post(refreshKey, SyncFinishedEvent(taskId = "task-1"))
+
+// 在业务生命周期结束时调用 subscription.cancel()；不会因此关闭 bus。
+```
+
+`scope` 是调用方管理的活跃协程作用域，`refreshSuspending` 是业务挂起函数。无 dispatcher 且直接收集时，上面的 UNDISPATCHED 用法先执行到收集挂起点；其他上游组合仍需确认真实订阅就绪。若使用 reified 入口，需要导入 `com.logan.flowbus.core.collectSuspending`；若使用 core channel 扩展，需要导入对应扩展，例如 `collectSuspendingOn`。
+
+单条订阅顺序执行回调，不并发启动每条事件的处理，也不会自动采用 `collectLatest`。提供 `dispatcher` 时切换回调调度器，串行语义保持；省略时使用当前收集协程上下文。不同订阅之间没有全局串行承诺。挂起回调不会改变广播、缓冲、丢弃、sticky replay 或业务确认语义。
+
+类型校验、logger 和 errorHandler 与旧入口共用。回调普通异常先记日志，再交给实例 errorHandler；默认 `Rethrow` 终止该收集，处理器正常返回才继续下一条。处理器自身抛出的异常继续传播。`CancellationException` 直接传播，不进入总线错误策略；取消当前订阅会请求取消回调，业务中的阻塞或 NonCancellable 操作不能被强制停止，也不会回滚已发生的副作用。
+
+`FlowBusScope` 关闭后不会主动取消已持有 Flow 的订阅；但重新用已关闭句柄建立订阅会失败。总线或 scope 的生命周期由持有者管理，订阅不会取得关闭权。
 
 ## 订阅 API 怎么选
 
@@ -495,20 +534,20 @@ val session = bus.inspectScope("session")
 
 特点：
 
-1. 挂起函数
-2. 遵循背压
-3. 会等待直到成功写入
+1. 挂起函数，遵循当前 `overflowPolicy`，不会自动把丢弃策略变成 `SUSPEND`。
+2. `SUSPEND` 且存在活跃订阅者时，可以等待缓冲可用并施加背压。
+3. `DROP_OLDEST` 仍可能丢旧值，`DROP_LATEST` 仍可能丢本次实时值。
+4. 普通事件没有订阅者时立即完成，不为未来订阅者保存；发送完成也不表示回调或业务处理完成。
 
-适合：
-
-1. 关键链路通知
-2. 不希望事件默默丢掉
+适合需要按既定策略等待缓冲可用的活跃广播。必须在进程死亡后恢复或确认业务成功的操作，使用业务状态、数据库或持久化任务机制。
 
 ## sticky event 什么时候该用
 
 sticky event 会保存最近一次值，后来订阅的人也能立刻读到。
 
 这里的 replay 指 sticky 通道内部保存的最近值缓存。它能解决“订阅晚了也想先拿最近结果”的问题，但不适合承载长期状态；页面状态、表单状态和复杂业务状态仍应交给 `StateFlow`、数据库或业务状态机。
+
+sticky replay 与实时广播独立管理。发送被底层接受后会提交独立 replay；`DROP_LATEST` 下实时缓冲可能丢掉本次值，但 `tryEmit` 仍返回 `true`，因此该值仍可能进入 replay。例如慢订阅者实时收到 `[1, 2]`，新订阅者却先读到 `3`。这是现有契约，不能用实时接收结果推断 replay，也不能把 replay 当作所有订阅者已接收或处理的记录。`emitSticky(...)` 同样遵循配置的溢出策略。
 
 | 状态 | 推荐 API | 后订阅者能否读到最近值 | 是否清 replay | 适合场景 | 边界 |
 | --- | --- | --- | --- | --- | --- |
@@ -601,10 +640,7 @@ sealed interface SyncEvent {
 发送时要显式指定父类型，这样这些子事件才会进入同一个通道：
 
 ```kotlin
-DefaultFlowBus.post<SyncEvent>(SyncEvent.Start)
-DefaultFlowBus.post<SyncEvent>(SyncEvent.Progress(percent = 50))
-
-scope.launch {
+scope.launch(start = CoroutineStart.UNDISPATCHED) {
     DefaultFlowBus.flow<SyncEvent>().collect { event ->
         when (event) {
             SyncEvent.Start -> onStart()
@@ -613,6 +649,9 @@ scope.launch {
         }
     }
 }
+
+DefaultFlowBus.post<SyncEvent>(SyncEvent.Start)
+DefaultFlowBus.post<SyncEvent>(SyncEvent.Progress(percent = 50))
 ```
 
 ## 默认单例如何配置
@@ -685,12 +724,18 @@ DefaultFlowBus.install(
 | 入口 | 是否立即让句柄失效 | 是否等待 store 清理 | 适合场景 | 不符合预期先查 |
 | --- | --- | --- | --- | --- |
 | `close()` | 是 | 否 | UI、生命周期回调、只需要禁止继续使用当前句柄 | 是否还有已开始的发送 / 取流操作未结束 |
-| `closeSuspending()` | 是 | 是 | 协程中需要等待清理完成 | 是否有挂起发送被背压卡住 |
-| `tryClose(timeoutMillis)` | 是 | 最多等待指定时间 | 测试、退出流程、需要明确超时结果 | timeout 是否太短，或是否还有 collector 阻塞发送完成 |
+| `closeSuspending()` | 自己发起关闭时先禁止新操作，等待在途操作期间 `isClosed=false` | 是，可取消等待 | 协程中需要等待清理完成 | 是否有挂起发送被背压卡住，以及由谁先发起关闭 |
+| `tryClose(timeoutMillis)` | 自己发起关闭时先禁止新操作，等待在途操作期间 `isClosed=false` | 最多等待指定时间 | 测试、退出流程、需要明确超时结果 | timeout 是否太短，或是否已有关闭使句柄失效 |
 
 如果 scope 跟随外层生命周期，优先用 `openScope(name, closeWhen = job)` 或 `bindTo(job)`，避免忘记关闭。
 
-关闭结果里如果出现 `ClosingInProgress`，表示已有另一个关闭动作正在处理这个 scope，本次调用没有重复抢占。
+关闭结果里如果出现 `ClosingInProgress`，表示已有另一个等待入口发起关闭且仍在等待在途操作，本次调用没有重复抢占。这个阶段禁止新发送和取流，但 `isClosed` 仍为 `false`，保留 1.0.7 的状态语义。
+
+未发布修订中的取消规则：如果 `closeSuspending()` 自己发起关闭，在准备 store 清理之前被取消，且没有收到永久关闭请求，会撤销这次等待并恢复 scope 可用，调用方可以稍后重试。若 `close()` 或生命周期绑定已经先让句柄失效并准备关闭，`closeSuspending()` 只等待该关闭；取消只终止当前调用方的等待，不会恢复旧句柄或撤销清理。准备清理之后取消也不会回滚关闭。若本次关闭等待期间收到显式 `close()`、`removeScope()` 或绑定 Job 完成请求，库会保留该永久关闭请求：即使发起等待随后取消，也继续关闭，不恢复 scope 可用。等待使用可取消挂起，不占用线程进行条件变量等待。
+
+在另一关闭等待期间调用 `close()`，新操作已经被拒绝，永久关闭请求会被记住；`isClosed` 仍沿用该等待的状态，直到等待成功或取消/超时/中断后准备清理才变为 true。
+
+`tryClose(timeoutMillis)` 自己发起关闭并在等待在途操作时超时，且没有已到达的永久关闭请求时，scope 恢复可用；等待已有 `close()` 或生命周期关闭时超时，仅表示清理尚未完成。等待期间已到达的显式 `close()`、`removeScope()` 和绑定 Job 完成请求，都不会因超时或线程中断丢失。
 
 它不会做的事：
 

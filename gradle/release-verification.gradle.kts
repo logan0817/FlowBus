@@ -8,7 +8,12 @@ import org.gradle.api.tasks.GradleBuild
 val artifactGroup = providers.gradleProperty("GROUP").get()
 val artifactVersion = providers.gradleProperty("VERSION_NAME").get()
 val groupPath = artifactGroup.replace('.', '/')
-val mavenLocalRoot = file("${System.getProperty("user.home")}/.m2/repository/$groupPath")
+val mavenRepositoryRoot = System.getProperty("maven.repo.local")
+    ?.let { file(it) }
+    ?: file("${System.getProperty("user.home")}/.m2/repository")
+val mavenLocalRoot = mavenRepositoryRoot.resolve(groupPath)
+// 生成消费者固定使用本轮发布目录，防止回退到机器上旧的同版本产物。
+val consumerRepositoryUri = mavenRepositoryRoot.toURI().toASCIIString()
 val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
 
 fun VersionCatalog.version(alias: String): String {
@@ -21,6 +26,21 @@ fun VersionCatalog.version(alias: String): String {
     }
     error("Missing version catalog alias: $alias")
 }
+
+fun Task.trackConsumerAndroidBaseline(compileSdk: Int = libsCatalog.version("compile_sdk_version").toInt()) {
+    inputs.property("minSdk", libsCatalog.version("min_sdk_version"))
+    inputs.property("compileSdk", compileSdk)
+    inputs.property("targetSdk", libsCatalog.version("target_sdk_version"))
+}
+
+// 仅控制 core/Android 消费者编译器，库自身以及 Compose 编译器配对保持仓库基线。
+val consumerKotlinVersion = providers.gradleProperty("flowbus.consumer.kotlinVersion")
+    .orElse(libsCatalog.version("kotlin")).get()
+
+// 独立评估普通 Android 消费者的编译 SDK，不改变基础库、targetSdk 或 Compose 配置。
+val consumerAndroidCompileSdk = providers.gradleProperty("flowbus.consumer.compileSdk")
+    .map { it.toInt().also { sdk -> require(sdk > 0) { "Consumer compileSdk must be positive." } } }
+    .orElse(libsCatalog.version("compile_sdk_version").toInt()).get()
 
 tasks.register("verifyMavenLocalArtifacts") {
     group = "verification"
@@ -193,12 +213,14 @@ tasks.register("verifyMavenLocalArtifacts") {
             pom = corePom,
             groupId = "org.jetbrains.kotlinx",
             artifactIds = setOf("kotlinx-coroutines-core", "kotlinx-coroutines-core-jvm"),
-            scope = "compile"
+            scope = "compile",
+            version = libsCatalog.version("kotlinx_coroutines")
         )
         requireModuleDependency(
             module = coreModule,
             group = "org.jetbrains.kotlinx",
-            moduleNames = setOf("kotlinx-coroutines-core", "kotlinx-coroutines-core-jvm")
+            moduleNames = setOf("kotlinx-coroutines-core", "kotlinx-coroutines-core-jvm"),
+            version = libsCatalog.version("kotlinx_coroutines")
         )
         requirePomDependency(
             pom = androidPom,
@@ -211,13 +233,15 @@ tasks.register("verifyMavenLocalArtifacts") {
             pom = androidPom,
             groupId = "androidx.lifecycle",
             artifactId = "lifecycle-runtime-ktx",
-            scope = "compile"
+            scope = "compile",
+            version = libsCatalog.version("lifecycle_version")
         )
         requirePomDependency(
             pom = androidPom,
             groupId = "androidx.lifecycle",
             artifactId = "lifecycle-viewmodel-ktx",
-            scope = "compile"
+            scope = "compile",
+            version = libsCatalog.version("lifecycle_version")
         )
         requireModuleDependency(
             module = androidModule,
@@ -228,14 +252,41 @@ tasks.register("verifyMavenLocalArtifacts") {
         requireModuleDependency(
             module = androidModule,
             group = "androidx.lifecycle",
-            moduleName = "lifecycle-runtime-ktx"
+            moduleName = "lifecycle-runtime-ktx",
+            version = libsCatalog.version("lifecycle_version")
         )
         requireModuleDependency(
             module = androidModule,
             group = "androidx.lifecycle",
-            moduleName = "lifecycle-viewmodel-ktx"
+            moduleName = "lifecycle-viewmodel-ktx",
+            version = libsCatalog.version("lifecycle_version")
         )
 
+        listOf(corePom to coreModule, androidPom to androidModule).forEach { (pom, module) ->
+            requirePomDependency(
+                pom, "org.jetbrains.kotlin", "kotlin-stdlib", "compile", libsCatalog.version("kotlin")
+            )
+            requireModuleDependency(
+                module, "org.jetbrains.kotlin", "kotlin-stdlib", libsCatalog.version("kotlin")
+            )
+        }
+
+        // 真实产物门禁同时检查字节码和样例隔离，避免只验证源码构建目标。
+        ZipFile(coreJar).use { jar ->
+            val entries = jar.entries().asSequence().toList()
+            check(entries.none { it.name.startsWith("com/logan/flowbus/compatibility/") }) {
+                "Compatibility consumer must not be packaged in the core artifact."
+            }
+            val classes = entries.filter { it.name.endsWith(".class") }
+            check(classes.isNotEmpty()) { "Core artifact contains no classes." }
+            classes.forEach { entry ->
+                java.io.DataInputStream(jar.getInputStream(entry)).use { input ->
+                    check(input.readInt() == 0xCAFEBABE.toInt()) { "Invalid class: ${entry.name}" }
+                    input.readUnsignedShort()
+                    check(input.readUnsignedShort() == 52) { "Non-Java-8 class: ${entry.name}" }
+                }
+            }
+        }
         ZipFile(androidAar).use { aar ->
             check(aar.getEntry("classes.jar") != null) { "${androidAar.name} is missing classes.jar" }
             check(aar.getEntry("proguard.txt") != null) { "${androidAar.name} is missing proguard.txt" }
@@ -247,6 +298,16 @@ val prepareMavenLocalCoreConsumer = tasks.register("prepareMavenLocalCoreConsume
     group = "verification"
     description = "Generate a small Kotlin/JVM consumer project that depends on the Maven local flowbus-core coordinate."
     val consumerDir = layout.buildDirectory.dir("maven-local-core-consumer")
+    inputs.property("artifactGroup", artifactGroup)
+    inputs.property("artifactVersion", artifactVersion)
+    inputs.property("repository", consumerRepositoryUri)
+    inputs.property("kotlin", consumerKotlinVersion)
+    inputs.file(rootProject.file(
+        "flowbus-core/src/compatibility/kotlin/com/logan/flowbus/compatibility/CoreRuntimeConsumer.kt"
+    ))
+    inputs.file(rootProject.file(
+        "flowbus-core/src/compatibility/java/com/logan/flowbus/compatibility/CoreJavaConsumer.java"
+    ))
     outputs.dir(consumerDir)
     doLast {
         val root = consumerDir.get().asFile
@@ -264,7 +325,10 @@ val prepareMavenLocalCoreConsumer = tasks.register("prepareMavenLocalCoreConsume
             dependencyResolutionManagement {
                 repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
                 repositories {
-                    mavenLocal()
+                    exclusiveContent {
+                        forRepository { maven { url = uri("$consumerRepositoryUri") } }
+                        filter { includeGroup("$artifactGroup") }
+                    }
                     mavenCentral()
                 }
             }
@@ -280,12 +344,36 @@ val prepareMavenLocalCoreConsumer = tasks.register("prepareMavenLocalCoreConsume
         sourceDir.mkdirs()
         appDir.resolve("build.gradle.kts").writeText(
             """
+            import java.time.Duration
+
             plugins {
-                kotlin("jvm") version "${libsCatalog.version("kotlin")}"
+                kotlin("jvm") version "$consumerKotlinVersion"
+                application
             }
 
             kotlin {
                 jvmToolchain(17)
+            }
+
+            java {
+                sourceCompatibility = JavaVersion.VERSION_1_8
+                targetCompatibility = JavaVersion.VERSION_1_8
+            }
+
+            tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
+                kotlinOptions.jvmTarget = "1.8"
+            }
+
+            application {
+                mainClass.set("com.logan.flowbus.compatibility.CoreRuntimeConsumer")
+            }
+
+            tasks.named<JavaExec>("run") {
+                providers.gradleProperty("flowbus.consumer.java").orNull?.let { executable = it }
+                providers.gradleProperty("flowbus.consumer.expectedJava").orNull?.let {
+                    systemProperty("flowbus.consumer.expectedJava", it)
+                }
+                timeout.set(Duration.ofSeconds(30))
             }
 
             dependencies {
@@ -330,6 +418,15 @@ val prepareMavenLocalCoreConsumer = tasks.register("prepareMavenLocalCoreConsume
             }
             """.trimIndent()
         )
+        val runtimeSource = rootProject.file(
+            "flowbus-core/src/compatibility/kotlin/com/logan/flowbus/compatibility/CoreRuntimeConsumer.kt"
+        )
+        runtimeSource.copyTo(sourceDir.resolve("CoreRuntimeConsumer.kt"), overwrite = true)
+        val javaSourceDir = appDir.resolve("src/main/java/com/logan/flowbus/compatibility")
+        javaSourceDir.mkdirs()
+        rootProject.file(
+            "flowbus-core/src/compatibility/java/com/logan/flowbus/compatibility/CoreJavaConsumer.java"
+        ).copyTo(javaSourceDir.resolve("CoreJavaConsumer.java"), overwrite = true)
     }
 }
 
@@ -337,6 +434,13 @@ val prepareMavenLocalConsumer = tasks.register("prepareMavenLocalConsumer") {
     group = "verification"
     description = "Generate a small Android consumer project that depends on the Maven local flowbus coordinate."
     val consumerDir = layout.buildDirectory.dir("maven-local-consumer")
+    inputs.property("artifactGroup", artifactGroup)
+    inputs.property("artifactVersion", artifactVersion)
+    inputs.property("repository", consumerRepositoryUri)
+    inputs.property("agp", libsCatalog.version("agp"))
+    inputs.property("kotlin", consumerKotlinVersion)
+    inputs.file(rootProject.file("compatibility/android-consumer/app/src/main/java/com/logan/flowbus/consumer/ConsumerActivity.kt"))
+    trackConsumerAndroidBaseline(consumerAndroidCompileSdk)
     outputs.dir(consumerDir)
     doLast {
         val root = consumerDir.get().asFile
@@ -355,7 +459,10 @@ val prepareMavenLocalConsumer = tasks.register("prepareMavenLocalConsumer") {
             dependencyResolutionManagement {
                 repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
                 repositories {
-                    mavenLocal()
+                    exclusiveContent {
+                        forRepository { maven { url = uri("$consumerRepositoryUri") } }
+                        filter { includeGroup("$artifactGroup") }
+                    }
                     google()
                     mavenCentral()
                 }
@@ -379,12 +486,12 @@ val prepareMavenLocalConsumer = tasks.register("prepareMavenLocalConsumer") {
             """
             plugins {
                 id("com.android.application") version "${libsCatalog.version("agp")}"
-                kotlin("android") version "${libsCatalog.version("kotlin")}"
+                kotlin("android") version "$consumerKotlinVersion"
             }
 
             android {
                 namespace = "com.logan.flowbus.consumer"
-                compileSdk = ${libsCatalog.version("compile_sdk_version")}
+                compileSdk = $consumerAndroidCompileSdk
 
                 defaultConfig {
                     applicationId = "com.logan.flowbus.consumer"
@@ -425,7 +532,12 @@ val prepareMavenLocalConsumer = tasks.register("prepareMavenLocalConsumer") {
             """
             <manifest xmlns:android="http://schemas.android.com/apk/res/android">
                 <application android:name=".ConsumerApplication">
-                    <activity android:name=".ConsumerActivity" />
+                    <activity android:name=".ConsumerActivity" android:exported="true">
+                        <intent-filter>
+                            <action android:name="android.intent.action.MAIN" />
+                            <category android:name="android.intent.category.LAUNCHER" />
+                        </intent-filter>
+                    </activity>
                 </application>
             </manifest>
             """.trimIndent()
@@ -447,59 +559,9 @@ val prepareMavenLocalConsumer = tasks.register("prepareMavenLocalConsumer") {
             }
             """.trimIndent()
         )
-        sourceDir.resolve("ConsumerActivity.kt").writeText(
-            """
-            package com.logan.flowbus.consumer
-
-            import android.app.Activity
-            import android.os.Bundle
-            import androidx.lifecycle.Lifecycle
-            import androidx.lifecycle.LifecycleOwner
-            import androidx.lifecycle.LifecycleRegistry
-            import androidx.lifecycle.ViewModelStore
-            import androidx.lifecycle.ViewModelStoreOwner
-            import com.logan.flowbus.collectEvent
-            import com.logan.flowbus.onEvent
-            import com.logan.flowbus.postScopedEvent
-            import com.logan.flowbus.scopedEventFlow
-            import kotlinx.coroutines.flow.flowOf
-
-            class ConsumerActivity : Activity(), LifecycleOwner, ViewModelStoreOwner {
-                private val lifecycleRegistry = LifecycleRegistry(this)
-                private val store = ViewModelStore()
-
-                override val lifecycle: Lifecycle
-                    get() = lifecycleRegistry
-
-                override val viewModelStore: ViewModelStore
-                    get() = store
-
-                override fun onCreate(savedInstanceState: Bundle?) {
-                    super.onCreate(savedInstanceState)
-                    lifecycleRegistry.currentState = Lifecycle.State.CREATED
-                    collectEvent(flowOf("ready")) { value ->
-                        check(value.isNotBlank())
-                    }
-                    onEvent<String>(eventName = "consumer.lifecycle") { value ->
-                        check(value.isNotBlank())
-                    }
-                    postScopedEvent(event = "scoped", eventName = "consumer.scope")
-                    scopedEventFlow<String>(eventName = "consumer.scope")
-                }
-
-                override fun onStart() {
-                    super.onStart()
-                    lifecycleRegistry.currentState = Lifecycle.State.STARTED
-                }
-
-                override fun onDestroy() {
-                    lifecycleRegistry.currentState = Lifecycle.State.DESTROYED
-                    store.clear()
-                    super.onDestroy()
-                }
-            }
-            """.trimIndent()
-        )
+        rootProject.file(
+            "compatibility/android-consumer/app/src/main/java/com/logan/flowbus/consumer/ConsumerActivity.kt"
+        ).copyTo(sourceDir.resolve("ConsumerActivity.kt"), overwrite = true)
     }
 }
 
@@ -513,8 +575,199 @@ tasks.register<GradleBuild>("verifyMavenLocalConsumer") {
 
 tasks.register<GradleBuild>("verifyMavenLocalCoreConsumer") {
     group = "verification"
-    description = "Compile a Kotlin/JVM consumer from the Maven local flowbus-core coordinate."
+    description = "Compile and run a Kotlin/JVM consumer from the Maven local flowbus-core coordinate."
     dependsOn("publishToMavenLocal", prepareMavenLocalCoreConsumer)
     dir = layout.buildDirectory.dir("maven-local-core-consumer").get().asFile
-    tasks = listOf(":app:compileKotlin")
+    tasks = listOf(":app:compileKotlin", ":app:run")
+    // GradleBuild 不自动继承 -P 参数，显式传递运行 JVM，避免 Java 8 门禁实际在构建 JVM 上运行。
+    startParameter.projectProperties = startParameter.projectProperties + listOf(
+        "flowbus.consumer.java", "flowbus.consumer.expectedJava"
+    ).mapNotNull { name -> providers.gradleProperty(name).orNull?.let { name to it } }.toMap()
+}
+
+val prepareMavenLocalBinaryCoreConsumer = tasks.register("prepareMavenLocalBinaryCoreConsumer") {
+    group = "verification"
+    description = "Generate a consumer compiled only against the published 1.0.7 core JAR."
+    val consumerDir = layout.buildDirectory.dir("maven-local-binary-core-consumer")
+    val templateDir = rootProject.file("compatibility/core-binary-consumer")
+    val candidateJar = mavenLocalRoot.resolve("flowbus-core/$artifactVersion/flowbus-core-$artifactVersion.jar")
+    inputs.dir(templateDir.resolve("src"))
+    inputs.file(templateDir.resolve("build.gradle.kts.template"))
+    inputs.property("artifactGroup", artifactGroup)
+    inputs.property("candidateJar", candidateJar.absolutePath)
+    inputs.property("kotlin", consumerKotlinVersion)
+    inputs.property("stdlib", libsCatalog.version("kotlin"))
+    inputs.property("coroutines", libsCatalog.version("kotlinx_coroutines"))
+    outputs.dir(consumerDir)
+    doLast {
+        val root = consumerDir.get().asFile
+        root.mkdirs()
+        root.resolve("settings.gradle.kts").writeText(
+            """
+            pluginManagement { repositories { mavenCentral(); gradlePluginPortal() } }
+            dependencyResolutionManagement {
+                repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+                repositories { mavenCentral() }
+            }
+            rootProject.name = "FlowBusBinaryCoreConsumer"
+            """.trimIndent()
+        )
+        templateDir.resolve("src").copyRecursively(root.resolve("src"), overwrite = true)
+        val replacements = mapOf(
+            "@GROUP@" to artifactGroup,
+            "@KOTLIN@" to consumerKotlinVersion,
+            "@STDLIB@" to libsCatalog.version("kotlin"),
+            "@COROUTINES@" to libsCatalog.version("kotlinx_coroutines"),
+            "@CANDIDATE@" to candidateJar.absolutePath.replace('\\', '/')
+        )
+        val script = replacements.entries.fold(templateDir.resolve("build.gradle.kts.template").readText()) {
+            text, (token, value) -> text.replace(token, value)
+        }
+        root.resolve("build.gradle.kts").writeText(script)
+    }
+}
+
+tasks.register<GradleBuild>("verifyMavenLocalBinaryCoreConsumer") {
+    group = "verification"
+    description = "Run unchanged 1.0.7 Kotlin/Java consumer bytecode on published and candidate core JARs."
+    dependsOn("publishToMavenLocal", prepareMavenLocalBinaryCoreConsumer)
+    dir = layout.buildDirectory.dir("maven-local-binary-core-consumer").get().asFile
+    tasks = listOf("verifyBinaryCompatibility")
+    startParameter.projectProperties = startParameter.projectProperties + listOf(
+        "flowbus.consumer.java", "flowbus.consumer.expectedJava"
+    ).mapNotNull { name -> providers.gradleProperty(name).orNull?.let { name to it } }.toMap()
+}
+
+val prepareMavenLocalComposeConsumer = tasks.register("prepareMavenLocalComposeConsumer") {
+    group = "verification"
+    description = "Generate an isolated Compose consumer using the current candidate Maven coordinates."
+    val consumerDir = layout.buildDirectory.dir("maven-local-compose-consumer")
+    // 默认先验证与 Lifecycle 2.6.2 基线接近的消费者；较新 Compose 作为独立实验选择。
+    val composeVersion = providers.gradleProperty("flowbus.consumer.composeVersion").orElse("1.5.4").get()
+    // 导航验证仅在显式选择时加入消费者，默认组合保持原有依赖与源码。
+    val navigationVersion = providers.gradleProperty("flowbus.consumer.navigationVersion").orNull
+    val navHostEnabled = providers.gradleProperty("flowbus.consumer.navHost").map { value ->
+        when (value) {
+            "true" -> true
+            "false" -> false
+            else -> error("flowbus.consumer.navHost must be true or false.")
+        }
+    }.orElse(false).get()
+    require(!navHostEnabled || navigationVersion != null) {
+        "NavHost verification requires flowbus.consumer.navigationVersion."
+    }
+    inputs.dir(rootProject.file("compatibility/compose-consumer/app"))
+    if (navigationVersion != null) {
+        inputs.dir(rootProject.file("compatibility/navigation-consumer/app"))
+    }
+    if (navHostEnabled) inputs.dir(rootProject.file("compatibility/navhost-consumer/app"))
+    inputs.property("artifactGroup", artifactGroup)
+    inputs.property("artifactVersion", artifactVersion)
+    inputs.property("repository", consumerRepositoryUri)
+    inputs.property("agp", libsCatalog.version("agp"))
+    inputs.property("kotlin", libsCatalog.version("kotlin"))
+    inputs.property("lifecycle", libsCatalog.version("lifecycle_version"))
+    inputs.property("composeVersion", composeVersion)
+    inputs.property("navigationVersion", navigationVersion ?: "none")
+    inputs.property("navHost", navHostEnabled)
+    trackConsumerAndroidBaseline()
+    outputs.dir(consumerDir)
+    doLast {
+        val root = consumerDir.get().asFile
+        root.deleteRecursively()
+        root.mkdirs()
+        rootProject.file("compatibility/compose-consumer/app")
+            .copyRecursively(root.resolve("app"), overwrite = true)
+        if (navigationVersion != null) {
+            rootProject.file("compatibility/navigation-consumer/app")
+                .copyRecursively(root.resolve("app"), overwrite = true)
+        }
+        if (navHostEnabled) {
+            rootProject.file("compatibility/navhost-consumer/app")
+                .copyRecursively(root.resolve("app"), overwrite = true)
+            root.resolve("app/src/main/java/com/logan/flowbus/composeconsumer/NavHostVerificationProfile.kt").writeText(
+                """
+                package com.logan.flowbus.composeconsumer
+
+                // 仅对本轮已选择的新版组合要求观察默认动画期间的真实 owner 阈值。
+                internal const val NAV_HOST_EXPECT_ANIMATED_TRANSITION = ${navigationVersion == "2.8.3"}
+                """.trimIndent()
+            )
+        }
+        root.resolve("settings.gradle.kts").writeText(
+            """
+            pluginManagement {
+                repositories {
+                    google()
+                    mavenCentral()
+                    gradlePluginPortal()
+                }
+            }
+            dependencyResolutionManagement {
+                repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+                repositories {
+                    exclusiveContent {
+                        forRepository { maven { url = uri("$consumerRepositoryUri") } }
+                        filter { includeGroup("$artifactGroup") }
+                    }
+                    google()
+                    mavenCentral()
+                }
+            }
+            rootProject.name = "FlowBusComposeMavenLocalConsumer"
+            include(":app")
+            """.trimIndent()
+        )
+        root.resolve("build.gradle.kts").writeText("")
+        root.resolve("gradle.properties").writeText("android.useAndroidX=true")
+        root.resolve("app/build.gradle.kts").writeText(
+            """
+            plugins {
+                id("com.android.application") version "${libsCatalog.version("agp")}"
+                kotlin("android") version "${libsCatalog.version("kotlin")}"
+            }
+            android {
+                namespace = "com.logan.flowbus.composeconsumer"
+                compileSdk = ${libsCatalog.version("compile_sdk_version")}
+                defaultConfig {
+                    applicationId = "com.logan.flowbus.composeconsumer"
+                    minSdk = ${libsCatalog.version("min_sdk_version")}
+                    targetSdk = ${libsCatalog.version("target_sdk_version")}
+                    versionCode = 1
+                    versionName = "1.0"
+                }
+                compileOptions {
+                    sourceCompatibility = JavaVersion.VERSION_1_8
+                    targetCompatibility = JavaVersion.VERSION_1_8
+                }
+                kotlinOptions { jvmTarget = "1.8" }
+                buildFeatures { compose = true }
+                composeOptions { kotlinCompilerExtensionVersion = "1.5.15" }
+                buildTypes {
+                    getByName("release") {
+                        isMinifyEnabled = true
+                        proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+                    }
+                }
+            }
+            dependencies {
+                implementation("$artifactGroup:flowbus:$artifactVersion")
+                implementation("androidx.activity:activity-compose:1.8.2")
+                implementation("androidx.compose.runtime:runtime:$composeVersion")
+                implementation("androidx.compose.ui:ui:$composeVersion")
+                implementation("androidx.lifecycle:lifecycle-runtime-ktx:${libsCatalog.version("lifecycle_version")}")
+                ${navigationVersion?.let { "implementation(\"androidx.navigation:navigation-runtime:$it\")" } ?: ""}
+                ${if (navHostEnabled) "implementation(\"androidx.navigation:navigation-compose:$navigationVersion\")" else ""}
+            }
+            """.trimIndent()
+        )
+    }
+}
+
+tasks.register<GradleBuild>("verifyMavenLocalComposeConsumer") {
+    group = "verification"
+    description = "Build a minified Compose consumer; Compose dependencies stay outside the base library."
+    dependsOn("publishToMavenLocal", prepareMavenLocalComposeConsumer)
+    dir = layout.buildDirectory.dir("maven-local-compose-consumer").get().asFile
+    tasks = listOf(":app:assembleRelease")
 }

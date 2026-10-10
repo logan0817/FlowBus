@@ -19,7 +19,7 @@ fun <T : Any> EventChannel<T>.tryPost(value: T, delayMillis: Long = 0L): Boolean
 }
 
 /**
- * 挂起直到普通事件成功发送到 Android 全局总线。
+ * 按既定溢出策略发送普通事件到 Android 全局总线；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
  */
 suspend fun <T : Any> EventChannel<T>.emit(value: T, delayMillis: Long = 0L) {
     GlobalViewModelStore.get(FlowEventBus::class.java)
@@ -48,7 +48,7 @@ fun <T : Any> EventChannel<T>.tryPostSticky(value: T, delayMillis: Long = 0L): B
 }
 
 /**
- * 挂起直到粘性事件成功发送到 Android 全局总线。
+ * 按既定溢出策略发送粘性事件到 Android 全局总线；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
  */
 suspend fun <T : Any> EventChannel<T>.emitSticky(value: T, delayMillis: Long = 0L) {
     GlobalViewModelStore.get(FlowEventBus::class.java)
@@ -123,7 +123,7 @@ fun <T : Any> EventChannel<T>.tryPostTo(
 }
 
 /**
- * 挂起直到普通事件成功发送到指定 [owner] 对应的局部总线。
+ * 按既定溢出策略发送普通事件到指定 [owner] 对应的局部总线；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
  */
 @MainThread
 suspend fun <T : Any> EventChannel<T>.emitTo(
@@ -167,7 +167,7 @@ fun <T : Any> EventChannel<T>.tryPostStickyTo(
 }
 
 /**
- * 挂起直到粘性事件成功发送到指定 [owner] 对应的局部总线。
+ * 按既定溢出策略发送粘性事件到指定 [owner] 对应的局部总线；SUSPEND 下有慢订阅者时才挂起，不代表业务处理完成。
  */
 @MainThread
 suspend fun <T : Any> EventChannel<T>.emitStickyTo(

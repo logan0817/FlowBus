@@ -90,6 +90,15 @@ suspend inline fun <reified T : Any> FlowBus.collect(
     collect(key = eventKey<T>(name = eventName), dispatcher = dispatcher, onReceived = onReceived)
 }
 
+/** 按顺序执行可挂起回调，沿用当前总线的类型校验、日志和错误策略。 */
+suspend inline fun <reified T : Any> FlowBus.collectSuspending(
+    eventName: String = defaultEventName<T>(),
+    dispatcher: CoroutineDispatcher? = null,
+    noinline onReceived: suspend (T) -> Unit
+) {
+    collectSuspending(key = eventKey<T>(name = eventName), dispatcher = dispatcher, onReceived = onReceived)
+}
+
 /**
  * 在 [FlowBus] 上以默认事件名顺序收集粘性事件，并自动使用该 bus 的错误处理配置。
  */
@@ -99,6 +108,15 @@ suspend inline fun <reified T : Any> FlowBus.collectSticky(
     noinline onReceived: (T) -> Unit
 ) {
     collectSticky(key = eventKey<T>(name = eventName), dispatcher = dispatcher, onReceived = onReceived)
+}
+
+/** 按顺序执行可挂起回调，沿用当前总线的类型校验、日志和错误策略。 */
+suspend inline fun <reified T : Any> FlowBus.collectStickySuspending(
+    eventName: String = defaultEventName<T>(),
+    dispatcher: CoroutineDispatcher? = null,
+    noinline onReceived: suspend (T) -> Unit
+) {
+    collectStickySuspending(key = eventKey<T>(name = eventName), dispatcher = dispatcher, onReceived = onReceived)
 }
 
 /**
@@ -200,6 +218,15 @@ suspend inline fun <reified T : Any> ScopedFlowBus.collect(
     collect(key = eventKey<T>(name = eventName), dispatcher = dispatcher, onReceived = onReceived)
 }
 
+/** 按顺序执行可挂起回调，沿用当前总线的类型校验、日志和错误策略。 */
+suspend inline fun <reified T : Any> ScopedFlowBus.collectSuspending(
+    eventName: String = defaultEventName<T>(),
+    dispatcher: CoroutineDispatcher? = null,
+    noinline onReceived: suspend (T) -> Unit
+) {
+    collectSuspending(key = eventKey<T>(name = eventName), dispatcher = dispatcher, onReceived = onReceived)
+}
+
 /**
  * 在 [ScopedFlowBus] 上以默认事件名顺序收集粘性事件，并自动使用所属 bus 的错误处理配置。
  */
@@ -209,6 +236,15 @@ suspend inline fun <reified T : Any> ScopedFlowBus.collectSticky(
     noinline onReceived: (T) -> Unit
 ) {
     collectSticky(key = eventKey<T>(name = eventName), dispatcher = dispatcher, onReceived = onReceived)
+}
+
+/** 按顺序执行可挂起回调，沿用当前总线的类型校验、日志和错误策略。 */
+suspend inline fun <reified T : Any> ScopedFlowBus.collectStickySuspending(
+    eventName: String = defaultEventName<T>(),
+    dispatcher: CoroutineDispatcher? = null,
+    noinline onReceived: suspend (T) -> Unit
+) {
+    collectStickySuspending(key = eventKey<T>(name = eventName), dispatcher = dispatcher, onReceived = onReceived)
 }
 
 /**
@@ -310,6 +346,15 @@ suspend inline fun <reified T : Any> FlowBusScope.collect(
     collect(key = eventKey<T>(name = eventName), dispatcher = dispatcher, onReceived = onReceived)
 }
 
+/** 按顺序执行可挂起回调，沿用当前总线的类型校验、日志和错误策略。 */
+suspend inline fun <reified T : Any> FlowBusScope.collectSuspending(
+    eventName: String = defaultEventName<T>(),
+    dispatcher: CoroutineDispatcher? = null,
+    noinline onReceived: suspend (T) -> Unit
+) {
+    collectSuspending(key = eventKey<T>(name = eventName), dispatcher = dispatcher, onReceived = onReceived)
+}
+
 /**
  * 在 [FlowBusScope] 上以默认事件名顺序收集粘性事件，并自动使用所属 bus 的错误处理配置。
  */
@@ -319,6 +364,15 @@ suspend inline fun <reified T : Any> FlowBusScope.collectSticky(
     noinline onReceived: (T) -> Unit
 ) {
     collectSticky(key = eventKey<T>(name = eventName), dispatcher = dispatcher, onReceived = onReceived)
+}
+
+/** 按顺序执行可挂起回调，沿用当前总线的类型校验、日志和错误策略。 */
+suspend inline fun <reified T : Any> FlowBusScope.collectStickySuspending(
+    eventName: String = defaultEventName<T>(),
+    dispatcher: CoroutineDispatcher? = null,
+    noinline onReceived: suspend (T) -> Unit
+) {
+    collectStickySuspending(key = eventKey<T>(name = eventName), dispatcher = dispatcher, onReceived = onReceived)
 }
 
 /**

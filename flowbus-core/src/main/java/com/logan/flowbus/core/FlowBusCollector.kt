@@ -51,6 +51,37 @@ suspend fun <T : Any> collectFlowBusSequentially(
     }
 }
 
+/**
+ * 按顺序执行可挂起的事件回调；上一条回调完成后才处理下一条事件。
+ *
+ * 与 [collectFlowBusSequentially] 共用类型校验、日志、错误策略和调度器行为。
+ * 回调取消会继续传播；普通异常由 [errorHandler] 决定继续收集或终止。
+ * 挂起回调不会改变源 Flow 的缓冲和丢弃策略。
+ */
+suspend fun <T : Any> collectFlowBusSuspendingSequentially(
+    flow: Flow<Any>,
+    eventKey: EventKey<out Any>? = null,
+    scopeName: String? = null,
+    isSticky: Boolean = false,
+    dispatcher: CoroutineDispatcher? = null,
+    logger: FlowBusLogger = FlowBusLogger.None,
+    errorHandler: FlowBusErrorHandler = FlowBusErrorHandler.Rethrow,
+    onReceived: suspend (T) -> Unit
+) {
+    flow.collect { value ->
+        handleReceivedFlowBusSuspendingEventSequentially(
+            value = value,
+            eventKey = eventKey,
+            scopeName = scopeName,
+            isSticky = isSticky,
+            dispatcher = dispatcher,
+            logger = logger,
+            errorHandler = errorHandler,
+            onReceived = onReceived
+        )
+    }
+}
+
 @Suppress("UNCHECKED_CAST")
 internal suspend fun <T : Any> handleReceivedFlowBusEventSequentially(
     value: Any,
@@ -61,6 +92,29 @@ internal suspend fun <T : Any> handleReceivedFlowBusEventSequentially(
     logger: FlowBusLogger = FlowBusLogger.None,
     errorHandler: FlowBusErrorHandler = FlowBusErrorHandler.Rethrow,
     onReceived: (T) -> Unit
+) {
+    handleReceivedFlowBusSuspendingEventSequentially<T>(
+        value = value,
+        eventKey = eventKey,
+        scopeName = scopeName,
+        isSticky = isSticky,
+        dispatcher = dispatcher,
+        logger = logger,
+        errorHandler = errorHandler,
+        onReceived = { onReceived(it) }
+    )
+}
+
+@Suppress("UNCHECKED_CAST")
+private suspend fun <T : Any> handleReceivedFlowBusSuspendingEventSequentially(
+    value: Any,
+    eventKey: EventKey<out Any>?,
+    scopeName: String?,
+    isSticky: Boolean,
+    dispatcher: CoroutineDispatcher?,
+    logger: FlowBusLogger,
+    errorHandler: FlowBusErrorHandler,
+    onReceived: suspend (T) -> Unit
 ) {
     val dispatcherName = dispatcher?.toString()
     val expectedType = eventKey?.valueType

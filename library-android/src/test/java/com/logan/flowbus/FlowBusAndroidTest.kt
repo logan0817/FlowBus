@@ -73,6 +73,22 @@ class FlowBusAndroidTest {
     }
 
     @Test
+    fun `global ViewModel store getter is safe for non UI callers`() = runBlocking {
+        val source = File("src/main/java/com/logan/flowbus/GlobalViewModelStore.kt").readText()
+        val buses = Collections.synchronizedList(mutableListOf<FlowEventBus>())
+        val jobs = List(32) {
+            launch(Dispatchers.Default) {
+                buses += GlobalViewModelStore.get(FlowEventBus::class.java)
+            }
+        }
+
+        jobs.forEach { it.join() }
+
+        assertFalse(source.contains("@MainThread\n    fun <T : ViewModel> get"))
+        assertEquals(1, buses.toSet().size)
+    }
+
+    @Test
     fun `global store owner resolves the same FlowEventBus used by global APIs`() = runBlocking {
         val eventName = "android.global.owner.shared.bus"
         val flow = eventFlowFrom<String>(
@@ -247,6 +263,28 @@ class FlowBusAndroidTest {
         } catch (expected: IllegalStateException) {
             assertTrue(expected.message.orEmpty().contains("before first global bus use"))
         }
+    }
+
+    @Test
+    fun `invalid android config does not lock later configure`() {
+        FlowBusAndroid.configure(
+            FlowBusConfig(
+                normalBufferCapacity = 0,
+                overflowPolicy = BufferOverflow.DROP_OLDEST
+            )
+        )
+
+        try {
+            FlowEventBus()
+            fail("Expected invalid FlowBusConfig to reject FlowEventBus creation.")
+        } catch (expected: IllegalArgumentException) {
+            assertTrue(expected.message.orEmpty().contains("normalBufferCapacity"))
+        }
+
+        val validConfig = FlowBusConfig(normalBufferCapacity = 8)
+        FlowBusAndroid.configure(validConfig)
+
+        assertEquals(validConfig, flowBusConfigOf(FlowEventBus()))
     }
 
     @Test

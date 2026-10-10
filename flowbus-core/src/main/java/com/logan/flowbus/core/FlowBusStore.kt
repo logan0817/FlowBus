@@ -294,7 +294,8 @@ internal class FlowBusStore(
     }
 
     private fun getNormalEventFlow(eventName: String): MutableSharedFlow<Any> {
-        return normalEventFlows.computeIfAbsent(eventName) {
+        // ConcurrentMap.getOrPut 用 putIfAbsent 保证最终只返回获胜的实例，兼容 Android API 21。
+        return normalEventFlows.getOrPut(eventName) {
             MutableSharedFlow(
                 replay = 0,
                 extraBufferCapacity = config.normalBufferCapacity,
@@ -304,7 +305,7 @@ internal class FlowBusStore(
     }
 
     private fun getStickyEventFlow(eventName: String): StickyEventFlow {
-        return stickyEventFlows.computeIfAbsent(eventName) {
+        return stickyEventFlows.getOrPut(eventName) {
             StickyEventFlow(
                 replay = config.stickyReplay,
                 extraBufferCapacity = config.stickyExtraBufferCapacity,

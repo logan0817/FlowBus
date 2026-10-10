@@ -1,12 +1,15 @@
 package com.logan.flowbus.core
 
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.collect
@@ -27,6 +30,404 @@ import java.util.concurrent.TimeoutException
 import java.util.concurrent.locks.ReentrantLock
 
 class FlowBusScopeCloseTest {
+
+    @Test
+    fun `explicit close during cancelled suspending wait remains permanent`() = runBlocking {
+        verifyPermanentCloseDuringSuspendingWait(removeScope = false)
+    }
+
+    @Test
+    fun `scope removal during cancelled suspending wait remains permanent`() = runBlocking {
+        verifyPermanentCloseDuringSuspendingWait(removeScope = true)
+    }
+
+    @Test
+    fun `explicit close during timed wait survives timeout`() = runBlocking {
+        withBlockedScope("closing.explicit.timeout") { bus, scope, sender ->
+            val closer = async(Dispatchers.Default) { scope.tryClose(1_000) }
+            try {
+                scope.awaitClosingForTest()
+                scope.close()
+                assertEquals(FlowBusCloseOutcome.Timeout, withTimeout(2_000) { closer.await() }.outcome)
+                assertPermanentCloseAndReopen(bus, scope, sender)
+            } finally {
+                closer.cancelAndJoin()
+            }
+        }
+    }
+
+    @Test
+    fun `explicit close during timed wait survives thread interruption`() = runBlocking {
+        withBlockedScope("closing.explicit.interrupted") { bus, scope, sender ->
+            val interrupted = CompletableDeferred<Boolean>()
+            val closeThread = Thread {
+                try {
+                    scope.tryClose(5_000)
+                    interrupted.complete(false)
+                } catch (_: InterruptedException) {
+                    interrupted.complete(Thread.currentThread().isInterrupted)
+                } catch (failure: Throwable) {
+                    interrupted.completeExceptionally(failure)
+                }
+            }
+            closeThread.start()
+            try {
+                scope.awaitClosingForTest()
+                scope.close()
+                closeThread.interrupt()
+                assertTrue(withTimeout(1_000) { interrupted.await() })
+                assertPermanentCloseAndReopen(bus, scope, sender)
+            } finally {
+                closeThread.interrupt()
+                closeThread.join(1_000)
+            }
+        }
+    }
+
+    private suspend fun verifyPermanentCloseDuringSuspendingWait(removeScope: Boolean) {
+        withBlockedScope("closing.explicit.cancel.$removeScope") { bus, scope, sender ->
+            val closer = launch(start = CoroutineStart.UNDISPATCHED) { scope.closeSuspending() }
+            try {
+                scope.awaitClosingForTest()
+                if (removeScope) bus.removeScope(scope.scopeName) else scope.close()
+                withTimeout(1_000) { closer.cancelAndJoin() }
+                assertPermanentCloseAndReopen(bus, scope, sender)
+            } finally {
+                closer.cancelAndJoin()
+            }
+        }
+    }
+
+    private suspend fun assertPermanentCloseAndReopen(bus: FlowBus, scope: FlowBusScope, sender: Job) {
+        assertTrue(scope.isClosed)
+        assertFalse(sender.isCompleted)
+        val key = eventKey<String>("closing.explicit.state")
+        val rejection = runCatching { scope.postSticky(key, "rejected") }.exceptionOrNull()
+        assertTrue(rejection is IllegalStateException)
+        val reopened = bus.openScope(scope.scopeName)
+        try {
+            assertTrue(reopened.postSticky(key, "new store"))
+            sender.cancelAndJoin()
+            assertTrue(withTimeout(1_000) { scope.closeSuspending() }.closed)
+            assertEquals("new store", reopened.stickyFlow(key).first())
+        } finally {
+            reopened.close()
+        }
+        assertFalse(bus.hasScope(scope.scopeName))
+    }
+
+    private suspend fun withBlockedScope(
+        scopeName: String,
+        block: suspend CoroutineScope.(FlowBus, FlowBusScope, Job) -> Unit
+    ) = coroutineScope {
+        val bus = FlowBus(FlowBusConfig(normalBufferCapacity = 0, overflowPolicy = BufferOverflow.SUSPEND))
+        val scope = bus.openScope(scopeName)
+        val key = eventKey<Int>("closing.explicit.blocked")
+        val firstReceived = CompletableDeferred<Unit>()
+        val releaseFirst = CompletableDeferred<Unit>()
+        val collector = launch(start = CoroutineStart.UNDISPATCHED) {
+            scope.flow(key).collect {
+                firstReceived.complete(Unit)
+                releaseFirst.await()
+            }
+        }
+        var sender: Job? = null
+        try {
+            scope.emit(key, 1)
+            firstReceived.await()
+            val blockedSender = launch(start = CoroutineStart.UNDISPATCHED) { scope.emit(key, 2) }
+            sender = blockedSender
+            block(bus, scope, blockedSender)
+        } finally {
+            sender?.cancelAndJoin()
+            releaseFirst.complete(Unit)
+            collector.cancelAndJoin()
+            scope.close()
+        }
+    }
+
+    @Test
+    fun `job completion during interrupted timed close keeps scope closed`() = runBlocking {
+        val bus = FlowBus(FlowBusConfig(normalBufferCapacity = 0, overflowPolicy = BufferOverflow.SUSPEND))
+        val boundJob = Job()
+        val scope = bus.openScope("closing.interrupted.bound", closeWhen = boundJob)
+        val key = eventKey<Int>("closing.interrupted.bound.event")
+        val firstReceived = CompletableDeferred<Unit>()
+        val releaseFirst = CompletableDeferred<Unit>()
+        val collector = launch(start = CoroutineStart.UNDISPATCHED) {
+            scope.flow(key).collect {
+                firstReceived.complete(Unit)
+                releaseFirst.await()
+            }
+        }
+        val interrupted = CompletableDeferred<Boolean>()
+        val closeThread = Thread {
+            try {
+                scope.tryClose(5_000)
+                interrupted.complete(false)
+            } catch (_: InterruptedException) {
+                interrupted.complete(Thread.currentThread().isInterrupted)
+            } catch (failure: Throwable) {
+                interrupted.completeExceptionally(failure)
+            }
+        }
+        var sender: Job? = null
+        try {
+            scope.emit(key, 1)
+            firstReceived.await()
+            sender = launch(start = CoroutineStart.UNDISPATCHED) { scope.emit(key, 2) }
+            closeThread.start()
+            scope.awaitClosingForTest()
+            boundJob.cancel()
+            closeThread.interrupt()
+
+            assertTrue(withTimeout(1_000) { interrupted.await() })
+            assertTrue(scope.isClosed)
+            assertFalse(sender.isCompleted)
+            try {
+                scope.postSticky(key, 3)
+                throw AssertionError("A lifecycle-closed scope must reject new operations")
+            } catch (_: IllegalStateException) {
+                // 中断仅结束调用方的等待，生命周期关闭仍然生效。
+            }
+            sender.cancelAndJoin()
+            assertTrue(withTimeout(1_000) { scope.closeSuspending() }.closed)
+            assertFalse(bus.hasScope(scope.scopeName))
+        } finally {
+            closeThread.interrupt()
+            closeThread.join(1_000)
+            releaseFirst.complete(Unit)
+            sender?.cancelAndJoin()
+            collector.cancelAndJoin()
+            scope.close()
+        }
+    }
+
+    @Test
+    fun `job completion during cancelled close wait is not lost`() = runBlocking {
+        val bus = FlowBus(FlowBusConfig(normalBufferCapacity = 0, overflowPolicy = BufferOverflow.SUSPEND))
+        val boundJob = Job()
+        val scope = bus.openScope("closing.cancel.bound", closeWhen = boundJob)
+        val key = eventKey<Int>("closing.cancel.bound.event")
+        val firstReceived = CompletableDeferred<Unit>()
+        val releaseFirst = CompletableDeferred<Unit>()
+        val collector = launch(start = CoroutineStart.UNDISPATCHED) {
+            scope.flow(key).collect {
+                firstReceived.complete(Unit)
+                releaseFirst.await()
+            }
+        }
+        var sender: Job? = null
+        var closer: Job? = null
+        try {
+            scope.emit(key, 1)
+            firstReceived.await()
+            sender = launch(start = CoroutineStart.UNDISPATCHED) { scope.emit(key, 2) }
+            closer = launch(start = CoroutineStart.UNDISPATCHED) { scope.closeSuspending() }
+            scope.awaitClosingForTest()
+            boundJob.cancel()
+            withTimeout(1_000) { closer.cancelAndJoin() }
+
+            assertTrue(scope.isClosed)
+            assertFalse(sender.isCompleted)
+            sender.cancelAndJoin()
+            assertTrue(withTimeout(1_000) { scope.closeSuspending() }.closed)
+            assertFalse(bus.hasScope(scope.scopeName))
+        } finally {
+            releaseFirst.complete(Unit)
+            sender?.cancelAndJoin()
+            closer?.cancelAndJoin()
+            collector.cancelAndJoin()
+            scope.close()
+        }
+    }
+
+    @Test
+    fun `job completion during timed close is retained after timeout`() = runBlocking {
+        val bus = FlowBus(FlowBusConfig(normalBufferCapacity = 0, overflowPolicy = BufferOverflow.SUSPEND))
+        val boundJob = Job()
+        val scope = bus.openScope("closing.timeout.bound", closeWhen = boundJob)
+        val key = eventKey<Int>("closing.timeout.bound.event")
+        val firstReceived = CompletableDeferred<Unit>()
+        val releaseFirst = CompletableDeferred<Unit>()
+        val collector = launch(start = CoroutineStart.UNDISPATCHED) {
+            scope.flow(key).collect {
+                firstReceived.complete(Unit)
+                releaseFirst.await()
+            }
+        }
+        var sender: Job? = null
+        try {
+            scope.emit(key, 1)
+            firstReceived.await()
+            sender = launch(start = CoroutineStart.UNDISPATCHED) { scope.emit(key, 2) }
+            val closing = async(Dispatchers.Default) { scope.tryClose(1_000) }
+            scope.awaitClosingForTest()
+            boundJob.cancel()
+            assertEquals(FlowBusCloseOutcome.Timeout, withTimeout(2_000) { closing.await() }.outcome)
+            assertTrue(scope.isClosed)
+            sender.cancelAndJoin()
+            assertTrue(withTimeout(1_000) { scope.closeSuspending() }.closed)
+            assertFalse(bus.hasScope(scope.scopeName))
+        } finally {
+            releaseFirst.complete(Unit)
+            sender?.cancelAndJoin()
+            collector.cancelAndJoin()
+            scope.close()
+        }
+    }
+
+    @Test
+    fun `unconfined close completion can race with scope removal`() = runBlocking {
+        val bus = FlowBus(FlowBusConfig(normalBufferCapacity = 0, overflowPolicy = BufferOverflow.SUSPEND))
+        val scope = bus.openScope("closing.unconfined.remove")
+        val key = eventKey<Int>("closing.unconfined.event")
+        val firstReceived = CompletableDeferred<Unit>()
+        val releaseFirst = CompletableDeferred<Unit>()
+        val collector = launch(start = CoroutineStart.UNDISPATCHED) {
+            scope.flow(key).collect {
+                firstReceived.complete(Unit)
+                releaseFirst.await()
+            }
+        }
+        var sender: Job? = null
+        try {
+            scope.emit(key, 1)
+            firstReceived.await()
+            sender = launch(start = CoroutineStart.UNDISPATCHED) { scope.emit(key, 2) }
+            val closeResult = async(Dispatchers.Unconfined) { scope.closeSuspending() }
+            scope.awaitClosingForTest()
+            val removal = launch(Dispatchers.Default) { bus.removeScope(scope.scopeName) }
+            withTimeout(1_000) {
+                sender.cancelAndJoin()
+                removal.join()
+                assertTrue(closeResult.await().closed)
+            }
+            assertTrue(scope.isClosed)
+            assertFalse(bus.hasScope(scope.scopeName))
+        } finally {
+            releaseFirst.complete(Unit)
+            sender?.cancelAndJoin()
+            collector.cancelAndJoin()
+            scope.close()
+        }
+    }
+
+    @Test
+    fun `cancel initiated close wait restores scope without releasing blocked sender`() = runBlocking {
+        val bus = FlowBus(FlowBusConfig(normalBufferCapacity = 0, overflowPolicy = BufferOverflow.SUSPEND))
+        val scope = bus.openScope("closing.cancel.initiator")
+        val key = eventKey<Int>("closing.cancel.event")
+        val firstReceived = CompletableDeferred<Unit>()
+        val releaseFirst = CompletableDeferred<Unit>()
+        val collector = launch(start = CoroutineStart.UNDISPATCHED) {
+            scope.flow(key).collect {
+                firstReceived.complete(Unit)
+                releaseFirst.await()
+            }
+        }
+        var sender: Job? = null
+        var closer: Job? = null
+        try {
+            scope.emit(key, 1)
+            firstReceived.await()
+            sender = launch(start = CoroutineStart.UNDISPATCHED) { scope.emit(key, 2) }
+            closer = launch(start = CoroutineStart.UNDISPATCHED) { scope.closeSuspending() }
+            scope.awaitClosingForTest()
+            assertFalse(scope.isClosed)
+            assertEquals(FlowBusCloseOutcome.ClosingInProgress, scope.tryClose(0).outcome)
+
+            withTimeout(1_000) { closer.cancelAndJoin() }
+
+            assertFalse(sender.isCompleted)
+            assertFalse(scope.isClosed)
+            assertFalse(scope.isClosingForTest())
+            assertTrue(scope.postSticky(eventKey<String>("closing.cancel.sticky"), "still open"))
+        } finally {
+            releaseFirst.complete(Unit)
+            sender?.cancelAndJoin()
+            closer?.cancelAndJoin()
+            collector.cancelAndJoin()
+            scope.close()
+        }
+    }
+
+    @Test
+    fun `cancel prepared close waiter does not roll back closure or affect other waiter`() = runBlocking {
+        val bus = FlowBus(FlowBusConfig(normalBufferCapacity = 0, overflowPolicy = BufferOverflow.SUSPEND))
+        val scope = bus.openScope("closing.cancel.waiter")
+        val key = eventKey<Int>("closing.cancel.waiter.event")
+        val firstReceived = CompletableDeferred<Unit>()
+        val releaseFirst = CompletableDeferred<Unit>()
+        val collector = launch(start = CoroutineStart.UNDISPATCHED) {
+            scope.flow(key).collect {
+                firstReceived.complete(Unit)
+                releaseFirst.await()
+            }
+        }
+        var sender: Job? = null
+        var cancelledWaiter: Job? = null
+        var remainingWaiter: Job? = null
+        try {
+            scope.emit(key, 1)
+            firstReceived.await()
+            sender = launch(start = CoroutineStart.UNDISPATCHED) { scope.emit(key, 2) }
+            scope.close()
+            cancelledWaiter = launch(start = CoroutineStart.UNDISPATCHED) { scope.closeSuspending() }
+            val result = async(start = CoroutineStart.UNDISPATCHED) { scope.closeSuspending() }
+            remainingWaiter = result
+
+            withTimeout(1_000) { cancelledWaiter.cancelAndJoin() }
+
+            assertTrue(scope.isClosed)
+            assertFalse(result.isCompleted)
+            sender.cancelAndJoin()
+            assertEquals(FlowBusCloseOutcome.Closed, withTimeout(1_000) { result.await() }.outcome)
+            assertFalse(bus.hasScope(scope.scopeName))
+        } finally {
+            releaseFirst.complete(Unit)
+            sender?.cancelAndJoin()
+            cancelledWaiter?.cancelAndJoin()
+            remainingWaiter?.cancelAndJoin()
+            collector.cancelAndJoin()
+            scope.close()
+        }
+    }
+
+    @Test
+    fun `timed out suspending close allows a later successful close`() = runBlocking {
+        val bus = FlowBus(FlowBusConfig(normalBufferCapacity = 0, overflowPolicy = BufferOverflow.SUSPEND))
+        val scope = bus.openScope("closing.suspending.timeout")
+        val key = eventKey<Int>("closing.suspending.timeout.event")
+        val firstReceived = CompletableDeferred<Unit>()
+        val releaseFirst = CompletableDeferred<Unit>()
+        val collector = launch(start = CoroutineStart.UNDISPATCHED) {
+            scope.flow(key).collect {
+                firstReceived.complete(Unit)
+                releaseFirst.await()
+            }
+        }
+        var sender: Job? = null
+        try {
+            scope.emit(key, 1)
+            firstReceived.await()
+            sender = launch(start = CoroutineStart.UNDISPATCHED) { scope.emit(key, 2) }
+            try {
+                withTimeout(50) { scope.closeSuspending() }
+                throw AssertionError("Close must time out while sender is blocked")
+            } catch (_: kotlinx.coroutines.TimeoutCancellationException) {
+                assertFalse(scope.isClosed)
+                assertFalse(scope.isClosingForTest())
+            }
+            sender.cancelAndJoin()
+            assertEquals(FlowBusCloseOutcome.Closed, scope.closeSuspending().outcome)
+        } finally {
+            releaseFirst.complete(Unit)
+            sender?.cancelAndJoin()
+            collector.cancelAndJoin()
+            scope.close()
+        }
+    }
 
     @Test
     fun `try close returns timeout when scope has in flight operation`() = runBlocking {
@@ -329,7 +730,7 @@ class FlowBusScopeCloseTest {
     }
 
     @Test
-    fun `interrupted auto close wait retries lifecycle close and eventually closes scope`() = runBlocking {
+    fun `thread interruption does not prevent lifecycle close completion`() = runBlocking {
         val config = FlowBusConfig(
             normalBufferCapacity = 0,
             overflowPolicy = BufferOverflow.SUSPEND
