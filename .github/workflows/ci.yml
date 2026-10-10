@@ -58,6 +58,7 @@ jobs:
 
       - name: Check consumer device verification driver
         run: |
+          python3 -B compatibility/verify_api35_test.py
           python3 -B -m unittest discover -s compatibility/android-consumer -p '*_test.py' -v
           python3 -B -m unittest discover -s compatibility/compose-consumer -p '*_test.py' -v
           python3 -B -m unittest discover -s compatibility/navigation-consumer -p '*_test.py' -v
@@ -90,13 +91,7 @@ jobs:
           profile: pixel_5
           disable-animations: true
           script: |
-            adb shell settings put global window_animation_scale 0
-            adb shell settings put global transition_animation_scale 0
-            adb shell settings put global animator_duration_scale 0
-            adb shell settings get global window_animation_scale
-            adb shell settings get global transition_animation_scale
-            adb shell settings get global animator_duration_scale
-            ./gradlew :library-android:connectedDebugAndroidTest :app:connectedReleaseAndroidTest --rerun-tasks --warning-mode=all
+            bash compatibility/run-api35.sh
 
       - name: Verify isolated candidate artifacts and consumers
         run: |
@@ -180,6 +175,7 @@ jobs:
             build/core-jvm-symbol-verification.json
             build/android-jvm-symbol-verification.json
             build/api21-environment/
+            build/api35-environment/
             build/android-consumer-device/
             build/compose-effects-device/
             build/compose-policies-device/
