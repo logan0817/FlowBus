@@ -45,7 +45,7 @@ viewLifecycleOwner.onEventSuspending<RefreshHomeEvent> { event ->
 
 已发布 1.0.7 core 的稳定 JVM 描述符与旧消费者运行回归有独立证据；Android 公开快照成员保留，原始报告记录一处非 PublishedApi internal 方法变化。静态符号与选定消费者测试不等于完整 ABI 认证。
 
-**尚未满足发布门禁：API 21 库层与 minified Maven 消费者设备验收、远端 CI。** API 24 验证不能替代最低系统验证。旧完整工具链、AGP 9.x、进程死亡恢复、深链接和任意导航动画尚未认证，Compose 新模块不在本次发布范围。
+**发布门禁：最终提交必须通过 API 21 库层、minified Maven 消费者设备验收及完整远端 CI。** 当前候选结果与报告入口见[发布清单](release-checklist.md)。API 24 验证不能替代最低系统验证。旧完整工具链、AGP 9.x、进程死亡恢复、深链接和任意导航动画尚未认证，Compose 新模块不在本次发布范围。
 
 ## 发布与回退
 

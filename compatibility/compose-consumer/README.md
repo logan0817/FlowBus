@@ -49,7 +49,7 @@
 | 默认 1.5.4 | 2.6.2 | 1.10.0 |
 | 可选 1.7.8 | 2.8.3 | 1.12.0 |
 
-两组使用 Kotlin 1.9.25、compiler 1.5.15、activity-compose 1.8.2、Coroutines 1.8.1、AGP 8.6.1 和 Java 8 字节码。保存完整 releaseRuntimeClasspath 图；直接声明与 APK META-INF 标记不代表解析版本。两组分别通过 API 24 十阶段交互、九阶段 effect 和八阶段错误/取消验证，API 21 仍待验收。完整范围见[兼容性评估](../../docs/next-version-plan.md#兼容性评估)。
+两组使用 Kotlin 1.9.25、compiler 1.5.15、activity-compose 1.8.2、Coroutines 1.8.1、AGP 8.6.1 和 Java 8 字节码。保存完整 releaseRuntimeClasspath 图；直接声明与 APK META-INF 标记不代表解析版本。两组分别通过 API 24 十阶段交互、九阶段 effect 和八阶段错误/取消验证，API 21 按最终提交的 CI 设备报告验收，入口见[发布清单](../../docs/release-checklist.md)。完整范围见[兼容性评估](../../docs/next-version-plan.md#兼容性评估)。
 
 ## 受控 Composition 自检入口
 
@@ -115,4 +115,4 @@ python3 -B compatibility/compose-consumer/verify-policies-device.py --adb /path/
 python3 -B compatibility/compose-consumer/verify_effects_test.py
 ```
 
-驱动要求本次 runId 的 FlowBusComposePolicy 日志、同包 UI 与全部八阶段；fixture 超时 30 秒，driver 40 秒。mock 共 2 tests / 13 subtests，验证协议与错误边界，不代替设备。两组 API 24 自检通过；API 21 与远端 CI 尚未验收。
+驱动要求本次 runId 的 FlowBusComposePolicy 日志、同包 UI 与全部八阶段；fixture 超时 30 秒，driver 40 秒。mock 共 2 tests / 13 subtests，验证协议与错误边界，不代替设备。两组 API 24 自检通过；API 21 与远端 CI 结果按最终提交核对，入口见[发布清单](../../docs/release-checklist.md)。

@@ -60,7 +60,13 @@ python3 -B compatibility/android-consumer/verify_device_test.py
 
 五项回归已通过，覆盖本次 PASS 与 UI 匹配、历史 PASS 超时拒绝、本次 FAIL 拒绝、其他前台包拒绝、错误 API 在安装前拒绝。它们模拟 ADB 输出，只验证驱动判断与报告行为，不是 Android API 21 上实际安装、Main/Lifecycle、自检或 R8 运行的证据。
 
-CI 已新增该驱动回归步骤，并在既有 API 21 库层 instrumentation 后，使用已有 debug keystore 为当前 minified Maven consumer 本地测试签名，再执行设备驱动。远端工作流尚未执行，不能标记 API 21 门禁通过。
+CI 入口通过 `bash compatibility/run-api21.sh` 执行完整复合命令，并在第一处失败停止。另有三项 Shell 入口回归，实际执行身份记录的 heredoc，覆盖错误 API、未完成启动及库测试失败后停止；不启动设备。运行全部八项回归：
+
+```bash
+python3 -B -m unittest discover -s compatibility/android-consumer -p '*_test.py' -v
+```
+
+CI 已新增该驱动回归步骤，并在既有 API 21 库层 instrumentation 后，使用已有 debug keystore 为当前 minified Maven consumer 本地测试签名，再执行设备驱动。当前远端结果按最终提交核对，入口见[发布清单](../../docs/release-checklist.md)。
 
 ## 覆盖与限制
 
@@ -75,7 +81,7 @@ CI 已新增该驱动回归步骤，并在既有 API 21 库层 instrumentation �
 
 各组通过 finally 清理自己持有的 owner、订阅、source 或 channel；显式 lifecycle 组先取消订阅并同步关闭 source/channel，再 join，避免已取消协程在挂起等待时跳过资源关闭。Activity onDestroy 取消验证 scope。正常销毁导致的取消既不生成 PASS，也不误报 FAIL；验证中途关闭 Activity 应重新冷启动完成验证。
 
-默认 Kotlin 1.9.25 / compileSdk 35，以及 Kotlin 1.8.22 / compileSdk 33 已通过编译、metadata 检查与 release R8；默认组合在 API 24 四阶段通过。API 21 尚未运行，APK 名称、签名或静态检查不代表最低系统通过。完整已测组合与未认证范围见[兼容性评估](../../docs/next-version-plan.md#兼容性评估)。
+默认 Kotlin 1.9.25 / compileSdk 35，以及 Kotlin 1.8.22 / compileSdk 33 已通过编译、metadata 检查与 release R8；默认组合在 API 24 四阶段通过。API 21 必须核对最终提交的设备报告，APK 名称、签名或静态检查不代表最低系统通过。完整已测组合与未认证范围见[兼容性评估](../../docs/next-version-plan.md#兼容性评估)。
 
 ## 已发布 1.0.7 AAR 的 JVM 符号核对
 
@@ -108,4 +114,4 @@ python3 -B compatibility/core-binary-consumer/verify_symbols.py \
 
 实际原版 15 个稳定具名类、179 个 JVM public/protected 成员描述符完成比较，其中公开快照的 88 个描述符在原版与候选均存在，受支持公开描述符缺失为 0。原始比较有一处其他 JVM 移除：createFlowBusConfig$library_android_release，报告的 otherJvmRemovals 保留该记录。源码确认它是 Kotlin internal，未标记 PublishedApi，不在公开快照中；已有构造失败恢复修订将配置生成改为实际 FlowBus 构造成功后再冻结配置。该差异不属于受支持公开 API，报告仍保留原始比较结果。
 
-这是 classes.jar 的静态符号证据，不等于 Android 旧消费者字节码在设备上已运行，也不检查全部继承/可见性、资源、manifest 或 consumer rules。其他 JVM 移除需要结合源码和旧调用路径人工判断，不能因它不在公开快照中就自动宣称所有 inline 路径兼容。脚本当前 7 项回归通过；原有 core 运行报告模式复验仍保留 631 个描述符。CI 新增固定原版摘要和 AAR 检查，远端尚未执行，API 21 门禁仍未完成。
+这是 classes.jar 的静态符号证据，不等于 Android 旧消费者字节码在设备上已运行，也不检查全部继承/可见性、资源、manifest 或 consumer rules。其他 JVM 移除需要结合源码和旧调用路径人工判断，不能因它不在公开快照中就自动宣称所有 inline 路径兼容。脚本当前 7 项回归通过；原有 core 运行报告模式复验仍保留 631 个描述符。CI 固定原版摘要并执行 AAR 检查；远端和 API 21 设备结果统一按[发布清单](../../docs/release-checklist.md)验收。

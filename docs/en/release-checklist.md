@@ -52,7 +52,7 @@ emulator-runner executes each `script` line in a separate shell, so multiline he
 
 CI SDK setup explicitly selects `platform-tools`; the setup-android Action prepares command-line tools separately. Do not restore its default package list containing the removed `tools` package. The next installation step selects platform and Build Tools versions.
 
-**Outstanding: no local API 21 image; API 21 and remote CI have not passed.** See the [compatibility assessment](next-version-plan.md#compatibility-assessment) for tested combinations and uncertified toolchains.
+Current remote candidate status is available in [PR #4 CI checks](https://github.com/logan0817/FlowBus/pull/4/checks). No API 21 image is available locally. Before release, confirm complete CI success for the final commit, the actual API 21 device identity, and all consumer reports. Started/queued runs and older successful commits do not replace this check. See the [compatibility assessment](next-version-plan.md#compatibility-assessment) for tested combinations and uncertified toolchains.
 
 ## Compatibility, sources, and documentation
 

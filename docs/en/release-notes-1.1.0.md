@@ -45,7 +45,7 @@ Gates include apiCheck, JVM tests, release lint/R8, POM/module metadata, license
 
 Published 1.0.7 core has stable-descriptor and unchanged-consumer execution evidence. Android public-snapshot symbols are retained, with one non-PublishedApi internal removal recorded in the raw report. These checks are not full ABI certification.
 
-**Outstanding gates: API 21 library and minified Maven consumer device checks, and remote CI.** API 24 cannot replace minimum-API verification. Full older toolchains, AGP 9.x, process-death recovery, deep links, and arbitrary animations remain uncertified. A published Compose module is outside this release.
+**Release gates: the final commit must pass API 21 library and minified Maven consumer device checks and complete remote CI.** See the [release checklist](release-checklist.md) for current candidate results and reports. API 24 cannot replace minimum-API verification. Full older toolchains, AGP 9.x, process-death recovery, deep links, and arbitrary animations remain uncertified. A published Compose module is outside this release.
 
 ## Publication and rollback
 

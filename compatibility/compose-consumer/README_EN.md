@@ -49,7 +49,7 @@ The consumer uses repository Kotlin/AGP/SDK settings. Preserve actual dependency
 | Default 1.5.4 | 2.6.2 | 1.10.0 |
 | Optional 1.7.8 | 2.8.3 | 1.12.0 |
 
-Both use Kotlin 1.9.25, compiler 1.5.15, activity-compose 1.8.2, Coroutines 1.8.1, AGP 8.6.1, and Java 8 bytecode. Preserve the complete releaseRuntimeClasspath graph; direct declarations and APK META-INF markers do not prove resolved versions. Independent API 24 ten-stage interaction, nine effect, and eight policy checks passed for both combinations. API 21 remains pending. See the [compatibility assessment](../../docs/en/next-version-plan.md#compatibility-assessment).
+Both use Kotlin 1.9.25, compiler 1.5.15, activity-compose 1.8.2, Coroutines 1.8.1, AGP 8.6.1, and Java 8 bytecode. Preserve the complete releaseRuntimeClasspath graph; direct declarations and APK META-INF markers do not prove resolved versions. Independent API 24 ten-stage interaction, nine effect, and eight policy checks passed for both combinations. Verify API 21 against the final-commit CI device reports through the [release checklist](../../docs/en/release-checklist.md). See the [compatibility assessment](../../docs/en/next-version-plan.md#compatibility-assessment).
 
 ## Controlled Composition verification entry point
 
@@ -117,4 +117,4 @@ python3 -B compatibility/compose-consumer/verify-policies-device.py --adb /path/
 python3 -B compatibility/compose-consumer/verify_effects_test.py
 ```
 
-The driver requires current-run FlowBusComposePolicy logs, same-package UI, and all eight stages. Fixture timeout is 30 seconds; driver timeout is 40 seconds. Mocks contain 2 tests / 13 subtests and verify protocol only. Both combinations passed API 24 checks; API 21 and remote CI remain pending.
+The driver requires current-run FlowBusComposePolicy logs, same-package UI, and all eight stages. Fixture timeout is 30 seconds; driver timeout is 40 seconds. Mocks contain 2 tests / 13 subtests and verify protocol only. Both combinations passed API 24 checks; Verify API 21 and remote CI against the final commit through the [release checklist](../../docs/en/release-checklist.md).

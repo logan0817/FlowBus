@@ -57,7 +57,7 @@ NavHostController 绑定真实 Activity 的 LifecycleOwner、ViewModelStore 与 
 
 测试通过 probe entered/cancelled 与帧驱动的诊断 subscriptionCount 就绪条件建立时序，不用固定 delay。诊断快照仅用于此测试就绪，不作为业务控制或处理完成保证。
 
-这是实际 NavController/entry 返回栈验证，仍不等于 navigation-compose NavHost 动画、saved state/进程恢复、深链接或全部导航场景。默认 Rethrow、Ignore、旧式/自定义处理器和两类受控非协作回调已在独立 Composition 的两条 API 24 组合通过八阶段，详见 [错误与取消自检](../compose-consumer/README.md#错误策略与非协作回调自检)；这不等于 NavHost 在异常后的 UI 行为已验证。API 21 完整设备验证仍未完成。
+这是实际 NavController/entry 返回栈验证，仍不等于 navigation-compose NavHost 动画、saved state/进程恢复、深链接或全部导航场景。默认 Rethrow、Ignore、旧式/自定义处理器和两类受控非协作回调已在独立 Composition 的两条 API 24 组合通过八阶段，详见 [错误与取消自检](../compose-consumer/README.md#错误策略与非协作回调自检)；这不等于 NavHost 在异常后的 UI 行为已验证。API 21 完整设备结果须按最终提交的 CI 报告验收。
 
 ## 验证结果与限制
 
@@ -68,4 +68,4 @@ NavHostController 绑定真实 Activity 的 LifecycleOwner、ViewModelStore 与 
 
 不使用依赖 force。关闭可选参数后默认消费者无导航源码、manifest 入口或依赖残留，Lifecycle 保持 2.6.2；基础发布产物不含 fixture。每次验收应保存当前 runId 的日志/UI、实际依赖图和 APK 签名记录，不复用旧 PASS。
 
-API 21 与远端 CI 尚未验收。进程死亡恢复、深链接、任意动画配置和异常后的完整 NavHost UI 不在已验证范围。已测 Activity 配置重建依赖同一进程 retained ViewModel，不证明事件持久化。错误与受控非协作取消见[Compose 自检](../compose-consumer/README.md#错误策略与非协作回调自检)，总体范围见[兼容性评估](../../docs/next-version-plan.md#兼容性评估)。
+API 21 与远端 CI 结果按最终提交核对，入口见[发布清单](../../docs/release-checklist.md)。进程死亡恢复、深链接、任意动画配置和异常后的完整 NavHost UI 不在已验证范围。已测 Activity 配置重建依赖同一进程 retained ViewModel，不证明事件持久化。错误与受控非协作取消见[Compose 自检](../compose-consumer/README.md#错误策略与非协作回调自检)，总体范围见[兼容性评估](../../docs/next-version-plan.md#兼容性评估)。

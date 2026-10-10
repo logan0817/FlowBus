@@ -37,7 +37,7 @@
 
 ## 发布门禁与验证入口
 
-API 21 是当前最低支持目标，必须补齐库层 instrumentation 和 minified Maven 消费者设备验收。本机没有 API 21 image，API 24 通过及 D8 静态检查均不能替代该门禁。CI 已配置相应任务，但远端尚未运行。
+API 21 是当前最低支持目标，必须补齐库层 instrumentation 和 minified Maven 消费者设备验收。本机没有 API 21 image，API 24 通过及 D8 静态检查均不能替代该门禁。CI 执行相应任务；当前候选状态与最终提交的报告入口统一见[发布清单](release-checklist.md)。
 
 - [发布清单](release-checklist.md)：基础测试、API、lint、R8、元数据、最低系统与发布任务图。
 - [core 二进制消费者](../compatibility/core-binary-consumer/README.md)：原版编译、候选替换运行及 JVM 符号验证。

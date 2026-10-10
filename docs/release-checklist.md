@@ -52,7 +52,7 @@ emulator-runner 的 `script` 会按行分别启动 Shell，不支持跨行 hered
 
 CI 的 SDK 初始化显式选择 `platform-tools`，命令行工具由 setup-android Action 准备；不要恢复其包含已下架 `tools` 包的默认安装列表。平台和 Build Tools 版本由后续安装步骤指定。
 
-**当前缺口：本机无 API 21 image，API 21 与远端 CI 尚未验收。** 其余已测组合及未认证工具链见[兼容性评估](next-version-plan.md#兼容性评估)。
+当前候选的远端状态见 [PR #4 的 CI 检查](https://github.com/logan0817/FlowBus/pull/4/checks)。本机无 API 21 image，最低系统验收依赖远端设备。发布前必须核对最终提交的完整 CI 成功状态、API 21 实际设备身份和全部消费者报告；启动、排队或旧提交通过均不能替代。其余已测组合及未认证工具链见[兼容性评估](next-version-plan.md#兼容性评估)。
 
 ## 兼容性、源码与文档检查
 

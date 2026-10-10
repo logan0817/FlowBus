@@ -37,7 +37,7 @@ Binary checks are not full ABI certification. Android symbol checks do not estab
 
 ## Release gates and entry points
 
-API 21 remains the minimum target and requires library instrumentation and minified Maven consumer device checks. No API 21 image is available locally. API 24 results and static D8 checks do not replace this gate. CI is configured but has not run remotely.
+API 21 remains the minimum target and requires library instrumentation and minified Maven consumer device checks. No API 21 image is available locally. API 24 results and static D8 checks do not replace this gate. CI runs these checks; the [release checklist](release-checklist.md) links to the current candidate status and final-commit reports.
 
 - [Release checklist](release-checklist.md): tests, API, lint, R8, metadata, minimum API, and publication task graph.
 - [Core binary consumer](../../compatibility/core-binary-consumer/README_EN.md): original compilation, candidate runtime replacement, and JVM symbols.
