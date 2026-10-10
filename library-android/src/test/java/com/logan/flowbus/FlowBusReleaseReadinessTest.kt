@@ -105,6 +105,7 @@ class FlowBusReleaseReadinessTest {
         assertTrue(ci.contains("permissions:"))
         assertTrue(ci.contains("contents: read"))
         assertTrue(ci.contains("cache-read-only: false"))
+        assertTrue("SDK setup must not use the removed tools package.", ci.contains("packages: platform-tools"))
         assertTrue(ci.contains("verifyMavenLocalArtifacts"))
         assertTrue(ci.contains("verifyMavenLocalConsumer"))
         assertTrue(ci.contains("verifyMavenLocalCoreConsumer"))

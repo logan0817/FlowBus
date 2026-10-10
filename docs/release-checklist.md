@@ -46,6 +46,8 @@ ANDROID_SERIAL=device-serial ./gradlew :library-android:connectedDebugAndroidTes
 
 API 21 步骤会先记录并断言指定模拟器的实际 API 与启动状态，再执行测试。工作流无论成功或失败都会上传 `flowbus-verification-<commit SHA>` 报告，保留 14 天，包含单测、lint、instrumentation、JVM 符号及消费者当前运行日志/UI。排查时先下载对应提交的报告；缺少文件可能表示前置步骤尚未执行，不能视为通过。
 
+CI 的 SDK 初始化显式选择 `platform-tools`，命令行工具由 setup-android Action 准备；不要恢复其包含已下架 `tools` 包的默认安装列表。平台和 Build Tools 版本由后续安装步骤指定。
+
 **当前缺口：本机无 API 21 image，API 21 与远端 CI 尚未验收。** 其余已测组合及未认证工具链见[兼容性评估](next-version-plan.md#兼容性评估)。
 
 ## 兼容性、源码与文档检查

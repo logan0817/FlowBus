@@ -35,6 +35,9 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4.0.1
+        with:
+          # tools 已从 SDK 仓库下架；命令行工具由 Action 单独准备。
+          packages: platform-tools
 
       - name: Install Android SDK packages
         run: sdkmanager "platform-tools" "platforms;android-33" "platforms;android-35" "build-tools;35.0.0"

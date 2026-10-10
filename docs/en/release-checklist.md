@@ -46,6 +46,8 @@ ANDROID_SERIAL=device-serial ./gradlew :library-android:connectedDebugAndroidTes
 
 The API 21 step records and asserts the selected emulator's actual API and boot state before testing. Whether the workflow succeeds or fails, it uploads `flowbus-verification-<commit SHA>` reports for 14 days: unit tests, lint, instrumentation, JVM symbols, and current consumer logs/UI. Download reports matching the commit when diagnosing failures. Missing files can indicate an earlier step never ran and do not establish a pass.
 
+CI SDK setup explicitly selects `platform-tools`; the setup-android Action prepares command-line tools separately. Do not restore its default package list containing the removed `tools` package. The next installation step selects platform and Build Tools versions.
+
 **Outstanding: no local API 21 image; API 21 and remote CI have not passed.** See the [compatibility assessment](next-version-plan.md#compatibility-assessment) for tested combinations and uncertified toolchains.
 
 ## Compatibility, sources, and documentation
