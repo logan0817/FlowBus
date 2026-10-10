@@ -60,13 +60,13 @@ python3 -B compatibility/android-consumer/verify_device_test.py
 
 五项回归已通过，覆盖本次 PASS 与 UI 匹配、历史 PASS 超时拒绝、本次 FAIL 拒绝、其他前台包拒绝、错误 API 在安装前拒绝。它们模拟 ADB 输出，只验证驱动判断与报告行为，不是 Android API 21 上实际安装、Main/Lifecycle、自检或 R8 运行的证据。
 
-CI 入口通过 `bash compatibility/run-api21.sh` 执行完整复合命令，并在第一处失败停止。另有三项 Shell 入口回归，实际执行身份记录的 heredoc，覆盖错误 API、未完成启动及库测试失败后停止；不启动设备。运行全部八项回归：
+CI 入口通过 `bash compatibility/run-api21.sh` 执行完整复合命令，并在第一处失败停止。另有四项 Shell 入口回归，实际执行身份记录的 heredoc，覆盖错误 API、未完成启动、库测试失败及测试密钥生成失败后停止；不启动设备。运行全部九项回归：
 
 ```bash
 python3 -B -m unittest discover -s compatibility/android-consumer -p '*_test.py' -v
 ```
 
-CI 已新增该驱动回归步骤，并在既有 API 21 库层 instrumentation 后，使用已有 debug keystore 为当前 minified Maven consumer 本地测试签名，再执行设备驱动。当前远端结果按最终提交核对，入口见[发布清单](../../docs/release-checklist.md)。
+CI 已新增该驱动回归步骤，并在既有 API 21 库层 instrumentation 后，在 build/api21-signing/ 生成专用测试 keystore，为当前 minified Maven consumer 本地测试签名，再执行设备驱动。当前远端结果按最终提交核对，入口见[发布清单](../../docs/release-checklist.md)。
 
 ## 覆盖与限制
 

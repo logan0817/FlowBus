@@ -13,7 +13,7 @@ SCRIPT = Path(__file__).resolve().parents[1] / "run-api21.sh"
 
 
 class VerifyCiScriptTest(unittest.TestCase):
-    def run_script(self, api="21", boot="1"):
+    def run_script(self, api="21", boot="1", gradle_exit="42"):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             tools = root / "tools"
@@ -36,11 +36,18 @@ esac
             gradle.write_text('''#!/bin/sh
 test "$ANDROID_SERIAL" = "emulator-5554" || exit 9
 echo "$*" > gradle-invocation.txt
-exit 42
+exit "$TEST_GRADLE_EXIT"
 ''')
             gradle.chmod(0o755)
+            (tools / "bin").mkdir()
+            keytool = tools / "bin/keytool"
+            keytool.write_text('''#!/bin/sh
+exit 43
+''')
+            keytool.chmod(0o755)
             environment = dict(os.environ, PATH=str(tools) + os.pathsep + os.environ["PATH"],
-                               TEST_DEVICE_API=api, TEST_DEVICE_BOOT=boot)
+                               TEST_DEVICE_API=api, TEST_DEVICE_BOOT=boot,
+                               TEST_GRADLE_EXIT=gradle_exit, JAVA_HOME=str(tools))
             result = subprocess.run(["bash", str(SCRIPT)], cwd=root, env=environment,
                                     text=True, capture_output=True, timeout=10)
             properties = json.loads((root / "build/api21-environment/device.json").read_text())
@@ -55,6 +62,12 @@ exit 42
         self.assertEqual(invocation.strip(), ":library-android:connectedDebugAndroidTest --warning-mode=all")
         # Gradle 失败后不应继续调用签名或消费者命令。
         self.assertNotIn("apksigner", result.stderr)
+        self.assertNotIn("ANDROID_HOME", result.stderr)
+
+    def test_key_generation_failure_stops_before_signing(self):
+        result, _, invocation = self.run_script(gradle_exit="0")
+        self.assertEqual(result.returncode, 43, result.stderr)
+        self.assertIsNotNone(invocation)
         self.assertNotIn("ANDROID_HOME", result.stderr)
 
     def test_wrong_api_stops_before_gradle_but_preserves_identity(self):
