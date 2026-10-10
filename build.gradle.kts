@@ -31,7 +31,7 @@ subprojects {
             include("flowbus-core/build.gradle.kts", "flowbus-core/README*.md")
             include("library-android/build.gradle.kts", "library-android/README*.md")
             include("app/build.gradle.kts", "app/proguard*.pro", "app/src/**")
-            include("compatibility/android-consumer/app/src/**")
+            include("compatibility/android-consumer/app/src/**", "compatibility/run-api21.sh")
         }).withPropertyName("repositoryGuardrailFiles")
     }
 }

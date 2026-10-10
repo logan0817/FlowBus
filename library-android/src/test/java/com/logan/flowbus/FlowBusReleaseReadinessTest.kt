@@ -110,8 +110,11 @@ class FlowBusReleaseReadinessTest {
         assertTrue(ci.contains("verifyMavenLocalConsumer"))
         assertTrue(ci.contains("verifyMavenLocalCoreConsumer"))
         assertTrue(ci.contains(":app:connectedReleaseAndroidTest"))
-        assertTrue(ci.contains("ANDROID_SERIAL=emulator-5554 ./gradlew :library-android:connectedDebugAndroidTest"))
-        assertTrue(ci.contains("properties[\"ro.build.version.sdk\"] == \"21\""))
+        assertTrue(ci.contains("bash compatibility/run-api21.sh"))
+        val api21Script = File("../compatibility/run-api21.sh").readText()
+        assertTrue(api21Script.contains("set -euo pipefail"))
+        assertTrue(api21Script.contains("ANDROID_SERIAL=emulator-5554 ./gradlew :library-android:connectedDebugAndroidTest"))
+        assertTrue(api21Script.contains("properties[\"ro.build.version.sdk\"] == \"21\""))
         assertTrue(ci.contains("if: always()"))
         assertTrue(ci.contains("uses: actions/upload-artifact@v4"))
         listOf(
