@@ -50,7 +50,7 @@ API 21 步骤会先记录并断言指定模拟器的实际 API 与启动状态�
 
 emulator-runner 的 `script` 会按行分别启动 Shell，不支持跨行 heredoc 或续行命令。API 21 流程通过单条 `bash compatibility/run-api21.sh` 调用，设备身份检查、测试签名与消费者验收在同一脚本内执行；脚本遇到任何失败立即停止。维护时不要将复合命令重新内嵌到 Action 的 `script` 中。脚本回归以模拟 ADB 验证身份拒绝及失败停止，不代替设备验收。消费者测试签名由 JDK keytool 在 `build/api21-signing/` 生成，不依赖用户目录的 debug keystore；密钥不上传、不提交，也不用于正式发布。
 
-API 35 UI 门禁通过 `bash compatibility/run-api35.sh` 显式唤醒模拟器并解除非安全锁屏，再执行库层与示例 release 测试。退出前保存 `build/api35-environment/window.txt` 与 `power.txt`，用于分析 Activity 已恢复但 Espresso 无窗口焦点的失败；诊断不会覆盖原测试退出码。
+API 35 UI 门禁通过 `bash compatibility/run-api35.sh` 显式唤醒模拟器并解除非安全锁屏，再执行库层与示例 release 测试。退出前保存 `build/api35-environment/window.txt` 与 `power.txt`，用于分析 Activity 已恢复但 Espresso 无窗口焦点的失败；诊断不会覆盖原测试退出码。示例测试规则在 Activity 失焦时于 finish 前输出窗口状态，优先检查该现场；整批结束后的 Launcher 焦点不能单独证明失败占用方。
 
 CI 的 SDK 初始化显式选择 `platform-tools`，命令行工具由 setup-android Action 准备；不要恢复其包含已下架 `tools` 包的默认安装列表。平台和 Build Tools 版本由后续安装步骤指定。
 
