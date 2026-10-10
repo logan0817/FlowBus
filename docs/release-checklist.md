@@ -17,6 +17,8 @@ git diff --check HEAD -- . ':(exclude)flowbus-core/api/*.api' ':(exclude)library
 
 Java 参数只选择消费者运行 JVM，构建仍用 JDK 17。需要本机已有 JDK 8。不修改已审查的 API 快照来绕过 apiCheck；公共 API 变化应审查 apiDump 的差异。生成快照的尾空行由 API 检查处理，普通差异检查排除这两个文件。
 
+仓库文档与发布配置作为 JVM 测试的显式输入；修改这些文件后应重新执行门禁，不能复用修改前的通过结果。
+
 - core / Android / app JVM 测试和 release lint 通过，示例 release 必须启用 R8/minify。
 - flowbus-core-1.1.0.jar、flowbus-1.1.0.aar、sources/javadoc、POM 与 module metadata 均存在。
 - POM/module metadata 的依赖 scope、license、developer、SCM 与版本正确：core 暴露 Coroutines；Android 暴露同版本 core 和 Lifecycle runtime/viewmodel。
@@ -62,6 +64,8 @@ CI 的 SDK 初始化显式选择 `platform-tools`，命令行工具由 setup-and
 
 远程操作另行授权后执行。先配置 Maven Central token 与 GPG 签名，确认最终门禁通过；不得将凭据写入仓库。
 
-发布逻辑位于 gradle/release-publishing.gradle.kts，产物验证位于 gradle/release-verification.gradle.kts。publishToMavenCentral / releaseToMavenCentral 当前只上传 Central Portal deployment，不自动 release。上传后逐个检查两个坐标及 sources/javadoc 的 .asc 签名与 checksum，再在 Portal 决定 release 或 drop。本地 Maven 产物不生成远程签名，不能用其替代签名验收。
+发布逻辑位于 gradle/release-publishing.gradle.kts，产物验证位于 gradle/release-verification.gradle.kts。publishToMavenCentral / releaseToMavenCentral 当前只上传 Central Portal deployment，不会自动 release。上传后逐个检查两个坐标及 sources/javadoc 的 .asc 签名与 checksum，再在 Portal 决定 release 或 drop。本地 Maven 产物不生成远程签名，不能用其替代签名验收。
+
+正式发布且 Central 坐标可解析后，使用独立消费者从远端解析 1.1.0，完成普通/sticky 发送与订阅的 smoke check；核对实际解析版本，避免本地候选仓库或旧缓存替代已发布产物。
 
 消费者回退使用已发布 1.0.7，新增 API 调用需一起回退；未发布 deployment 可 drop。禁止覆盖已发布版本。

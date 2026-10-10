@@ -1,4 +1,5 @@
 import org.gradle.api.tasks.compile.JavaCompile
+import org.gradle.api.tasks.testing.Test
 
 plugins {
     id("com.android.application") apply false
@@ -21,6 +22,17 @@ allprojects {
 subprojects {
     tasks.withType<JavaCompile>().configureEach {
         options.compilerArgs.add("-Xlint:-options")
+    }
+    tasks.withType<Test>().configureEach {
+        // 仓库门禁直接读取文档与配置，必须将它们纳入输入，避免复用旧通过结果。
+        inputs.files(rootProject.fileTree(rootProject.projectDir) {
+            include("*.md", ".gitignore", ".gitmodules", "*.gradle.kts", "gradle.properties")
+            include(".github/workflows/*.yml", "docs/**/*.md", "gradle/**")
+            include("flowbus-core/build.gradle.kts", "flowbus-core/README*.md")
+            include("library-android/build.gradle.kts", "library-android/README*.md")
+            include("app/build.gradle.kts", "app/proguard*.pro", "app/src/**")
+            include("compatibility/android-consumer/app/src/**")
+        }).withPropertyName("repositoryGuardrailFiles")
     }
 }
 

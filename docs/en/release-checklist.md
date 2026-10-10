@@ -17,6 +17,8 @@ git diff --check HEAD -- . ':(exclude)flowbus-core/api/*.api' ':(exclude)library
 
 The Java parameter selects only the consumer runtime; Gradle still uses JDK 17. Use an existing JDK 8. Review apiDump changes for intentional public API changes; do not bypass apiCheck. Generated API snapshot trailing lines are excluded from ordinary whitespace checks.
 
+Repository documentation and release configuration are explicit JVM test inputs. Changes to those files must rerun the gates rather than reuse earlier passing results.
+
 - Core/Android/app JVM tests and release lint pass; sample release uses R8/minify.
 - flowbus-core-1.1.0.jar, flowbus-1.1.0.aar, sources/javadoc, POM, and module metadata exist.
 - Check dependency scopes, license, developer, SCM, and versions: core exposes Coroutines; Android exposes matching core and Lifecycle runtime/viewmodel.
@@ -27,7 +29,7 @@ The Java parameter selects only the consumer runtime; Gradle still uses JDK 17. 
 
 ## Device and minimum API gates
 
-Confirm target API/boot and run instrumentation and UI drivers serially. Disable animations only on the selected test device, then restore original values.
+Confirm target API/boot and run instrumentation and UI drivers serially. Set each animation scale to zero only on the selected test device, then restore original values.
 
 ```bash
 adb devices -l
@@ -62,6 +64,8 @@ Inspect git status and working/staged diffs. Exclude generated artifacts, signin
 
 Remote actions require separate authorization. Configure Central token/GPG signing only after all gates pass; never commit credentials.
 
-Publication is in gradle/release-publishing.gradle.kts and validation in gradle/release-verification.gradle.kts. publishToMavenCentral / releaseToMavenCentral upload a Central Portal deployment without automatic release. Inspect both coordinates, sources/javadoc, .asc signatures, and checksums before releasing or dropping in Portal. Maven local does not generate remote signatures.
+Publication is in gradle/release-publishing.gradle.kts and validation in gradle/release-verification.gradle.kts. publishToMavenCentral / releaseToMavenCentral upload a Central Portal deployment; this does not automatically release it. Inspect both coordinates, sources/javadoc, .asc signatures, and checksums before releasing or dropping in Portal. Maven local does not generate remote signatures.
+
+After authorized publication and Central availability, resolve 1.1.0 from the remote repository in an independent consumer and run a normal/sticky delivery smoke check. Verify the resolved version so local candidates or old caches cannot stand in for the published artifacts.
 
 Rollback consumers to published 1.0.7 and revert new API calls when necessary. Drop unpublished deployments; never overwrite a released version.
