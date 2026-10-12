@@ -9,7 +9,7 @@ The Gradle module directory is `library-android`, and the published artifact is:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.1.0") // 1.1.0 is unreleased; use after publication. Published baseline: 1.0.7.
+implementation("io.github.logan0817:flowbus:1.1.0")
 ```
 
 If you are integrating FlowBus into an Android app, this is usually the place to start.
@@ -34,7 +34,7 @@ FlowBus is a good fit for asynchronous events where one place sends a notificati
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.1.0") // 1.1.0 is unreleased; use after publication. Published baseline: 1.0.7.
+implementation("io.github.logan0817:flowbus:1.1.0")
 ```
 
 ### 2. Define an event type
@@ -432,9 +432,9 @@ toastChannel.post("saved")
 viewLifecycleOwner.onEvent(toastChannel) { showToast(it) }
 ```
 
-## Next-version suspend callbacks and instance integration (unreleased)
+## 1.1.0 suspend callbacks and instance integration
 
-These APIs are in candidate source, not published `1.0.7`. Existing APIs remain. The candidate targets 1.1.0; Kotlin, Coroutines, Lifecycle, and minSdk requirements stay unchanged; no Compose, Hilt, or Koin dependency is added.
+These APIs are available starting with 1.1.0. Existing APIs remain. Kotlin, Coroutines, Lifecycle, and minSdk requirements stay unchanged; no Compose, Hilt, or Koin dependency is added.
 
 ### Call suspend work directly from callbacks
 

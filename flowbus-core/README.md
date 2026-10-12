@@ -49,7 +49,7 @@
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.1.0")  // 1.1.0 尚未发布；正式发布后可使用，当前已发布基准为 1.0.7
+implementation("io.github.logan0817:flowbus-core:1.1.0")
 ```
 
 ## 先看最短路径
@@ -357,9 +357,9 @@ if (!result.accepted) {
 
 它不表示订阅者已经处理事件。`DROP_OLDEST` / `DROP_LATEST` 也不是可靠队列策略。
 
-## 下一版挂起订阅（尚未发布）
+## 1.1.0 挂起订阅
 
-当前候选源码增加独立命名的挂起回调入口，旧 `collect` / `collectSticky` 与公开入口保留。下面 API 不属于已发布的 `1.0.7`，属于 1.1.0 候选，不要求新增依赖或升级现有基础工具链。
+1.1.0 增加独立命名的挂起回调入口，旧 `collect` / `collectSticky` 与公开入口保留。下面 API 从 1.1.0 开始提供，不要求新增依赖或升级现有基础工具链。
 
 `FlowBus`、`DefaultFlowBus`、`ScopedFlowBus`、`FlowBusScope` 提供 `collectSuspending` / `collectStickySuspending` 的 `EventKey<T>` 与 reified 类型入口。core `EventChannel<T>` 提供默认实例的 `collectSuspending` / `collectStickySuspending`，以及显式来源的 `collectSuspendingOn` / `collectStickySuspendingOn`；显式来源可以是 `FlowBus`、`ScopedFlowBus` 或 `FlowBusScope`。
 

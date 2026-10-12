@@ -2,7 +2,9 @@
 
 [English](en/release-checklist.md)
 
-当前目标为尚未发布的 1.1.0：VERSION_NAME=1.1.0、APP_VERSION_NAME=1.1.0、APP_VERSION_CODE=8，版本目录同步为 1.1.0。发布前必须检查最终候选产物，不能只依据旧批次报告。
+1.1.0 已于 2026-10-12 发布：VERSION_NAME=1.1.0、APP_VERSION_NAME=1.1.0、APP_VERSION_CODE=8，版本目录同步为 1.1.0。以下清单保留本次门禁与后续版本的维护方式；每次发布必须检查最终候选产物，不能只依据旧批次报告。
+
+本次正式批次为 `io.github.logan0817-FlowBus-1.1.0`，ID 为 `24a88a3e-fc49-479e-8605-140989c944f2`，Portal 状态为 `PUBLISHED`。公开 Maven Central 的 10 个制品及 10 个签名摘要与验收候选一致，签名全部有效；独立 core 消费者从正式仓库解析后在 Java 8 通过普通/sticky、scope 和挂起订阅检查，独立 Android 消费者通过 release R8 构建。本地证据位于 `build/release-1.1.0/pr-followup/published-artifacts-verification.json` 和 `central-consumers/{core,android}/build/reports/central-artifacts.json`，属于不提交的验证产物。Portal 状态接口同时返回组件信息缺失提示；公开仓库文件与签名已独立核验，该接口提示未作为制品校验依据。
 
 ## 本地质量与产物门禁
 
@@ -59,7 +61,7 @@ Google 模拟器的 Launcher ANR 系统窗口可能抢占示例焦点。测试�
 
 CI 的 SDK 初始化显式选择 `platform-tools`，命令行工具由 setup-android Action 准备；不要恢复其包含已下架 `tools` 包的默认安装列表。平台和 Build Tools 版本由后续安装步骤指定。
 
-当前候选的远端状态见 [PR #4 的 CI 检查](https://github.com/logan0817/FlowBus/pull/4/checks)。本机无 API 21 image，最低系统验收依赖远端设备。发布前必须核对最终提交的完整 CI 成功状态、API 21 实际设备身份和全部消费者报告；启动、排队或旧提交通过均不能替代。其余已测组合及未认证工具链见[兼容性评估](next-version-plan.md#兼容性评估)。
+本次发布的[最终 main CI](https://github.com/logan0817/FlowBus/actions/runs/38207876160) 对应 `efff42874b6c28a6074f72716b31acfcf6fa66b7`，已通过完整检查，包含 API 21 与 API 35 验收；报告为该运行的 `flowbus-verification-efff42874b6c28a6074f72716b31acfcf6fa66b7`。本机无 API 21 image，最低系统验收依赖远端设备。后续发布仍须核对最终提交的完整 CI 成功状态、API 21 实际设备身份和全部消费者报告；启动、排队或旧提交通过均不能替代。其余已测组合及未认证工具链见[兼容性评估](next-version-plan.md#兼容性评估)。
 
 ## 兼容性、源码与文档检查
 

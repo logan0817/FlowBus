@@ -2,7 +2,7 @@
 
 [English](en/next-version-plan.md)
 
-1.1.0 是尚未发布的候选版本。此文档记录版本范围、兼容性证据和后续扩展条件；具体发布步骤见[发布清单](release-checklist.md)，使用方式见模块 README。
+1.1.0 已于 2026-10-12 发布到 Maven Central。此文档记录版本范围、兼容性证据和后续扩展条件；具体发布步骤与结果见[发布清单](release-checklist.md)，使用方式见模块 README。
 
 ## 本次版本范围
 
@@ -19,7 +19,7 @@
 
 基础库保持 Kotlin 1.9.25、Coroutines 1.8.1、Lifecycle 2.6.2、AGP 8.6.1、Gradle 8.7、构建 JDK 17、Java 8 字节码及 minSdk 21 / compileSdk 35 / targetSdk 35。消费者可以使用自己的兼容工具链；库的构建配置不等于全部消费者的最低要求。
 
-以下结果来自本地候选实现的独立验证，不能推导为任意版本组合均受支持。版本整理后的最终产物仍须按发布清单验收。
+以下结果记录本地候选实现的独立验证，不能推导为任意版本组合均受支持。最终提交的完整 CI 与正式仓库产物已按发布清单验收，具体结果见下方发布门禁。
 
 | 已测组合 | 结果与边界 |
 | --- | --- |
@@ -37,7 +37,7 @@
 
 ## 发布门禁与验证入口
 
-API 21 是当前最低支持目标，必须补齐库层 instrumentation 和 minified Maven 消费者设备验收。本机没有 API 21 image，API 24 通过及 D8 静态检查均不能替代该门禁。CI 执行相应任务；当前候选状态与最终提交的报告入口统一见[发布清单](release-checklist.md)。
+API 21 是当前最低支持目标。[最终 main CI](https://github.com/logan0817/FlowBus/actions/runs/38207876160) 已通过 API 21 库层 instrumentation、minified Maven 消费者设备验收和 API 35 检查。本机没有 API 21 image，最低系统证据来自远端设备，API 24 及 D8 静态检查不能替代。正式 Central 制品、签名及独立消费者结果统一见[发布清单](release-checklist.md)。
 
 - [发布清单](release-checklist.md)：基础测试、API、lint、R8、元数据、最低系统与发布任务图。
 - [core 二进制消费者](../compatibility/core-binary-consumer/README.md)：原版编译、候选替换运行及 JVM 符号验证。
@@ -46,7 +46,7 @@ API 21 是当前最低支持目标，必须补齐库层 instrumentation 和 mini
 
 ## 后续扩展条件
 
-1. API 21 与远端 CI 通过后，才能完成当前版本的最低系统支持验收。
+1. 当前版本已完成 API 21 与完整远端 CI 验收，后续版本仍须对最终提交重复相应门禁。
 2. 完整旧工具链和 AGP 9.x 尚未认证，后续应按实际消费者需求选择矩阵，不能仅凭单次编译扩大承诺。
 3. 独立 Compose 模块需要先明确维护范围和版本配对策略；当前保留示例，不预先增加公共 API 或传递依赖。
 4. 进程死亡恢复、深链接、任意导航动画及异常后的完整 NavHost UI 不在本次已验证范围。事件持久化应由业务状态或持久化任务机制承担。

@@ -49,7 +49,7 @@ Cleanup APIs have 2 extra rules:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.1.0") // 1.1.0 is unreleased; use after publication. Published baseline: 1.0.7.
+implementation("io.github.logan0817:flowbus-core:1.1.0")
 ```
 
 ## Start with the shortest path
@@ -360,9 +360,9 @@ if (!result.accepted) {
 
 It does not mean subscribers already handled the event. `DROP_OLDEST` / `DROP_LATEST` are not reliable-queue policies.
 
-## Next-version suspend collection (unreleased)
+## 1.1.0 suspend collection
 
-Candidate source adds separately named suspend-callback APIs and retains existing `collect` / `collectSticky` APIs. These APIs are not in published `1.0.7` and target candidate 1.1.0 without adding dependencies or raising base toolchain requirements.
+1.1.0 adds separately named suspend-callback APIs and retains existing `collect` / `collectSticky` APIs. These APIs are available starting with 1.1.0 without adding dependencies or raising base toolchain requirements.
 
 `FlowBus`, `DefaultFlowBus`, `ScopedFlowBus`, and `FlowBusScope` provide `collectSuspending` / `collectStickySuspending` with `EventKey<T>` and reified variants. Core `EventChannel<T>` provides `collectSuspending` / `collectStickySuspending` on the default instance and `collectSuspendingOn` / `collectStickySuspendingOn` for an explicit `FlowBus`, `ScopedFlowBus`, or `FlowBusScope`.
 
@@ -701,7 +701,7 @@ If the scope follows an outer lifecycle, prefer `openScope(name, closeWhen = job
 
 If a close result reports `ClosingInProgress`, another waiting API initiated closure and is still waiting for in-flight operations. This call did not take over. New sends and flow lookups are rejected during this stage, but `isClosed` remains `false`, preserving the 1.0.7 state semantics.
 
-Cancellation in the unreleased revision: if `closeSuspending()` initiates closure and is cancelled before store cleanup is prepared, and no permanent close request has arrived, that wait is withdrawn and the scope becomes usable again for a later retry. If `close()` or a lifecycle binding already invalidated the handle and prepared closure, `closeSuspending()` only waits for that closure: cancellation ends this caller's wait without restoring the handle or undoing cleanup. Cancellation after cleanup preparation does not roll back closure either. Explicit `close()`, `removeScope()`, and bound Job completion requests arriving during the wait are retained: cancelling the initiating waiter still proceeds with closure instead of restoring the scope. Waiting suspends cancellably without blocking a thread on a condition variable.
+Cancellation in 1.1.0: if `closeSuspending()` initiates closure and is cancelled before store cleanup is prepared, and no permanent close request has arrived, that wait is withdrawn and the scope becomes usable again for a later retry. If `close()` or a lifecycle binding already invalidated the handle and prepared closure, `closeSuspending()` only waits for that closure: cancellation ends this caller's wait without restoring the handle or undoing cleanup. Cancellation after cleanup preparation does not roll back closure either. Explicit `close()`, `removeScope()`, and bound Job completion requests arriving during the wait are retained: cancelling the initiating waiter still proceeds with closure instead of restoring the scope. Waiting suspends cancellably without blocking a thread on a condition variable.
 
 Calling `close()` during another closing wait retains a permanent close request while new operations are already rejected. `isClosed` follows the initiating wait's existing state until successful waiting, cancellation, timeout, or interruption prepares cleanup.
 

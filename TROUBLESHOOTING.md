@@ -101,14 +101,14 @@ ls flowbus-core
 
 1.0.7 的 core 产物包含 Android API 24 才提供的 `compute`、`computeIfPresent`、`computeIfAbsent` 调用。`minSdk=21` 声明本身不会补齐这些平台方法；普通 D8 转换也不能替代 core library desugaring。
 
-下一版兼容修订将这些调用替换为低 API 可用的并发操作与内部同步，不提高 minSdk 或基础依赖要求。使用候选源码时仍应完成未启用 core library desugaring 的最低 API release consumer 与设备回归；未完成的验证不能作为正式支持证明。当前发布坐标保持 `1.0.7`，候选进度见 [下一版本计划](docs/next-version-plan.md)。
+1.1.0 已将这些调用替换为低 API 可用的并发操作与内部同步，不提高 minSdk 或基础依赖要求。最终 main CI 已通过 API 21 库层和未启用 core library desugaring 的 minified Maven 消费者设备验收；使用旧版本遇到该问题时可升级到 1.1.0。已测组合及支持边界见[兼容性评估](docs/next-version-plan.md)。
 
-## 9. 候选挂起订阅未收到事件或处理被取消
+## 9. 挂起订阅未收到事件或处理被取消
 
-`collectSuspending`、`onEventSuspending`、`collectEventFromSuspending` 等新入口尚未发布，不属于 `1.0.7`。使用候选源码时先核对发送和接收是否来自同一个实例、owner 和事件 key；构造注入实例不会与默认总线自动共享事件。
+`collectSuspending`、`onEventSuspending`、`collectEventFromSuspending` 等入口从 `1.1.0` 开始提供，不属于 `1.0.7`。先核对实际解析版本，以及发送和接收是否来自同一个实例、owner 和事件 key；构造注入实例不会与默认总线自动共享事件。
 
 LifecycleOwner 订阅离开指定活跃状态会向当前回调发出取消请求；同一次 repeatOnLifecycle 再次活跃时，等待旧回调结束后重新订阅。业务使用阻塞调用或 NonCancellable 时，取消不能强制停止执行，也不会回滚已发生的副作用；不要在主线程阻塞。普通事件不补收，sticky 需显式开启。注册返回 Job 不意味着底层订阅就绪；不要依靠相邻语句或任意延时确认它。单条订阅等待上一条回调完成才处理下一条，慢回调仍受缓冲/溢出策略影响，不会自动并发或采用 collectLatest。
 
 总线挂起入口的普通回调异常使用来源 errorHandler，默认重新抛出并终止订阅；CancellationException 直接传播。通用 `collectEventSuspending(flow)` 的上游和回调异常都直接传播，不自动套用总线日志/错误策略。显式来源取流失败（例如再次活跃时传入 scope 句柄已关闭）也直接传播，不会悄悄换到同名新句柄。
 
-收集取消不会关闭注入实例或 scope。业务持有者需管理它们的生命周期；业务挂起函数应遵循协作式取消。详细用法见 [Android 候选接入](library-android/README.md#下一版挂起回调与实例接入尚未发布)。
+收集取消不会关闭注入实例或 scope。业务持有者需管理它们的生命周期；业务挂起函数应遵循协作式取消。详细用法见 [Android 挂起回调与实例接入](library-android/README.md#110-挂起回调与实例接入)。

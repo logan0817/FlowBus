@@ -25,7 +25,7 @@ Android 项目优先使用 `flowbus`：
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.1.0")  // 1.1.0 尚未发布；正式发布后可使用，当前已发布基准为 1.0.7
+implementation("io.github.logan0817:flowbus:1.1.0")
 ```
 
 纯 Kotlin / Coroutines / 非 Android 场景使用 `flowbus-core`：
@@ -33,7 +33,7 @@ implementation("io.github.logan0817:flowbus:1.1.0")  // 1.1.0 尚未发布；正
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.1.0")  // 1.1.0 尚未发布；正式发布后可使用，当前已发布基准为 1.0.7
+implementation("io.github.logan0817:flowbus-core:1.1.0")
 ```
 
 模块选择：
@@ -168,11 +168,11 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 6. `consumeStickyLatestEvent(...)` 只读取并清空当前 sticky replay，不会阻止其他线程后续写入新的 sticky 值。
 7. 日志里的 `eventName`、`scopeName` 不要包含手机号、token、订单号、用户 ID 等敏感信息。
 
-## 下一版接入能力（尚未发布）
+## 1.1.0 接入能力
 
-当前候选源码新增挂起回调和显式实例的 Android 收集入口，旧 API 保留。下面入口不属于已发布的 `1.0.7`；候选版本为 1.1.0，基础依赖和 minSdk 目标保持不变。
+1.1.0 新增挂起回调和显式实例的 Android 收集入口，旧 API 保留。下面入口从 1.1.0 开始提供，基础依赖和 minSdk 目标保持不变。
 
-| 需求 | 候选入口 | 行为 |
+| 需求 | API 入口 | 行为 |
 | --- | --- | --- |
 | core 直接执行挂起函数 | `collectSuspending` / `collectStickySuspending` | 单条订阅串行处理，复用实例的错误策略和 dispatcher |
 | Android 全局或 owner 挂起订阅 | `onEventSuspending` | 提供 LifecycleOwner / CoroutineScope、reified / channel 入口 |
@@ -185,13 +185,13 @@ viewLifecycleOwner.onEventSuspending<RefreshHomeEvent> { event ->
 }
 ```
 
-这里的 `refreshSuspending` 是业务提供的挂起函数。上一条回调完成后才处理下一条；页面离开收集状态会请求取消当前回调，业务应遵循协作式取消。同一次生命周期收集重启会等待旧回调结束；阻塞或 NonCancellable 工作不能被强制停止，取消也不回滚副作用。慢回调仍受原有缓冲和溢出策略影响，注册也不意味着订阅立即就绪。需要最新值或实例隔离时，分别显式选择 sticky 和实例来源。详见 [Android 候选接入](library-android/README.md#下一版挂起回调与实例接入尚未发布) 和 [core 挂起订阅](flowbus-core/README.md#下一版挂起订阅尚未发布)。
+这里的 `refreshSuspending` 是业务提供的挂起函数。上一条回调完成后才处理下一条；页面离开收集状态会请求取消当前回调，业务应遵循协作式取消。同一次生命周期收集重启会等待旧回调结束；阻塞或 NonCancellable 工作不能被强制停止，取消也不回滚副作用。慢回调仍受原有缓冲和溢出策略影响，注册也不意味着订阅立即就绪。需要最新值或实例隔离时，分别显式选择 sticky 和实例来源。详见 [Android 挂起回调与实例接入](library-android/README.md#110-挂起回调与实例接入) 和 [core 挂起订阅](flowbus-core/README.md#110-挂起订阅)。
 
 Compose 提供[独立消费者示例](compatibility/compose-consumer/README.md)，并可选择 [Navigation](compatibility/navigation-consumer/README.md) 或[实际 NavHost](compatibility/navhost-consumer/README.md) 验证生命周期行为。它们不进入发布产物，也不增加基础坐标依赖。已测组合及未验证范围统一见[兼容性评估](docs/next-version-plan.md#兼容性评估)。
 
 ## 兼容与发布状态
 
-当前文档对应尚未发布的 `1.1.0` 候选，已发布基准为 `1.0.7`。远端 Maven Central 的实际可用版本以徽章和 Central 页面为准。
+`1.1.0` 已于 2026-10-12 发布到 Maven Central，两个坐标均可解析。完整变化见 [1.1.0 发布说明](docs/release-notes-1.1.0.md)，发布验证入口见[发布清单](docs/release-checklist.md)。
 
 | 项目 | 版本 |
 | --- | --- |
@@ -221,7 +221,7 @@ Compose 提供[独立消费者示例](compatibility/compose-consumer/README.md)�
 4. 发布说明：[`docs/release-notes-1.1.0.md`](./docs/release-notes-1.1.0.md)
 5. 版本记录：[`CHANGELOG.md`](./CHANGELOG.md)
 6. 英文文档：[`README_EN.md`](./README_EN.md)
-7. 下一版本路线与兼容性评估：[`docs/next-version-plan.md`](./docs/next-version-plan.md)（计划，不代表已发布能力）
+7. 1.1.0 范围、兼容性评估与后续扩展条件：[`docs/next-version-plan.md`](./docs/next-version-plan.md)
 8. [1.0.7 core 二进制消费者回归](compatibility/core-binary-consumer/README.md)：相同旧消费者字节码在原版和候选 JAR 上分别通过 Java 8 运行，另核对旧 JVM 成员描述符；范围不等于完整 ABI 认证。
 
 ## 仓库结构
