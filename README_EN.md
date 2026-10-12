@@ -211,7 +211,7 @@ Release gates:
 5. `verifyMavenLocalArtifacts` validates local Maven artifacts, POM, module metadata, license metadata, and developer metadata.
 6. `verifyMavenLocalCoreConsumer` compiles a real Kotlin/JVM consumer, validating the standalone `flowbus-core` coordinate.
 7. `verifyMavenLocalConsumer` builds a real Android consumer, validating the `flowbus` coordinate and release shrink.
-8. `releaseToMavenCentral --dry-run` checks the remote publication task graph without uploading.
+8. `verifyCentralDeploymentName` checks the project-specific upload batch identity and actual Maven coordinates; `releaseToMavenCentral --dry-run` checks the remote publication task graph. Neither uploads artifacts.
 
 ## Documentation map
 

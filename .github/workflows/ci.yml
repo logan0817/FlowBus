@@ -154,7 +154,9 @@ jobs:
             -Pflowbus.consumer.composeVersion=1.7.8 -Pflowbus.consumer.navHost=true --warning-mode=all
 
       - name: Verify Maven Central release task graph
-        run: ./gradlew releaseToMavenCentral --dry-run --warning-mode=all
+        run: |
+          ./gradlew verifyCentralDeploymentName --warning-mode=all
+          ./gradlew releaseToMavenCentral --dry-run --warning-mode=all
 
       - name: Preserve verification reports even on failure
         if: always()

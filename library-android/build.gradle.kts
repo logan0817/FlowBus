@@ -71,8 +71,8 @@ dependencies {
 }
 
 signing {
-    // 强制使用 GPG 命令行工具，这会使插件去 gradle.properties 中查找
-    // signing.keyId 和 signing.password
+    // 使用本机 GPG keyring 签名；命令行配置读取 signing.gnupg.*，不使用 signing.keyId/password。
+    // 私钥解锁由 GPG / gpg-agent 处理，配置与排障见 docs/release-checklist.md。
     useGpgCmd()
 }
 

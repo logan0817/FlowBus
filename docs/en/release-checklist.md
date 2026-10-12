@@ -11,6 +11,7 @@ Use the existing JDK 17, Android SDK, and wrapper from the repository root. Root
 ```bash
 ./gradlew apiCheck :flowbus-core:test :library-android:testDebugUnitTest :app:testDebugUnitTest :library-android:lintRelease :app:lintRelease :app:assembleDebug :app:assembleRelease --warning-mode=all
 ./gradlew verifyMavenLocalArtifacts verifyMavenLocalCoreConsumer verifyMavenLocalBinaryCoreConsumer verifyMavenLocalConsumer verifyMavenLocalComposeConsumer "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8 --warning-mode=all
+./gradlew verifyCentralDeploymentName --warning-mode=all
 ./gradlew releaseToMavenCentral --dry-run --warning-mode=all
 git diff --check HEAD -- . ':(exclude)flowbus-core/api/*.api' ':(exclude)library-android/api/*.api'
 ```
@@ -71,6 +72,31 @@ Inspect git status and working/staged diffs. Exclude generated artifacts, signin
 ## Remote publication and rollback
 
 Remote actions require separate authorization. Configure Central token/GPG signing only after all gates pass; never commit credentials.
+
+### GPG signing and upload credentials
+
+Both modules use `signing { useGpgCmd() }`, delegating signing to the local GPG executable and existing keyring. In Gradle 8.7, this implementation reads `signing.gnupg.*`; it does not automatically use or translate the traditional PGP properties `signing.keyId`, `signing.password`, or `signing.secretKeyRingFile`. Without `signing.gnupg.keyName`, key selection follows GPG configuration and defaults. Verify the actual signing key before publication rather than relying on an ineffective `signing.keyId`.
+
+To select a key explicitly, optionally add the following to the user-level `~/.gradle/gradle.properties`, replacing the placeholder with your full key fingerprint. Never put private keys or passphrases in project configuration:
+
+```properties
+# Optional: select an existing signing key in the local keyring.
+signing.gnupg.keyName=<full-key-fingerprint>
+```
+
+By default, GPG / `gpg-agent` manages private-key unlocking. Manual and automated invocation use the same mechanism; a cached passphrase can avoid another prompt. An `UP-TO-DATE` signing task reuses existing signatures without unlocking again. No password dialog does not establish that `signing.password` was used, a passphrase leaked, or a signing task actually ran. Check task execution status and verify `.asc` signatures. Enter a required passphrase through the local GPG prompt. If unlocking or signing fails, inspect GPG errors and the local agent/pinentry environment; do not bypass failure by disabling passphrase protection or placing a password in command-line arguments.
+
+`signing.gnupg.passphrase` is the explicit passphrase property supported by GPG command-line signing. This project does not require it and prefers the local agent. The publication plugin also supports separate `signingInMemoryKey` settings; setting that property switches to in-memory PGP signing instead of the GPG command-line path described here. Do not mix configuration from these two signing methods when determining the actual passphrase source.
+
+`mavenCentralUsername` / `mavenCentralPassword` are the two parts of a Central Portal user token. They authenticate uploads and queries to Sonatype's official HTTPS endpoints and do not unlock GPG private keys. Keep long-lived credentials in user-level configuration or controlled secrets. Never print their values or include passphrases, tokens, private keys, or user-level configuration files in logs, Git, or publication bundles. Upload artifacts, metadata, signatures, and checksums; public `.asc` signatures contain neither private keys nor unlocking passphrases. Maintainers handle credential cleanup and passphrase rotation separately; publication scripts must not rewrite them automatically.
+
+### Upload, verification, and rollback
+
+Future upload batches use `GROUP-root project name-VERSION_NAME`, currently `io.github.logan0817-FlowBus-1.1.0`, so different projects with the same group and version remain recognizable. The name is for human identification; queries, release, and drop must use the unique deployment ID returned by that upload and verify the batch contents. Actual Maven coordinates remain `io.github.logan0817:flowbus-core:1.1.0` and `io.github.logan0817:flowbus:1.1.0`.
+
+Publication plugin 0.33.0 has no public deployment-name setting. The root publication script sets only the staging artifact identity of both `createStagingRepository` tasks to the root project name, allowing the plugin to derive a name from one shared staging identity. It does not change `MavenPublication` or publication file paths. Single-module uploads use the same project name; actual coordinates distinguish the module contents. `verifyCentralDeploymentName` checks both staging identities and actual publication coordinates locally and in CI, and runs before staging tasks. It performs no signing or network upload. After upgrading the publication plugin, review its naming algorithm and staging task properties, then run this check and the remote dry-run again.
+
+Changing the naming configuration does not automatically affect existing deployments. Replacing an unpublished deployment requires separate authorization: verify its state and coordinates using the original deployment ID, drop it, then upload and verify the replacement. Use the newly returned deployment ID for all operations on the replacement. Published coordinates cannot be overwritten.
 
 Publication is in gradle/release-publishing.gradle.kts and validation in gradle/release-verification.gradle.kts. publishToMavenCentral / releaseToMavenCentral upload a Central Portal deployment; this does not automatically release it. Inspect both coordinates, sources/javadoc, .asc signatures, and checksums before releasing or dropping in Portal. Maven local does not generate remote signatures.
 
