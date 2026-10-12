@@ -9,7 +9,7 @@ Gradle 模块目录名是 `library-android`，对外发布的依赖坐标是：
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.1.0")  // 1.1.0 尚未发布；正式发布后可使用，当前已发布基准为 1.0.7
+implementation("io.github.logan0817:flowbus:1.1.0")
 ```
 
 如果你是 Android 项目接入 FlowBus，通常就从这个模块开始，不需要先研究 `flowbus-core`。
@@ -33,7 +33,7 @@ FlowBus 适合“某个地方发出通知，多个地方可能关心”的异步
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.1.0")  // 1.1.0 尚未发布；正式发布后可使用，当前已发布基准为 1.0.7
+implementation("io.github.logan0817:flowbus:1.1.0")
 ```
 
 ### 2. 定义一个事件类型
@@ -494,9 +494,9 @@ toastChannel.post("保存成功")
 viewLifecycleOwner.onEvent(toastChannel) { showToast(it) }
 ```
 
-## 下一版挂起回调与实例接入（尚未发布）
+## 1.1.0 挂起回调与实例接入
 
-下面 API 已加入候选源码，不属于已发布的 `1.0.7`。旧入口保留；候选版本为 1.1.0，Kotlin、Coroutines、Lifecycle、minSdk 等基础要求不因这些入口提高，不新增 Compose、Hilt 或 Koin 依赖。
+下面 API 从 1.1.0 开始提供，旧入口保留。Kotlin、Coroutines、Lifecycle、minSdk 等基础要求不因这些入口提高，不新增 Compose、Hilt 或 Koin 依赖。
 
 ### 在回调中直接调用挂起函数
 

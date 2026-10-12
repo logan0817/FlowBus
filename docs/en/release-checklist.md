@@ -2,7 +2,9 @@
 
 [中文](../release-checklist.md)
 
-Target: unreleased 1.1.0, with VERSION_NAME=1.1.0, APP_VERSION_NAME=1.1.0, APP_VERSION_CODE=8, and catalog version 1.1.0. Verify final artifacts rather than relying only on earlier reports.
+1.1.0 was published on 2026-10-12, with VERSION_NAME=1.1.0, APP_VERSION_NAME=1.1.0, APP_VERSION_CODE=8, and catalog version 1.1.0. This checklist records the release gates and maintenance procedure for future versions. Always verify final artifacts rather than relying only on earlier reports.
+
+The published batch is `io.github.logan0817-FlowBus-1.1.0`, ID `24a88a3e-fc49-479e-8605-140989c944f2`, with Portal status `PUBLISHED`. All 10 public Central artifacts and 10 signatures match the accepted candidate checksums, with valid signatures. The independent core consumer resolved from Central passed normal/sticky, scope, and suspending collection checks on Java 8; the independent Android consumer passed release R8. Local evidence is in `build/release-1.1.0/pr-followup/published-artifacts-verification.json` and `central-consumers/{core,android}/build/reports/central-artifacts.json`; these generated reports are not committed. The Portal status API also returned a missing-components message. Public artifacts and signatures were verified independently rather than relying on that API message.
 
 ## Local quality and artifact gates
 
@@ -59,7 +61,7 @@ The shared consumer device protocol writes UI hierarchy files under `/data/local
 
 CI SDK setup explicitly selects `platform-tools`; the setup-android Action prepares command-line tools separately. Do not restore its default package list containing the removed `tools` package. The next installation step selects platform and Build Tools versions.
 
-Current remote candidate status is available in [PR #4 CI checks](https://github.com/logan0817/FlowBus/pull/4/checks). No API 21 image is available locally. Before release, confirm complete CI success for the final commit, the actual API 21 device identity, and all consumer reports. Started/queued runs and older successful commits do not replace this check. See the [compatibility assessment](next-version-plan.md#compatibility-assessment) for tested combinations and uncertified toolchains.
+The [final main CI](https://github.com/logan0817/FlowBus/actions/runs/38207876160) for this release targets `efff42874b6c28a6074f72716b31acfcf6fa66b7` and passed all gates, including API 21 and API 35 checks. Its report artifact is `flowbus-verification-efff42874b6c28a6074f72716b31acfcf6fa66b7`. No API 21 image is available locally. Future releases must still confirm complete CI success for the final commit, the actual API 21 device identity, and all consumer reports. Started/queued runs and older successful commits do not replace this check. See the [compatibility assessment](next-version-plan.md#compatibility-assessment) for tested combinations and uncertified toolchains.
 
 ## Compatibility, sources, and documentation
 

@@ -2,7 +2,7 @@
 
 [中文](../next-version-plan.md)
 
-1.1.0 is an unreleased candidate. This document records scope, evidence, and conditions for future extensions. See the [release checklist](release-checklist.md) for gates and module READMEs for usage.
+1.1.0 was published to Maven Central on 2026-10-12. This document records scope, evidence, and conditions for future extensions. See the [release checklist](release-checklist.md) for gates and results, and module READMEs for usage.
 
 ## Release scope
 
@@ -19,7 +19,7 @@
 
 Base settings remain Kotlin 1.9.25, Coroutines 1.8.1, Lifecycle 2.6.2, AGP 8.6.1, Gradle 8.7, build JDK 17, Java 8 bytecode, and minSdk 21 / compileSdk 35 / targetSdk 35. Library build settings do not establish minimum requirements for every consumer.
 
-These are independent local checks of the candidate implementation, not certification of arbitrary combinations. Final versioned artifacts still require checklist verification.
+These record independent local checks of the candidate implementation, not certification of arbitrary combinations. Complete final-commit CI and published artifacts have passed checklist verification; see the release gates below.
 
 | Tested combination | Evidence and limits |
 | --- | --- |
@@ -37,7 +37,7 @@ Binary checks are not full ABI certification. Android symbol checks do not estab
 
 ## Release gates and entry points
 
-API 21 remains the minimum target and requires library instrumentation and minified Maven consumer device checks. No API 21 image is available locally. API 24 results and static D8 checks do not replace this gate. CI runs these checks; the [release checklist](release-checklist.md) links to the current candidate status and final-commit reports.
+API 21 remains the minimum target. The [final main CI](https://github.com/logan0817/FlowBus/actions/runs/38207876160) passed API 21 library instrumentation, minified Maven consumer device checks, and API 35 checks. No API 21 image is available locally; the minimum-system evidence comes from remote devices, not API 24 or static D8 checks. See the [release checklist](release-checklist.md) for published Central artifacts, signatures, and independent consumer results.
 
 - [Release checklist](release-checklist.md): tests, API, lint, R8, metadata, minimum API, and publication task graph.
 - [Core binary consumer](../../compatibility/core-binary-consumer/README_EN.md): original compilation, candidate runtime replacement, and JVM symbols.
@@ -46,7 +46,7 @@ API 21 remains the minimum target and requires library instrumentation and minif
 
 ## Conditions for future extensions
 
-1. Complete API 21 and remote CI verification before accepting minimum-system support for this release.
+1. This release passed API 21 and complete remote CI verification; future versions must repeat those gates against their final commits.
 2. Full older toolchains and AGP 9.x remain uncertified. Choose future matrices from actual consumer needs.
 3. A published Compose module needs a maintenance scope and compiler/runtime pairing policy; retain examples for now.
 4. Process-death recovery, deep links, arbitrary animations, and full NavHost UI behavior after errors remain outside verified coverage. Persistence belongs to business state or durable task mechanisms.

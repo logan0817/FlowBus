@@ -1,8 +1,8 @@
-# FlowBus 1.1.0 发布说明（候选，尚未发布）
+# FlowBus 1.1.0 发布说明
 
 [English](en/release-notes-1.1.0.md)
 
-1.1.0 包含可靠性修复和新增挂起订阅 API。正式发布以 Maven Central 为准。相对已发布 1.0.7，不提高基础依赖、minSdk 或字节码要求，旧调用方无需迁移。
+1.1.0 已于 2026-10-12 发布到 Maven Central，包含可靠性修复和新增挂起订阅 API。相对已发布 1.0.7，不提高基础依赖、minSdk 或字节码要求，旧调用方无需迁移。
 
 ## 主要变化
 
@@ -15,7 +15,7 @@
 
 ## 接入与迁移
 
-正式发布后使用：
+使用：
 
 ```kotlin
 implementation("io.github.logan0817:flowbus:1.1.0")
@@ -45,10 +45,10 @@ viewLifecycleOwner.onEventSuspending<RefreshHomeEvent> { event ->
 
 已发布 1.0.7 core 的稳定 JVM 描述符与旧消费者运行回归有独立证据；Android 公开快照成员保留，原始报告记录一处非 PublishedApi internal 方法变化。静态符号与选定消费者测试不等于完整 ABI 认证。
 
-**发布门禁：最终提交必须通过 API 21 库层、minified Maven 消费者设备验收及完整远端 CI。** 当前候选结果与报告入口见[发布清单](release-checklist.md)。API 24 验证不能替代最低系统验证。旧完整工具链、AGP 9.x、进程死亡恢复、深链接和任意导航动画尚未认证，Compose 新模块不在本次发布范围。
+**发布门禁已通过：[最终 main CI](https://github.com/logan0817/FlowBus/actions/runs/38207876160) 对应 `efff42874b6c28a6074f72716b31acfcf6fa66b7`，包含 API 21 库层、minified Maven 消费者设备验收及完整检查。** 正式 Maven Central 的 10 个制品及 10 个签名与已验收候选摘要一致，GPG 签名全部有效；从正式仓库解析的独立 core 消费者通过 Java 8 普通/sticky、scope 和挂起订阅验证，独立 Android 消费者通过 release R8 构建。报告入口见[发布清单](release-checklist.md)。旧完整工具链、AGP 9.x、进程死亡恢复、深链接和任意导航动画尚未认证，Compose 新模块不在本次发布范围。
 
 ## 发布与回退
 
-按[发布清单](release-checklist.md)使用隔离本地 Maven 目录检查两个候选坐标；远程 dry-run 只检查任务图。上传、签名验收和 Central release 是独立操作，版本整理不代表已经发布。
+本次正式批次为 `io.github.logan0817-FlowBus-1.1.0`，deployment ID 为 `24a88a3e-fc49-479e-8605-140989c944f2`，Portal 状态为 `PUBLISHED`。两个正式坐标均可从 Maven Central 解析；批次名称不改变 Maven 坐标。后续版本按[发布清单](release-checklist.md)分别执行产物检查、上传、签名验收和 Central release，远程 dry-run 只检查任务图。
 
 消费者可回退到已发布 1.0.7；使用新增 API 的调用方须同时恢复旧调用。不要覆盖或重新上传已经发布的版本。

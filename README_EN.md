@@ -25,7 +25,7 @@ Android projects should usually start with `flowbus`:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.1.0") // 1.1.0 is unreleased; use after publication. Published baseline: 1.0.7.
+implementation("io.github.logan0817:flowbus:1.1.0")
 ```
 
 Pure Kotlin / Coroutines / non-Android projects should use `flowbus-core`:
@@ -33,7 +33,7 @@ Pure Kotlin / Coroutines / non-Android projects should use `flowbus-core`:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.1.0") // 1.1.0 is unreleased; use after publication. Published baseline: 1.0.7.
+implementation("io.github.logan0817:flowbus-core:1.1.0")
 ```
 
 Module choice:
@@ -168,11 +168,11 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 6. `consumeStickyLatestEvent(...)` only reads and clears the current sticky replay. It does not prevent another thread from writing a new sticky value later.
 7. Do not put phone numbers, tokens, order IDs, user IDs, or similar sensitive values into `eventName` or `scopeName` logs.
 
-## Next-version integration APIs (unreleased)
+## 1.1.0 integration APIs
 
-Candidate source adds suspending callbacks and Android collection from explicit instances while preserving existing APIs. These APIs are not in published `1.0.7`. The candidate version is 1.1.0; base dependencies and the minSdk target remain unchanged.
+1.1.0 adds suspending callbacks and Android collection from explicit instances while preserving existing APIs. These APIs are available starting with 1.1.0; base dependencies and the minSdk target remain unchanged.
 
-| Need | Candidate API | Behavior |
+| Need | API | Behavior |
 | --- | --- | --- |
 | Suspend work in core callbacks | `collectSuspending` / `collectStickySuspending` | sequential per subscription, using the instance's error policy and dispatcher |
 | Android global or owner suspend subscription | `onEventSuspending` | LifecycleOwner / CoroutineScope and reified / channel variants |
@@ -185,13 +185,13 @@ viewLifecycleOwner.onEventSuspending<RefreshHomeEvent> { event ->
 }
 ```
 
-`refreshSuspending` is an application-provided suspend function. Each callback completes before the next starts. Leaving the active lifecycle state requests callback cancellation; business code must cooperate. Restart within the same lifecycle collection waits for the previous callback. Blocking or NonCancellable work cannot be forcibly stopped, and cancellation does not roll back side effects. Slow callbacks still obey existing buffering/overflow policy, and registration does not establish immediate readiness. Select sticky and an explicit instance when latest-value replay or isolation is needed. See [Android candidate integration](library-android/README_EN.md#next-version-suspend-callbacks-and-instance-integration-unreleased) and [core suspend collection](flowbus-core/README_EN.md#next-version-suspend-collection-unreleased).
+`refreshSuspending` is an application-provided suspend function. Each callback completes before the next starts. Leaving the active lifecycle state requests callback cancellation; business code must cooperate. Restart within the same lifecycle collection waits for the previous callback. Blocking or NonCancellable work cannot be forcibly stopped, and cancellation does not roll back side effects. Slow callbacks still obey existing buffering/overflow policy, and registration does not establish immediate readiness. Select sticky and an explicit instance when latest-value replay or isolation is needed. See [Android integration](library-android/README_EN.md#110-suspend-callbacks-and-instance-integration) and [core suspend collection](flowbus-core/README_EN.md#110-suspend-collection).
 
 Compose has an [independent consumer example](compatibility/compose-consumer/README_EN.md), with optional [Navigation](compatibility/navigation-consumer/README_EN.md) and [actual NavHost](compatibility/navhost-consumer/README_EN.md) verification. These fixtures are excluded from published artifacts and base dependencies. See the [compatibility assessment](docs/en/next-version-plan.md#compatibility-assessment) for tested combinations and limits.
 
 ## Compatibility and release status
 
-This documentation targets the unreleased `1.1.0` candidate; the published baseline is `1.0.7`. The actual published version on Maven Central is determined by the badge and Central artifact page.
+`1.1.0` was published to Maven Central on 2026-10-12, and both coordinates are available. See the [1.1.0 release notes](docs/en/release-notes-1.1.0.md) for changes and the [release checklist](docs/en/release-checklist.md) for verification entry points.
 
 | Item | Version |
 | --- | --- |
@@ -221,7 +221,7 @@ Release gates:
 4. Release notes: [`docs/en/release-notes-1.1.0.md`](./docs/en/release-notes-1.1.0.md)
 5. Version history: [`CHANGELOG.md`](./CHANGELOG.md)
 6. Chinese document: [`README.md`](./README.md)
-7. Next-version roadmap and compatibility assessment: [`docs/en/next-version-plan.md`](./docs/en/next-version-plan.md) (planned work, not released features)
+7. 1.1.0 scope, compatibility assessment, and future extension conditions: [`docs/en/next-version-plan.md`](./docs/en/next-version-plan.md)
 8. [Core 1.0.7 binary consumer regression](compatibility/core-binary-consumer/README_EN.md): unchanged old consumer bytecode passed Java 8 runs against original and candidate JARs, with additional JVM descriptor checks; this is not full ABI certification.
 
 ## Repository layout

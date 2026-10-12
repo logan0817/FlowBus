@@ -1,8 +1,8 @@
-# FlowBus 1.1.0 release notes (unreleased candidate)
+# FlowBus 1.1.0 release notes
 
 [中文](../release-notes-1.1.0.md)
 
-1.1.0 combines reliability fixes and new suspending collection APIs. Maven Central determines availability. Relative to published 1.0.7, base dependencies, minSdk, and bytecode requirements remain unchanged; existing callers need no migration.
+1.1.0 was published to Maven Central on 2026-10-12, combining reliability fixes and new suspending collection APIs. Relative to published 1.0.7, base dependencies, minSdk, and bytecode requirements remain unchanged; existing callers need no migration.
 
 ## Changes
 
@@ -15,7 +15,7 @@
 
 ## Adoption and migration
 
-After publication:
+Use:
 
 ```kotlin
 implementation("io.github.logan0817:flowbus:1.1.0")
@@ -45,10 +45,10 @@ Gates include apiCheck, JVM tests, release lint/R8, POM/module metadata, license
 
 Published 1.0.7 core has stable-descriptor and unchanged-consumer execution evidence. Android public-snapshot symbols are retained, with one non-PublishedApi internal removal recorded in the raw report. These checks are not full ABI certification.
 
-**Release gates: the final commit must pass API 21 library and minified Maven consumer device checks and complete remote CI.** See the [release checklist](release-checklist.md) for current candidate results and reports. API 24 cannot replace minimum-API verification. Full older toolchains, AGP 9.x, process-death recovery, deep links, and arbitrary animations remain uncertified. A published Compose module is outside this release.
+**Release gates passed: [final main CI](https://github.com/logan0817/FlowBus/actions/runs/38207876160) targets `efff42874b6c28a6074f72716b31acfcf6fa66b7`, including API 21 library and minified Maven consumer device checks.** All 10 published Maven Central artifacts and 10 signatures match the accepted candidate checksums, with valid GPG signatures. An independent core consumer resolved from Central passed normal/sticky, scope, and suspending collection checks on Java 8; an independent Android consumer passed the release R8 build. See the [release checklist](release-checklist.md) for reports. Full older toolchains, AGP 9.x, process-death recovery, deep links, and arbitrary animations remain uncertified. A published Compose module is outside this release.
 
 ## Publication and rollback
 
-Use the [release checklist](release-checklist.md) and isolated Maven repository. Remote dry-run checks only the task graph. Upload, signature acceptance, and Central release are separate operations.
+The published batch is `io.github.logan0817-FlowBus-1.1.0`, deployment ID `24a88a3e-fc49-479e-8605-140989c944f2`, with Portal status `PUBLISHED`. Both coordinates resolve from Maven Central; the batch name does not change Maven coordinates. Follow the [release checklist](release-checklist.md) for future releases. Remote dry-run checks only the task graph; artifact verification, upload, signature acceptance, and Central release are separate operations.
 
 Consumers can return to published 1.0.7, reverting calls to new APIs when necessary. Never overwrite a published version.
