@@ -211,7 +211,7 @@ Compose 提供[独立消费者示例](compatibility/compose-consumer/README.md)�
 5. `verifyMavenLocalArtifacts` 校验本地 Maven 产物、POM、module metadata、license 和 developer 元数据。
 6. `verifyMavenLocalCoreConsumer` 编译真实 Kotlin/JVM consumer，验证 `flowbus-core` 坐标可被独立消费。
 7. `verifyMavenLocalConsumer` 构建真实 Android consumer，验证 `flowbus` 坐标和 release shrink。
-8. `releaseToMavenCentral --dry-run` 只检查远程发布任务图，不会真实上传。
+8. `verifyCentralDeploymentName` 校验包含项目名的上传批次标识与实际 Maven 坐标；`releaseToMavenCentral --dry-run` 只检查远程发布任务图，两者均不会真实上传。
 
 ## 文档导航
 

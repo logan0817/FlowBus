@@ -11,6 +11,7 @@
 ```bash
 ./gradlew apiCheck :flowbus-core:test :library-android:testDebugUnitTest :app:testDebugUnitTest :library-android:lintRelease :app:lintRelease :app:assembleDebug :app:assembleRelease --warning-mode=all
 ./gradlew verifyMavenLocalArtifacts verifyMavenLocalCoreConsumer verifyMavenLocalBinaryCoreConsumer verifyMavenLocalConsumer verifyMavenLocalComposeConsumer "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8 --warning-mode=all
+./gradlew verifyCentralDeploymentName --warning-mode=all
 ./gradlew releaseToMavenCentral --dry-run --warning-mode=all
 git diff --check HEAD -- . ':(exclude)flowbus-core/api/*.api' ':(exclude)library-android/api/*.api'
 ```
@@ -71,6 +72,31 @@ CI 的 SDK 初始化显式选择 `platform-tools`，命令行工具由 setup-and
 ## 远程发布与回退
 
 远程操作另行授权后执行。先配置 Maven Central token 与 GPG 签名，确认最终门禁通过；不得将凭据写入仓库。
+
+### GPG 签名与上传凭据
+
+两个模块使用 `signing { useGpgCmd() }`，由本机 GPG 命令行和现有 keyring 完成签名。当前 Gradle 8.7 的该签名实现读取 `signing.gnupg.*`，不会自动使用或转换传统 PGP 签名的 `signing.keyId`、`signing.password`、`signing.secretKeyRingFile`。不指定 `signing.gnupg.keyName` 时，密钥选择遵循 GPG 的配置与默认规则；发布前应核对实际签名密钥，而不是依据未生效的 `signing.keyId` 判断。
+
+若需要明确选择签名密钥，可在用户级 `~/.gradle/gradle.properties` 设置以下配置，替换为自己的完整指纹；不要将私钥或口令写入项目配置：
+
+```properties
+# 可选：明确选择本机 keyring 中已有的签名密钥。
+signing.gnupg.keyName=<完整密钥指纹>
+```
+
+默认由 GPG / `gpg-agent` 管理私钥解锁。手动执行和自动执行采用同一机制；agent 已缓存解锁口令时可能不再提示输入。签名任务为 `UP-TO-DATE` 时会复用已有签名，也不会重新解锁。没有密码框不能证明程序读取了 `signing.password`、口令泄露或签名任务实际执行；需要结合任务状态和 `.asc` 验证结果判断。需要口令时在本机 GPG 提示中输入；若解锁或签名失败，应先检查 GPG 错误和本机 agent/pinentry 环境，不通过关闭口令保护或将密码传入命令行绕过失败。
+
+`signing.gnupg.passphrase` 是 GPG 命令行实现支持的显式口令属性，本项目不要求配置，优先使用本机 agent。发布插件还支持 `signingInMemoryKey` 等独立配置；设置该属性会切换到内存 PGP 签名，不再采用这里的 GPG 命令行路径。不要混用两种签名方式的配置来推断实际口令来源。
+
+`mavenCentralUsername` / `mavenCentralPassword` 是 Central Portal user token 的两部分，仅用于向 Sonatype 官方 HTTPS 接口认证上传与查询，不用于解锁 GPG 私钥。长期凭据保存在用户级配置或受控 secrets 中，不打印属性值，不将口令、token、私钥或用户级配置文件纳入日志、Git 或发布包。上传的是制品、元数据、签名和校验文件；`.asc` 签名可以公开，不包含私钥或解锁口令。用户级凭据清理与口令轮换由维护者单独操作，不应通过发布脚本自动改写。
+
+### 上传、验收与回退
+
+后续上传批次名称采用 `GROUP-根项目名-VERSION_NAME`，当前为 `io.github.logan0817-FlowBus-1.1.0`，避免同一组下不同项目的相同版本只显示组名与版本。批次名称用于人工识别；查询、release 或 drop 必须依据本次上传返回的唯一 deployment ID，并核对批次内容。实际 Maven 坐标仍为 `io.github.logan0817:flowbus-core:1.1.0` 与 `io.github.logan0817:flowbus:1.1.0`。
+
+发布插件 0.33.0 尚无公开的批次名称配置；根发布脚本只将两个 `createStagingRepository` 任务的暂存 artifact 标识统一为根项目名，让插件按同一个暂存标识生成名称，不修改 `MavenPublication` 或发布文件路径。单模块上传也使用同一项目名称，模块内容通过实际坐标区分。`verifyCentralDeploymentName` 在本地与 CI 核对两个暂存标识及实际发布坐标，并作为暂存任务的前置检查；该检查不执行签名或网络上传。升级发布插件后，必须重新核对其命名规则与暂存任务属性，并执行该检查及 remote dry-run。
+
+命名修改不会自动处理已有批次。若要替换未发布批次，必须另行获得授权，按原 deployment ID 核对其状态与坐标后 drop，再上传并验收新批次；操作新批次必须使用新返回的 deployment ID。已经正式发布的坐标不能覆盖。
 
 发布逻辑位于 gradle/release-publishing.gradle.kts，产物验证位于 gradle/release-verification.gradle.kts。publishToMavenCentral / releaseToMavenCentral 当前只上传 Central Portal deployment，不会自动 release。上传后逐个检查两个坐标及 sources/javadoc 的 .asc 签名与 checksum，再在 Portal 决定 release 或 drop。本地 Maven 产物不生成远程签名，不能用其替代签名验收。
 
