@@ -39,7 +39,7 @@
 
 ## 发布门禁与验证入口
 
-API 21 是当前最低支持目标。1.2.0 最终候选 head `a374d5e078610e09fc227a3ac232d03ef1e54cf4` 的 [CI run 24](https://github.com/logan0817/FlowBus/actions/runs/38594783249) 已通过 API 21 库层 instrumentation、minified Maven/R8 消费者设备验收和 API 35 检查；API 21 日志确认 `emulator-5554 / Android 5.0.2`，同批报告为 `flowbus-verification-138cb3c2a72e3e50d84d0a5b155a5adab333217a`。本机没有 API 21 image，最低系统证据来自远端设备，API 24 及 D8 静态检查不能替代。正式 Central 制品、签名及独立消费者结果统一见[发布清单](release-checklist.md)。
+API 21 是当前最低支持目标。1.2.0 最终候选 head `6e075750eb5b7fced05fc7c06ab13a628645f39c` 的 [CI run 25](https://github.com/logan0817/FlowBus/actions/runs/38597961848) 已通过 API 21 库层 instrumentation、minified Maven/R8 消费者设备验收和 API 35 检查；API 21 日志确认 `emulator-5554 / Android 5.0.2`，同批报告为 `flowbus-verification-9e98bec939050b57c7f52d761d1f68d65fc36954`。本机没有 API 21 image，最低系统证据来自远端设备，API 24 及 D8 静态检查不能替代。正式 Central 制品、签名及独立消费者结果统一见[发布清单](release-checklist.md)。
 
 - [发布清单](release-checklist.md)：基础测试、API、lint、R8、元数据、最低系统与发布任务图。
 - [core 二进制消费者](../compatibility/core-binary-consumer/README.md)：原版编译、候选替换运行及 JVM 符号验证。

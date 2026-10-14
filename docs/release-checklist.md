@@ -2,9 +2,9 @@
 
 [English](en/release-checklist.md)
 
-当前本地候选：VERSION_NAME=1.2.0、APP_VERSION_NAME=1.2.0、APP_VERSION_CODE=9，尚未发布。最终候选 head 为 `a374d5e078610e09fc227a3ac232d03ef1e54cf4`；[CI run 24](https://github.com/logan0817/FlowBus/actions/runs/38594783249) 的 27 个步骤全部成功，报告 artifact 为 `flowbus-verification-138cb3c2a72e3e50d84d0a5b155a5adab333217a`。正式 Maven Central 仍未上传或发布。
+当前本地候选：VERSION_NAME=1.2.0、APP_VERSION_NAME=1.2.0、APP_VERSION_CODE=9，尚未发布。最终候选 head 为 `6e075750eb5b7fced05fc7c06ab13a628645f39c`；[CI run 25](https://github.com/logan0817/FlowBus/actions/runs/38597961848) 的 27 个步骤全部成功，报告 artifact 为 `flowbus-verification-9e98bec939050b57c7f52d761d1f68d65fc36954`。正式 Maven Central 仍未上传或发布。
 
-候选分支 `codex/flowbus-1.2.0` 的远端验收入口为 [PR #7 当前提交检查](https://github.com/logan0817/FlowBus/pull/7/checks)。当前 head 已由 [CI run 24](https://github.com/logan0817/FlowBus/actions/runs/38594783249) 验收：API 21 日志确认 `emulator-5554 / Android 5.0.2 (API 21)`，API 35 身份与 instrumentation/UI 报告保存在同批 artifact。草稿状态不等于通过或正式发布。
+候选分支 `codex/flowbus-1.2.0` 的远端验收入口为 [PR #7 当前提交检查](https://github.com/logan0817/FlowBus/pull/7/checks)。当前 head 已由 [CI run 25](https://github.com/logan0817/FlowBus/actions/runs/38597961848) 验收：API 21 日志确认 `emulator-5554 / Android 5.0.2 (API 21)`，API 35 身份与 instrumentation/UI 报告保存在同批 artifact。草稿状态不等于通过或正式发布。
 
 ## 1.1.0 历史发布证据
 
@@ -70,7 +70,7 @@ Google 模拟器的 Launcher ANR 系统窗口可能抢占示例焦点。测试�
 
 CI 的 SDK 初始化显式选择 `platform-tools`，命令行工具由 setup-android Action 准备；不要恢复其包含已下架 `tools` 包的默认安装列表。平台和 Build Tools 版本由后续安装步骤指定。
 
-历史 1.1.0 发布的[最终 main CI](https://github.com/logan0817/FlowBus/actions/runs/38207876160) 对应 `efff42874b6c28a6074f72716b31acfcf6fa66b7`，其历史报告仍用于 1.1.0 记录。1.2.0 候选的最终设备证据改用 [CI run 24](https://github.com/logan0817/FlowBus/actions/runs/38594783249)，对应 head `a374d5e078610e09fc227a3ac232d03ef1e54cf4` 和 artifact `flowbus-verification-138cb3c2a72e3e50d84d0a5b155a5adab333217a`；本机无 API 21 image，最低系统证据来自该远端设备。其余已测组合及未认证工具链见[兼容性评估](next-version-plan.md#兼容性评估)。
+历史 1.1.0 发布的[最终 main CI](https://github.com/logan0817/FlowBus/actions/runs/38207876160) 对应 `efff42874b6c28a6074f72716b31acfcf6fa66b7`，其历史报告仍用于 1.1.0 记录。1.2.0 候选的最终设备证据改用 [CI run 25](https://github.com/logan0817/FlowBus/actions/runs/38597961848)，对应 head `6e075750eb5b7fced05fc7c06ab13a628645f39c` 和 artifact `flowbus-verification-9e98bec939050b57c7f52d761d1f68d65fc36954`；本机无 API 21 image，最低系统证据来自该远端设备。其余已测组合及未认证工具链见[兼容性评估](next-version-plan.md#兼容性评估)。
 
 ## 兼容性、源码与文档检查
 

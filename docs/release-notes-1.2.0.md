@@ -29,9 +29,9 @@
 | 1.1.0 Android AAR 符号 | 固定原版 AAR + 旧公开快照核验通过，无受支持符号删除；不代替旧消费者运行 |
 | Kotlin/compileSdk 与可选消费者 | Kotlin 1.8.22/1.9.22/2.0.21/2.1.0、compileSdk 33 的 core Java 8/Android R8 通过；默认及较新 Compose/Navigation/NavHost R8 通过 |
 | 性能 | 统一 sticky extra=0 后三组完整 JMH 共 58 组测量通过，3 forks、5 × 1 秒预热/测量；原始指标、环境和注册 JFR 分析已保存 |
-| 最终 API 21/API 35、UI 与远端 CI | [CI run 24](https://github.com/logan0817/FlowBus/actions/runs/38594783249) 对应最终候选 `a374d5e078610e09fc227a3ac232d03ef1e54cf4`，全部 27 个步骤成功；API 21 实际设备为 `emulator-5554 / Android 5.0.2 (API 21)`，API 35 设备身份、instrumentation/UI 与消费者报告随同批 artifact 保存 |
+| 最终 API 21/API 35、UI 与远端 CI | [CI run 25](https://github.com/logan0817/FlowBus/actions/runs/38597961848) 对应最终候选 `6e075750eb5b7fced05fc7c06ab13a628645f39c`，全部 27 个步骤成功；API 21 实际设备为 `emulator-5554 / Android 5.0.2 (API 21)`，API 35 设备身份、instrumentation/UI 与消费者报告随同批 artifact 保存 |
 
-设备验收入口已增加 channel 页 Activity 重建回归，并为 API 35 记录/断言真实设备身份与启动状态；三项 mocked-ADB 驱动回归及 Shell 语法检查通过。`:app:assembleReleaseAndroidTest`（含 R8）和 `:library-android:assembleDebugAndroidTest` 通过，相关 release lint、231 项 JVM 测试和 API 检查通过。最终候选 `a374d5e078610e09fc227a3ac232d03ef1e54cf4` 的 [CI run 24](https://github.com/logan0817/FlowBus/actions/runs/38594783249) 已完成 API 21/API 35 设备门禁；同批报告 artifact 为 `flowbus-verification-138cb3c2a72e3e50d84d0a5b155a5adab333217a`（digest `sha256:f499b0a89dade6fa0457599ddc1e0e3500da3b52f929620d8aadd5c57f0b3d89`）。
+设备验收入口已增加 channel 页 Activity 重建回归，并为 API 35 记录/断言真实设备身份与启动状态；三项 mocked-ADB 驱动回归及 Shell 语法检查通过。`:app:assembleReleaseAndroidTest`（含 R8）和 `:library-android:assembleDebugAndroidTest` 通过，相关 release lint、231 项 JVM 测试和 API 检查通过。最终候选 `6e075750eb5b7fced05fc7c06ab13a628645f39c` 的 [CI run 25](https://github.com/logan0817/FlowBus/actions/runs/38597961848) 已完成 API 21/API 35 设备门禁；同批报告 artifact 为 `flowbus-verification-9e98bec939050b57c7f52d761d1f68d65fc36954`（digest `sha256:288d1ff527a0bf658def6297125a7dca80d7974176a13d499f775349a25edc50`）。
 
 1.0.7 Android 公开快照的受支持描述符保留；raw JVM 比较仍记录 1 处 internal `createFlowBusConfig$library_android_release` 移除，这是已发布 1.1.0 相对 1.0.7 的既有差异。保留该报告，不将静态符号检查描述为完整 ABI 认证。发布任务图 dry-run 与部署名称检查通过，已创建候选草稿 PR；未上传或发布 Maven Central 制品。
 
