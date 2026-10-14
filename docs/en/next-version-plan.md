@@ -4,7 +4,7 @@
 
 1.1.0 was published to Maven Central on 2026-10-12. This document records scope, evidence, and conditions for future extensions. See the [release checklist](release-checklist.md) for gates and results, and module READMEs for usage.
 
-See the [next-version implementation proposal (suggested 1.2.0, Chinese)](../implementation-plan-1.2.0.md) for proposed scope and implementation steps. It is not implemented yet; this document retains the 1.1.0 scope and verification history.
+See the [1.2.0 implementation plan (Chinese)](../implementation-plan-1.2.0.md) for scope and implementation steps. The 1.2.0 candidate is implemented and has passed its final remote gates; this document retains the 1.1.0 scope and future extension conditions.
 
 ## Release scope
 
@@ -39,7 +39,7 @@ Binary checks are not full ABI certification. Android symbol checks do not estab
 
 ## Release gates and entry points
 
-API 21 remains the minimum target. The [final main CI](https://github.com/logan0817/FlowBus/actions/runs/38207876160) passed API 21 library instrumentation, minified Maven consumer device checks, and API 35 checks. No API 21 image is available locally; the minimum-system evidence comes from remote devices, not API 24 or static D8 checks. See the [release checklist](release-checklist.md) for published Central artifacts, signatures, and independent consumer results.
+API 21 remains the minimum target. Final candidate head `a374d5e078610e09fc227a3ac232d03ef1e54cf4` passed API 21 library instrumentation, minified Maven/R8 consumer device checks, and API 35 checks in [CI run 24](https://github.com/logan0817/FlowBus/actions/runs/38594783249). The API 21 log identifies `emulator-5554 / Android 5.0.2`; the same-run artifact `flowbus-verification-138cb3c2a72e3e50d84d0a5b155a5adab333217a` contains API 35 identity and instrumentation/UI reports. No API 21 image is available locally; the minimum-system evidence comes from remote devices, not API 24 or static D8 checks. See the [release checklist](release-checklist.md) for published Central artifacts, signatures, and independent consumer results.
 
 - [Release checklist](release-checklist.md): tests, API, lint, R8, metadata, minimum API, and publication task graph.
 - [Core binary consumer](../../compatibility/core-binary-consumer/README_EN.md): original compilation, candidate runtime replacement, and JVM symbols.

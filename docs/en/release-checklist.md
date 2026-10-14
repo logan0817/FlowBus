@@ -2,9 +2,9 @@
 
 [中文](../release-checklist.md)
 
-Current local candidate: VERSION_NAME=1.2.0, APP_VERSION_NAME=1.2.0, APP_VERSION_CODE=9. It is not published. Track final-candidate evidence in the [1.2.0 notes](release-notes-1.2.0.md). API 21/API 35 and remote CI remain required; historical 1.1.0 success is insufficient.
+Current local candidate: VERSION_NAME=1.2.0, APP_VERSION_NAME=1.2.0, APP_VERSION_CODE=9. It is not published. Final head is `a374d5e078610e09fc227a3ac232d03ef1e54cf4`; [CI run 24](https://github.com/logan0817/FlowBus/actions/runs/38594783249) passed all 27 steps. Its report artifact is `flowbus-verification-138cb3c2a72e3e50d84d0a5b155a5adab333217a`.
 
-Remote acceptance for `codex/flowbus-1.2.0` is tracked in [PR #7 current-head checks](https://github.com/logan0817/FlowBus/pull/7/checks). Confirm its current head, complete CI, actual device identities, and original reports from the same run. Draft status does not establish acceptance or publication.
+Remote acceptance for `codex/flowbus-1.2.0` is tracked in [PR #7 current-head checks](https://github.com/logan0817/FlowBus/pull/7/checks). The final run confirms API 21 `emulator-5554 / Android 5.0.2`; API 35 identity and instrumentation/UI reports are in the same artifact. Draft status does not establish publication.
 
 ## Historical 1.1.0 publication evidence
 
@@ -70,7 +70,7 @@ The shared consumer device protocol writes UI hierarchy files under `/data/local
 
 CI SDK setup explicitly selects `platform-tools`; the setup-android Action prepares command-line tools separately. Do not restore its default package list containing the removed `tools` package. The next installation step selects platform and Build Tools versions.
 
-The [final main CI](https://github.com/logan0817/FlowBus/actions/runs/38207876160) for the historical 1.1.0 release targets `efff42874b6c28a6074f72716b31acfcf6fa66b7` and passed all gates, including API 21 and API 35 checks. Its report artifact is `flowbus-verification-efff42874b6c28a6074f72716b31acfcf6fa66b7`. No API 21 image is available locally. Future releases must still confirm complete CI success for the final commit, the actual API 21 device identity, and all consumer reports. Started/queued runs and older successful commits do not replace this check. See the [compatibility assessment](next-version-plan.md#compatibility-assessment) for tested combinations and uncertified toolchains.
+The [final main CI](https://github.com/logan0817/FlowBus/actions/runs/38207876160) for the historical 1.1.0 release targets `efff42874b6c28a6074f72716b31acfcf6fa66b7` and remains the historical publication record. For 1.2.0, use [CI run 24](https://github.com/logan0817/FlowBus/actions/runs/38594783249), head `a374d5e078610e09fc227a3ac232d03ef1e54cf4`, and artifact `flowbus-verification-138cb3c2a72e3e50d84d0a5b155a5adab333217a`. No API 21 image is available locally; the minimum-system evidence comes from the remote API 21 device. See the [compatibility assessment](next-version-plan.md#compatibility-assessment) for tested combinations and uncertified toolchains.
 
 ## Compatibility, sources, and documentation
 

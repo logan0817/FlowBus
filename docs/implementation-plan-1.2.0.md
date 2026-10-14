@@ -1,8 +1,8 @@
 # FlowBus 下一版本实现方案（建议 1.2.0）
 
-> 状态：1.2.0 草稿候选，最终验收以 PR #7 对应提交的完整 CI 与报告为准。创建日期：2026-10-14。基线：已发布 1.1.0。
+> 状态：1.2.0 候选实现与远端门禁已完成，最终验收对应 head `a374d5e078610e09fc227a3ac232d03ef1e54cf4`。创建日期：2026-10-14。基线：已发布 1.1.0。
 >
-> 通道配置核心与 Android 入口已在本地 1.2.0 候选落地；不能直接用于已发布 1.1.0。版本配置已更新，正式安装示例保留 1.1.0 并另列本地候选用法。完整 JVM 性能报告已保存，最终设备/CI 门禁以文末验收入口为准。
+> 通道配置核心与 Android 入口已在本地 1.2.0 候选落地；不能直接用于已发布 1.1.0。版本配置已更新，正式安装示例保留 1.1.0 并另列本地候选用法。完整 JVM 性能报告已保存；API 21/API 35 与完整 CI 已由 [CI run 24](https://github.com/logan0817/FlowBus/actions/runs/38594783249) 验收，报告 artifact 为 `flowbus-verification-138cb3c2a72e3e50d84d0a5b155a5adab333217a`。
 
 ## 1. 版本目标与取舍
 
@@ -319,8 +319,8 @@ A 阶段的文档整理与基准准备可独立进行；同一个 FlowBusStore �
 - A/D 契约和用法：已更新中英文模块/root README、TROUBLESHOOTING、owner channel 示例、Job-bound scope 清理示例，正式安装仍指向已发布 1.1.0。
 - 二进制/产物：Java 8 新配置 Maven core 消费者、候选 Android R8、元数据通过；1.0.7/1.1.0 原版 core Kotlin/Java 未重编译运行通过，旧 Android 挂起/显式实例 class 在候选 JVM runtime 运行通过，两个旧版 AAR 静态公开符号通过。Kotlin 编译器矩阵、compileSdk 33、可选 Compose/Navigation/NavHost R8、发布任务图 dry-run 通过；主线 231 项 JVM 测试、API、release lint、debug/release 构建通过。
 - 性能：benchmarks/jvm 为独立工程；固定正式 1.1.0、候选和 SharedFlow 三组完整 JMH 共 58 组测量通过，旧配置不一致数据排除。普通无人订阅/ sticky 发布吞吐与基线接近，未确认默认稳定发送回退；首次注册约慢 14.5%、多 112 B/op，GC/JFR 与源码分析已披露，见[实测分析](../benchmarks/jvm/results/current/analysis.md)。
-- E 候选验收：版本设为 1.2.0/code 9，新增中英文发布说明。候选分支 `codex/flowbus-1.2.0` 已提交并推送，已创建草稿 [PR #7](https://github.com/logan0817/FlowBus/pull/7/checks)。最终 API 21/API 35、UI 与完整 CI 按 PR 当前 head 对应的成功状态和原始报告验收；排队、运行中或旧提交成功不代表完成。本机无对应设备。合并、上传与正式发布未授权、未执行。
+- E 候选验收：版本设为 1.2.0/code 9，新增中英文发布说明。候选分支 `codex/flowbus-1.2.0` 已提交并推送，已创建草稿 [PR #7](https://github.com/logan0817/FlowBus/pull/7/checks)。最终 API 21/API 35、UI 与完整 CI 已按当前 head `a374d5e078610e09fc227a3ac232d03ef1e54cf4` 验收：[CI run 24](https://github.com/logan0817/FlowBus/actions/runs/38594783249) 的 27 个步骤全部成功；API 21 日志确认 `emulator-5554 / Android 5.0.2`，同批原始报告 artifact 为 `flowbus-verification-138cb3c2a72e3e50d84d0a5b155a5adab333217a`。本机无对应设备。合并、上传与正式发布未授权、未执行。
 
-设备门禁的覆盖复核补充了 channel 页 Activity 重建后的配置幂等、普通事件不重放及新事件收集用例；API 35 脚本在任何测试前保存并断言实际设备版本与启动状态。驱动三项 mocked-ADB 回归与 Shell 语法检查通过；app release instrumentation R8 编译、库 debug instrumentation APK、相关 release lint、231 项 JVM 测试及 API 检查通过。最终设备执行以 PR 当前提交报告为准，编译不能替代运行。
+设备门禁的覆盖复核补充了 channel 页 Activity 重建后的配置幂等、普通事件不重放及新事件收集用例；API 35 脚本在任何测试前保存并断言实际设备版本与启动状态。驱动三项 mocked-ADB 回归与 Shell 语法检查通过；app release instrumentation R8 编译、库 debug instrumentation APK、相关 release lint、231 项 JVM 测试及 API 检查通过。最终设备执行已由上述当前 head 的 CI 报告确认，编译不能替代运行。
 
 详细状态与最终证据入口见 [1.2.0 发布说明](release-notes-1.2.0.md)及[发布清单](release-checklist.md)。本节是实施状态，前文保留完整验收范围；不能因当前环境缺少门禁而缩减完成条件。

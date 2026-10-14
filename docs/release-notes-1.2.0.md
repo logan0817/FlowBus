@@ -24,14 +24,14 @@
 | core/Android/app JVM 单测 | 164 + 65 + 2 项通过，包括配置、契约、并发和 lifecycle；必要文档输入在最终检查中覆盖 |
 | API、release lint 与示例构建 | apiCheck 通过，快照只有新增项；库/app release lint 及 debug/release 构建通过 |
 | 真实 Maven core 新配置消费者 | 1.2.0 候选在真实 Java 8 通过 |
-| Maven 元数据与 Android release R8 | 1.2.0 候选通过，包含新配置和旧挂起/实例调用；原版 1.1.0 class 在候选 JVM runtime 运行通过，设备运行待验收 |
+| Maven 元数据与 Android release R8 | 1.2.0 候选通过，包含新配置和旧挂起/实例调用；原版 1.1.0 class 在候选 JVM runtime 运行通过，API 21 minified Maven/R8 consumer 设备运行通过 |
 | 1.0.7/1.1.0 未重编译 core 消费者 | 两组 Kotlin/Java 原版编译后替换候选，真实 Java 8 通过；631/681 个 JVM 描述符保留 |
 | 1.1.0 Android AAR 符号 | 固定原版 AAR + 旧公开快照核验通过，无受支持符号删除；不代替旧消费者运行 |
 | Kotlin/compileSdk 与可选消费者 | Kotlin 1.8.22/1.9.22/2.0.21/2.1.0、compileSdk 33 的 core Java 8/Android R8 通过；默认及较新 Compose/Navigation/NavHost R8 通过 |
 | 性能 | 统一 sticky extra=0 后三组完整 JMH 共 58 组测量通过，3 forks、5 × 1 秒预热/测量；原始指标、环境和注册 JFR 分析已保存 |
-| 最终 API 21/API 35、UI 与远端 CI | [PR #7 最终提交检查](https://github.com/logan0817/FlowBus/pull/7/checks)及对应原始报告为验收入口；必须核对全部门禁通过，本机没有对应设备，旧报告不能替代 |
+| 最终 API 21/API 35、UI 与远端 CI | [CI run 24](https://github.com/logan0817/FlowBus/actions/runs/38594783249) 对应最终候选 `a374d5e078610e09fc227a3ac232d03ef1e54cf4`，全部 27 个步骤成功；API 21 实际设备为 `emulator-5554 / Android 5.0.2 (API 21)`，API 35 设备身份、instrumentation/UI 与消费者报告随同批 artifact 保存 |
 
-设备验收入口已增加 channel 页 Activity 重建回归，并为 API 35 记录/断言真实设备身份与启动状态；三项 mocked-ADB 驱动回归及 Shell 语法检查通过。`:app:assembleReleaseAndroidTest`（含 R8）和 `:library-android:assembleDebugAndroidTest` 通过，相关 release lint、231 项 JVM 测试和 API 检查通过。测试 APK 编译不代替设备执行，设备验收以 PR 最终提交对应的运行报告为准。
+设备验收入口已增加 channel 页 Activity 重建回归，并为 API 35 记录/断言真实设备身份与启动状态；三项 mocked-ADB 驱动回归及 Shell 语法检查通过。`:app:assembleReleaseAndroidTest`（含 R8）和 `:library-android:assembleDebugAndroidTest` 通过，相关 release lint、231 项 JVM 测试和 API 检查通过。最终候选 `a374d5e078610e09fc227a3ac232d03ef1e54cf4` 的 [CI run 24](https://github.com/logan0817/FlowBus/actions/runs/38594783249) 已完成 API 21/API 35 设备门禁；同批报告 artifact 为 `flowbus-verification-138cb3c2a72e3e50d84d0a5b155a5adab333217a`（digest `sha256:f499b0a89dade6fa0457599ddc1e0e3500da3b52f929620d8aadd5c57f0b3d89`）。
 
 1.0.7 Android 公开快照的受支持描述符保留；raw JVM 比较仍记录 1 处 internal `createFlowBusConfig$library_android_release` 移除，这是已发布 1.1.0 相对 1.0.7 的既有差异。保留该报告，不将静态符号检查描述为完整 ABI 认证。发布任务图 dry-run 与部署名称检查通过，已创建候选草稿 PR；未上传或发布 Maven Central 制品。
 

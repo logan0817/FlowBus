@@ -2,7 +2,7 @@
 
 [中文](../release-notes-1.2.0.md)
 
-This is a committed and pushed implementation candidate, not uploaded or published to Maven Central. 1.1.0 remains the released installation. Configuration: VERSION_NAME=1.2.0, APP_VERSION_NAME=1.2.0, APP_VERSION_CODE=9. Historical device and remote CI evidence does not establish candidate acceptance.
+This is a committed and pushed implementation candidate, not uploaded or published to Maven Central. 1.1.0 remains the released installation. Configuration: VERSION_NAME=1.2.0, APP_VERSION_NAME=1.2.0, APP_VERSION_CODE=9. The final candidate head `a374d5e078610e09fc227a3ac232d03ef1e54cf4` passed the complete remote gate; it remains a draft and is not published.
 
 ## Changes
 
@@ -19,11 +19,11 @@ See [core usage and migration](../../flowbus-core/README_EN.md#120-candidate-cha
 
 ## Verification status
 
-Final API 21/API 35, UI, and complete CI acceptance is tracked in [PR #7 checks](https://github.com/logan0817/FlowBus/pull/7/checks) and its original reports. Verify the current PR head and every required gate; queued, running, or older successful runs are insufficient. The candidate remains a draft and is not published.
+[CI run 24](https://github.com/logan0817/FlowBus/actions/runs/38594783249) for final head `a374d5e078610e09fc227a3ac232d03ef1e54cf4` completed all 27 steps successfully. The candidate remains a draft and is not published. Its report artifact is `flowbus-verification-138cb3c2a72e3e50d84d0a5b155a5adab333217a` with digest `sha256:f499b0a89dade6fa0457599ddc1e0e3500da3b52f929620d8aadd5c57f0b3d89`.
 
 The core/Android/app JVM suites passed 164/65/2 tests, including configuration, contract, concurrency, and lifecycle coverage. Required documentation inputs are covered by the final checks. API dumps contain additions only; apiCheck, library/app release lint, and sample debug/release builds passed. The actual 1.2.0 Maven core consumer passed on Java 8, and artifact metadata plus the minified Android consumer compiled successfully including the new APIs.
 
-Original 1.0.7/1.1.0 Kotlin/Java core consumers ran unchanged against the candidate on Java 8; 631/681 JVM descriptors were retained. Published 1.1.0 Android AAR symbols matched its fixed public snapshot. Original 1.1.0 Android suspend/explicit-instance class files also ran against verified candidate core/Android class bytes on the JVM and compiled into the minified APK; device acceptance is evaluated using the final PR run.
+Original 1.0.7/1.1.0 Kotlin/Java core consumers ran unchanged against the candidate on Java 8; 631/681 JVM descriptors were retained. Published 1.1.0 Android AAR symbols matched its fixed public snapshot. Original 1.1.0 Android suspend/explicit-instance class files also ran against verified candidate core/Android class bytes on the JVM and compiled into the minified APK. The API 21 minified Maven/R8 consumer passed on `emulator-5554 / Android 5.0.2 (API 21)` in the final run; API 35 instrumentation/UI and identity reports are in the same artifact.
 
 Kotlin 1.8.22/1.9.22/2.0.21/2.1.0 and compileSdk 33 consumer gates passed, plus default and newer optional Compose/Navigation/NavHost R8 builds. Deployment-name and remote task-graph dry-run checks passed without remote operations. All three formal benchmark groups completed with matching sticky extra=0: 58 scenario/mode measurements, 3 forks, 5 × 1s warmup and measurement, GC profiler. Earlier mismatched measurements are excluded.
 
@@ -31,9 +31,9 @@ See the [complete report](../../benchmarks/jvm/results/current/report.md) and [a
 
 Published 1.0.7 Android public descriptors remain. Raw comparison records one pre-existing internal createFlowBusConfig$library_android_release removal from the released 1.1.0 change. Static symbol checks are not complete ABI certification.
 
-Final API 21/API 35, UI, and remote CI acceptance must be confirmed against PR #7 current-head checks and original reports; no local API 21/API 35 device is available. See the [checklist](release-checklist.md) for all commands. Device tasks are `:library-android:connectedDebugAndroidTest` and minified sample `:app:connectedReleaseAndroidTest`. Build, static-symbol, and mocked-driver success cannot replace device execution.
+The final API 21/API 35, UI, and remote CI gates passed in [CI run 24](https://github.com/logan0817/FlowBus/actions/runs/38594783249). No local API 21/API 35 device is available; the same-run artifact is the evidence source. See the [checklist](release-checklist.md) for all commands. Device tasks are `:library-android:connectedDebugAndroidTest` and minified sample `:app:connectedReleaseAndroidTest`. Build, static-symbol, and mocked-driver success cannot replace device execution.
 
-Device entry points now include channel-page Activity recreation coverage and API 35 actual-device/boot assertions with an identity report. Three mocked-ADB driver regressions and shell syntax checks passed. `:app:assembleReleaseAndroidTest` (including R8) and `:library-android:assembleDebugAndroidTest` passed, together with relevant release lint, 231 JVM tests, and API checks. Compiling test APKs does not replace device execution, whose evidence must match the final PR head.
+Device entry points now include channel-page Activity recreation coverage and API 35 actual-device/boot assertions with an identity report. Three mocked-ADB driver regressions and shell syntax checks passed. `:app:assembleReleaseAndroidTest` (including R8) and `:library-android:assembleDebugAndroidTest` passed, together with relevant release lint, 231 JVM tests, and API checks. The final candidate device execution matches the final PR head; compiling test APKs alone would not replace it.
 
 ## Rollback
 

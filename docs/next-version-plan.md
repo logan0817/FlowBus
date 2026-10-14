@@ -4,7 +4,7 @@
 
 1.1.0 已于 2026-10-12 发布到 Maven Central。此文档记录版本范围、兼容性证据和后续扩展条件；具体发布步骤与结果见[发布清单](release-checklist.md)，使用方式见模块 README。
 
-下一版本的建议范围与实施步骤见[实现方案（建议 1.2.0）](implementation-plan-1.2.0.md)。该方案尚未实施，本文继续保留 1.1.0 的历史范围与验证记录。
+下一版本的范围与实施步骤见[实现方案（1.2.0）](implementation-plan-1.2.0.md)。1.2.0 候选已实现并通过最终远端门禁；本文继续保留 1.1.0 的历史范围与后续扩展条件。
 
 ## 本次版本范围
 
@@ -39,7 +39,7 @@
 
 ## 发布门禁与验证入口
 
-API 21 是当前最低支持目标。[最终 main CI](https://github.com/logan0817/FlowBus/actions/runs/38207876160) 已通过 API 21 库层 instrumentation、minified Maven 消费者设备验收和 API 35 检查。本机没有 API 21 image，最低系统证据来自远端设备，API 24 及 D8 静态检查不能替代。正式 Central 制品、签名及独立消费者结果统一见[发布清单](release-checklist.md)。
+API 21 是当前最低支持目标。1.2.0 最终候选 head `a374d5e078610e09fc227a3ac232d03ef1e54cf4` 的 [CI run 24](https://github.com/logan0817/FlowBus/actions/runs/38594783249) 已通过 API 21 库层 instrumentation、minified Maven/R8 消费者设备验收和 API 35 检查；API 21 日志确认 `emulator-5554 / Android 5.0.2`，同批报告为 `flowbus-verification-138cb3c2a72e3e50d84d0a5b155a5adab333217a`。本机没有 API 21 image，最低系统证据来自远端设备，API 24 及 D8 静态检查不能替代。正式 Central 制品、签名及独立消费者结果统一见[发布清单](release-checklist.md)。
 
 - [发布清单](release-checklist.md)：基础测试、API、lint、R8、元数据、最低系统与发布任务图。
 - [core 二进制消费者](../compatibility/core-binary-consumer/README.md)：原版编译、候选替换运行及 JVM 符号验证。
