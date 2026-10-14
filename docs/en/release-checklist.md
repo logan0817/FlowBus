@@ -4,6 +4,8 @@
 
 Current local candidate: VERSION_NAME=1.2.0, APP_VERSION_NAME=1.2.0, APP_VERSION_CODE=9. It is not published. Track final-candidate evidence in the [1.2.0 notes](release-notes-1.2.0.md). API 21/API 35 and remote CI remain required; historical 1.1.0 success is insufficient.
 
+Remote acceptance for `codex/flowbus-1.2.0` is tracked in [PR #7 current-head checks](https://github.com/logan0817/FlowBus/pull/7/checks). Confirm its current head, complete CI, actual device identities, and original reports from the same run. Draft status does not establish acceptance or publication.
+
 ## Historical 1.1.0 publication evidence
 
 1.1.0 was published on 2026-10-12, with VERSION_NAME=1.1.0, APP_VERSION_NAME=1.1.0, APP_VERSION_CODE=8, and catalog version 1.1.0. This checklist records the release gates and maintenance procedure for future versions. Always verify final artifacts rather than relying only on earlier reports.

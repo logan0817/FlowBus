@@ -4,6 +4,8 @@
 
 当前本地候选：VERSION_NAME=1.2.0、APP_VERSION_NAME=1.2.0、APP_VERSION_CODE=9，尚未发布。最终候选证据记录在 [1.2.0 发布说明](release-notes-1.2.0.md)。API 21/API 35 与远端 CI 仍是必要门禁，历史 1.1.0 成功记录不能替代本次验收。
 
+候选分支 `codex/flowbus-1.2.0` 的远端验收入口为 [PR #7 当前提交检查](https://github.com/logan0817/FlowBus/pull/7/checks)。核对当前 head、完整 CI、实际设备身份及同批原始报告，草稿状态不等于通过或正式发布。
+
 ## 1.1.0 历史发布证据
 
 1.1.0 已于 2026-10-12 发布：VERSION_NAME=1.1.0、APP_VERSION_NAME=1.1.0、APP_VERSION_CODE=8，版本目录同步为 1.1.0。以下清单保留本次门禁与后续版本的维护方式；每次发布必须检查最终候选产物，不能只依据旧批次报告。

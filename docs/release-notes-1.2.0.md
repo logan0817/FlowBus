@@ -2,7 +2,7 @@
 
 [English](en/release-notes-1.2.0.md)
 
-当前为本地实现候选，尚未上传或发布到 Maven Central。正式可安装版本仍为 1.1.0。版本配置为 VERSION_NAME=1.2.0、APP_VERSION_NAME=1.2.0、APP_VERSION_CODE=9。状态按实际验证更新，不沿用 1.1.0 的远端或设备成功结论。
+当前为已提交并推送的实现候选，尚未上传或发布到 Maven Central。正式可安装版本仍为 1.1.0。版本配置为 VERSION_NAME=1.2.0、APP_VERSION_NAME=1.2.0、APP_VERSION_CODE=9。状态按实际验证更新，不沿用 1.1.0 的远端或设备成功结论。
 
 ## 使用者变化
 
@@ -29,11 +29,11 @@
 | 1.1.0 Android AAR 符号 | 固定原版 AAR + 旧公开快照核验通过，无受支持符号删除；不代替旧消费者运行 |
 | Kotlin/compileSdk 与可选消费者 | Kotlin 1.8.22/1.9.22/2.0.21/2.1.0、compileSdk 33 的 core Java 8/Android R8 通过；默认及较新 Compose/Navigation/NavHost R8 通过 |
 | 性能 | 统一 sticky extra=0 后三组完整 JMH 共 58 组测量通过，3 forks、5 × 1 秒预热/测量；原始指标、环境和注册 JFR 分析已保存 |
-| 最终 API 21/API 35、UI 与远端 CI | 尚未执行；本机没有可用于本项验收的 API 21/API 35 设备，旧报告不能替代 |
+| 最终 API 21/API 35、UI 与远端 CI | [PR #7 最终提交检查](https://github.com/logan0817/FlowBus/pull/7/checks)及对应原始报告为验收入口；必须核对全部门禁通过，本机没有对应设备，旧报告不能替代 |
 
-设备验收入口已增加 channel 页 Activity 重建回归，并为 API 35 记录/断言真实设备身份与启动状态；三项 mocked-ADB 驱动回归及 Shell 语法检查通过。`:app:assembleReleaseAndroidTest`（含 R8）和 `:library-android:assembleDebugAndroidTest` 通过，相关 release lint、231 项 JVM 测试和 API 检查通过。测试 APK 编译不代替设备执行，设备验收仍未完成。
+设备验收入口已增加 channel 页 Activity 重建回归，并为 API 35 记录/断言真实设备身份与启动状态；三项 mocked-ADB 驱动回归及 Shell 语法检查通过。`:app:assembleReleaseAndroidTest`（含 R8）和 `:library-android:assembleDebugAndroidTest` 通过，相关 release lint、231 项 JVM 测试和 API 检查通过。测试 APK 编译不代替设备执行，设备验收以 PR 最终提交对应的运行报告为准。
 
-1.0.7 Android 公开快照的受支持描述符保留；raw JVM 比较仍记录 1 处 internal `createFlowBusConfig$library_android_release` 移除，这是已发布 1.1.0 相对 1.0.7 的既有差异。保留该报告，不将静态符号检查描述为完整 ABI 认证。发布任务图 dry-run 与部署名称检查通过，未执行远程操作。
+1.0.7 Android 公开快照的受支持描述符保留；raw JVM 比较仍记录 1 处 internal `createFlowBusConfig$library_android_release` 移除，这是已发布 1.1.0 相对 1.0.7 的既有差异。保留该报告，不将静态符号检查描述为完整 ABI 认证。发布任务图 dry-run 与部署名称检查通过，已创建候选草稿 PR；未上传或发布 Maven Central 制品。
 
 性能见[完整报告](../benchmarks/jvm/results/current/report.md)和[分析与限制](../benchmarks/jvm/results/current/analysis.md)。候选普通无订阅发送吞吐约为 1.1.0 的 98.7%，sticky 发布约 99.8%，误差区间重叠；未确认默认稳定发送路径出现超出误差的约 10% 回退。首次注册吞吐约为基线的 85.5%，分配从 888 增至 1000 B/op，明确保留这一代价。原生 SharedFlow 在等价负载中开销更低；不宣称跨框架或 Android 性能优势。
 
