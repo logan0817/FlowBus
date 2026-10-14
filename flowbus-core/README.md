@@ -402,6 +402,10 @@ removeEvent/removeSticky/clearSticky 不解除配置和类型绑定。完整 sco
 
 从 EventBus / LiveEventBus 迁移时，首先确定来源 bus/owner 和稳定 key，再确定普通或 sticky。post 只进入普通流，postSticky 只进入 sticky 流，同名不合并。普通无人订阅不会留存；注册返回 Job 不等于订阅就绪；sticky 的生命周期重启可再次重放，consume 只清除 replay，不撤回实时在途数据。慢订阅者使用 SUSPEND + emit 等待缓冲，或 DROP_OLDEST 丢弃旧通知；两者都不提供 ACK 或业务完成保证。
 
+同一 key 的普通/sticky 对照：两个收集器均已活跃，依次执行 `bus.post(key, 1)` 与 `bus.postSticky(key, 2)`。普通收集器得到 `[1]`，sticky 收集器得到 `[2]`；之后新建的普通订阅没有历史值，新建的 sticky 订阅先得到 `2`。`consumeStickyLatest(key)` 返回 `2` 并清空 replay，但两个原收集器仍保持活跃。可运行验证见 [FlowBusDeliveryContractTest](src/test/java/com/logan/flowbus/core/FlowBusDeliveryContractTest.kt)。
+
+慢订阅者对照：将普通通道容量设为 1、策略设为 DROP_OLDEST，收集器收到 `1` 后暂停回调，再发送 `2`、`3`。两次发送都可能返回 accepted；恢复回调后实际得到 `[1, 3]`，`2` 已被挤掉。若另一通道配置为零容量 SUSPEND，活跃慢收集器暂停回调时 `post` 返回 false，`emit` 等待其继续收集；这仍不表示业务处理完成。可运行验证见 [FlowBusChannelConfigTest](src/test/java/com/logan/flowbus/core/FlowBusChannelConfigTest.kt)。
+
 没有自动继承分发。需要 sealed 父类型时，两端使用相同 `EventKey<Parent>`，例如 `val key = eventKey<UiEvent>("ui.event")`，再用 `bus.post(key, ChildEvent(...))` 与 `bus.flow(key)`；不要按子类默认 key 发送、按父类默认 key 订阅。完整泛型类型不作运行时验证。
 
 总线收集入口遵循来源的 errorHandler（默认 Rethrow）；通用 Flow 收集直接传播错误。协作取消不会作为普通回调错误处理，也不会撤销已产生的副作用。
