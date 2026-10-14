@@ -234,6 +234,9 @@ class ConsumerActivity : Activity() {
 
     private suspend fun verifyChannelConfiguration() = coroutineScope {
         val owner = VerificationOwner()
+        // LifecycleRegistry 不允许从 INITIALIZED 直接退到 DESTROYED；该 owner
+        // 只用于显式来源配置，进入 CREATED 后再由 finally 完成统一清理。
+        owner.registry.currentState = Lifecycle.State.CREATED
         val channel = eventChannel<Int>("consumer.runtime.config")
         val config = FlowBusChannelConfig(
             normalBufferCapacity = 0,
