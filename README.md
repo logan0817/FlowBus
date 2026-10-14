@@ -168,6 +168,19 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 6. `consumeStickyLatestEvent(...)` 只读取并清空当前 sticky replay，不会阻止其他线程后续写入新的 sticky 值。
 7. 日志里的 `eventName`、`scopeName` 不要包含手机号、token、订单号、用户 ID 等敏感信息。
 
+
+## 1.2.0 候选：按通道配置
+
+1.2.0 当前为本地候选，尚未发布到 Maven Central。上面的 1.1.0 安装示例仍用于正式版本。体验本节 API 时，先从仓库根目录将候选发布到隔离目录：
+
+```bash
+./gradlew publishToMavenLocal "-Dmaven.repo.local=$PWD/build/candidate-maven"
+```
+
+消费者将该目录作为 `maven { url = uri("/absolute/path/to/FlowBus/build/candidate-maven") }` 仓库，并选择 `io.github.logan0817:flowbus-core:1.2.0`（Android 使用 `io.github.logan0817:flowbus:1.2.0`）。不要把本地候选的成功构建当作正式发布或设备验收通过。实施状态见[1.2.0 发布说明](docs/release-notes-1.2.0.md)。
+
+详见 [core 通道配置](flowbus-core/README.md#120-候选按通道配置)、[Android owner 配置](library-android/README.md#android-owner-配置)和 [JVM 性能基准](benchmarks/jvm/README.md)。
+
 ## 1.1.0 接入能力
 
 1.1.0 新增挂起回调和显式实例的 Android 收集入口，旧 API 保留。下面入口从 1.1.0 开始提供，基础依赖和 minSdk 目标保持不变。
@@ -223,6 +236,7 @@ Compose 提供[独立消费者示例](compatibility/compose-consumer/README.md)�
 6. 英文文档：[`README_EN.md`](./README_EN.md)
 7. 1.1.0 范围、兼容性评估与后续扩展条件：[`docs/next-version-plan.md`](./docs/next-version-plan.md)
 8. [1.0.7 core 二进制消费者回归](compatibility/core-binary-consumer/README.md)：相同旧消费者字节码在原版和候选 JAR 上分别通过 Java 8 运行，另核对旧 JVM 成员描述符；范围不等于完整 ABI 认证。
+9. [下一版本实现方案（建议 1.2.0）](docs/implementation-plan-1.2.0.md)：通道级配置、投递契约、性能基线和验收安排；尚未实施。
 
 ## 仓库结构
 

@@ -4,6 +4,8 @@
 
 1.1.0 was published to Maven Central on 2026-10-12. This document records scope, evidence, and conditions for future extensions. See the [release checklist](release-checklist.md) for gates and results, and module READMEs for usage.
 
+See the [next-version implementation proposal (suggested 1.2.0, Chinese)](../implementation-plan-1.2.0.md) for proposed scope and implementation steps. It is not implemented yet; this document retains the 1.1.0 scope and verification history.
+
 ## Release scope
 
 | Area | Decision |

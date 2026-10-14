@@ -430,6 +430,17 @@ val prepareMavenLocalCoreConsumer = tasks.register("prepareMavenLocalCoreConsume
     }
 }
 
+// 原版 Android fixture 的编译输入独立于候选消费者的运行图。
+val legacyAndroidArtifacts = configurations.create("legacyAndroidArtifacts") {
+    isCanBeResolved = true
+    isCanBeConsumed = false
+    isTransitive = false
+}
+dependencies {
+    add(legacyAndroidArtifacts.name, "$artifactGroup:flowbus:1.1.0@aar")
+    add(legacyAndroidArtifacts.name, "$artifactGroup:flowbus-core:1.1.0")
+}
+
 val prepareMavenLocalConsumer = tasks.register("prepareMavenLocalConsumer") {
     group = "verification"
     description = "Generate a small Android consumer project that depends on the Maven local flowbus coordinate."
@@ -440,6 +451,7 @@ val prepareMavenLocalConsumer = tasks.register("prepareMavenLocalConsumer") {
     inputs.property("agp", libsCatalog.version("agp"))
     inputs.property("kotlin", consumerKotlinVersion)
     inputs.file(rootProject.file("compatibility/android-consumer/app/src/main/java/com/logan/flowbus/consumer/ConsumerActivity.kt"))
+    inputs.dir(rootProject.file("compatibility/android-consumer/legacy/src"))
     trackConsumerAndroidBaseline(consumerAndroidCompileSdk)
     outputs.dir(consumerDir)
     doLast {
@@ -469,13 +481,62 @@ val prepareMavenLocalConsumer = tasks.register("prepareMavenLocalConsumer") {
             }
 
             rootProject.name = "FlowBusMavenLocalConsumer"
-            include(":app")
+            include(":app", ":legacy")
             """.trimIndent()
         )
         root.resolve("build.gradle.kts").writeText("")
         root.resolve("gradle.properties").writeText(
             """
             android.useAndroidX=true
+            """.trimIndent()
+        )
+        val legacy = root.resolve("legacy")
+        legacy.resolve("baseline").mkdirs()
+        legacyAndroidArtifacts.files.forEach { artifact ->
+            val expected = if (artifact.extension == "aar")
+                "bc7eb2750832da36f49f6be797ea76e922b864093b8ff0d3513b41a3f3450b6a"
+            else "ffafa4c77ed1e7b8183f53de26a14904b37a5d6958b49fa6930d2273173fcb9f"
+            val digest = java.security.MessageDigest.getInstance("SHA-256").digest(artifact.readBytes())
+                .joinToString("") { "%02x".format(it.toInt() and 255) }
+            check(digest == expected) { "Unexpected legacy compile artifact: ${artifact.name}" }
+            if (artifact.extension == "aar") ZipFile(artifact).use { zip ->
+                legacy.resolve("baseline/android.jar").writeBytes(zip.getInputStream(zip.getEntry("classes.jar")).readBytes())
+            } else artifact.copyTo(legacy.resolve("baseline/core.jar"), overwrite = true)
+        }
+        rootProject.file("compatibility/android-consumer/legacy/src").copyRecursively(legacy.resolve("src"), overwrite = true)
+        legacy.resolve("src/main/AndroidManifest.xml").writeText("<manifest />")
+        legacy.resolve("build.gradle.kts").writeText(
+            """
+            plugins {
+                id("com.android.library") version "${libsCatalog.version("agp")}"
+                kotlin("android") version "$consumerKotlinVersion"
+            }
+            android {
+                namespace = "com.logan.flowbus.consumer.legacy"
+                compileSdk = $consumerAndroidCompileSdk
+                defaultConfig { minSdk = 21 }
+                compileOptions {
+                    sourceCompatibility = JavaVersion.VERSION_1_8
+                    targetCompatibility = JavaVersion.VERSION_1_8
+                }
+                kotlinOptions { jvmTarget = "1.8" }
+            }
+            dependencies {
+                compileOnly(files("baseline/core.jar", "baseline/android.jar"))
+                compileOnly("androidx.lifecycle:lifecycle-runtime-ktx:${libsCatalog.version("lifecycle_version")}")
+                compileOnly("androidx.lifecycle:lifecycle-viewmodel-ktx:${libsCatalog.version("lifecycle_version")}")
+                testImplementation("$artifactGroup:flowbus:$artifactVersion")
+                testImplementation("junit:junit:4.13.2")
+                testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:${libsCatalog.version("kotlinx_coroutines")}")
+            }
+            tasks.withType<Test>().configureEach {
+                doFirst { layout.buildDirectory.file("reports/binary-android-compatibility.txt").get().asFile.delete() }
+                classpath = classpath.filter { !it.canonicalPath.startsWith(file("baseline").canonicalPath + File.separator) }
+                systemProperty("flowbus.candidate.core", "${mavenLocalRoot.resolve("flowbus-core/$artifactVersion/flowbus-core-$artifactVersion.jar").invariantSeparatorsPath}")
+                systemProperty("flowbus.candidate.android", "${mavenLocalRoot.resolve("flowbus/$artifactVersion/flowbus-$artifactVersion.aar").invariantSeparatorsPath}")
+                systemProperty("flowbus.legacy.classes", layout.buildDirectory.dir("tmp/kotlin-classes/release").get().asFile.absolutePath)
+                systemProperty("flowbus.legacy.report", layout.buildDirectory.file("reports/binary-android-compatibility.txt").get().asFile.absolutePath)
+            }
             """.trimIndent()
         )
         val appDir = root.resolve("app")
@@ -523,6 +584,7 @@ val prepareMavenLocalConsumer = tasks.register("prepareMavenLocalConsumer") {
 
             dependencies {
                 implementation("$artifactGroup:flowbus:$artifactVersion")
+                implementation(project(":legacy"))
             }
             """.trimIndent()
         )
@@ -570,7 +632,7 @@ tasks.register<GradleBuild>("verifyMavenLocalConsumer") {
     description = "Build a minified Android consumer from Maven local coordinates."
     dependsOn("publishToMavenLocal", prepareMavenLocalConsumer)
     dir = layout.buildDirectory.dir("maven-local-consumer").get().asFile
-    tasks = listOf(":app:assembleRelease")
+    tasks = listOf(":legacy:testReleaseUnitTest", ":app:assembleRelease")
 }
 
 tasks.register<GradleBuild>("verifyMavenLocalCoreConsumer") {
@@ -585,13 +647,25 @@ tasks.register<GradleBuild>("verifyMavenLocalCoreConsumer") {
     ).mapNotNull { name -> providers.gradleProperty(name).orNull?.let { name to it } }.toMap()
 }
 
+val binaryConsumerBaselinesFile = rootProject.file("compatibility/core-binary-consumer/baselines.json")
+val binaryConsumerBaselines = JsonSlurper().parse(binaryConsumerBaselinesFile) as Map<*, *>
+val binaryConsumerBaselineVersion = providers.gradleProperty("flowbus.consumer.baselineVersion").orElse("1.0.7").get()
+require(binaryConsumerBaselines.containsKey(binaryConsumerBaselineVersion)) { "Unsupported binary consumer baseline: $binaryConsumerBaselineVersion" }
+val binaryConsumerDirectory = layout.buildDirectory.dir(
+    if (binaryConsumerBaselineVersion == "1.0.7") "maven-local-binary-core-consumer"
+    else "maven-local-binary-core-consumer-$binaryConsumerBaselineVersion"
+)
+
 val prepareMavenLocalBinaryCoreConsumer = tasks.register("prepareMavenLocalBinaryCoreConsumer") {
     group = "verification"
-    description = "Generate a consumer compiled only against the published 1.0.7 core JAR."
-    val consumerDir = layout.buildDirectory.dir("maven-local-binary-core-consumer")
+    description = "Generate a consumer compiled only against the published $binaryConsumerBaselineVersion core JAR."
+    val consumerDir = binaryConsumerDirectory
     val templateDir = rootProject.file("compatibility/core-binary-consumer")
     val candidateJar = mavenLocalRoot.resolve("flowbus-core/$artifactVersion/flowbus-core-$artifactVersion.jar")
     inputs.dir(templateDir.resolve("src"))
+    inputs.dir(templateDir.resolve("src-1.1.0"))
+    inputs.file(binaryConsumerBaselinesFile)
+    inputs.property("baselineVersion", binaryConsumerBaselineVersion)
     inputs.file(templateDir.resolve("build.gradle.kts.template"))
     inputs.property("artifactGroup", artifactGroup)
     inputs.property("candidateJar", candidateJar.absolutePath)
@@ -613,11 +687,22 @@ val prepareMavenLocalBinaryCoreConsumer = tasks.register("prepareMavenLocalBinar
             """.trimIndent()
         )
         templateDir.resolve("src").copyRecursively(root.resolve("src"), overwrite = true)
+        if (binaryConsumerBaselineVersion == "1.1.0") {
+            templateDir.resolve("src-1.1.0").copyRecursively(root.resolve("src"), overwrite = true)
+        }
+        val consumerSource = root.resolve("src/main/kotlin/com/logan/flowbus/binaryconsumer/BinaryCoreConsumer.kt")
+        consumerSource.writeText(consumerSource.readText().replace(
+            "// @VERSION_SPECIFIC_CHECK@",
+            if (binaryConsumerBaselineVersion == "1.1.0") "BinaryCoreConsumer110.verify()" else ""
+        ))
+        val baselineMetadata = checkNotNull(binaryConsumerBaselines[binaryConsumerBaselineVersion]) as Map<*, *>
         val replacements = mapOf(
             "@GROUP@" to artifactGroup,
             "@KOTLIN@" to consumerKotlinVersion,
             "@STDLIB@" to libsCatalog.version("kotlin"),
             "@COROUTINES@" to libsCatalog.version("kotlinx_coroutines"),
+            "@BASELINE@" to binaryConsumerBaselineVersion,
+            "@BASELINE_SHA256@" to checkNotNull(baselineMetadata["coreSha256"]).toString(),
             "@CANDIDATE@" to candidateJar.absolutePath.replace('\\', '/')
         )
         val script = replacements.entries.fold(templateDir.resolve("build.gradle.kts.template").readText()) {
@@ -629,9 +714,9 @@ val prepareMavenLocalBinaryCoreConsumer = tasks.register("prepareMavenLocalBinar
 
 tasks.register<GradleBuild>("verifyMavenLocalBinaryCoreConsumer") {
     group = "verification"
-    description = "Run unchanged 1.0.7 Kotlin/Java consumer bytecode on published and candidate core JARs."
+    description = "Run unchanged $binaryConsumerBaselineVersion Kotlin/Java consumer bytecode on published and candidate core JARs."
     dependsOn("publishToMavenLocal", prepareMavenLocalBinaryCoreConsumer)
-    dir = layout.buildDirectory.dir("maven-local-binary-core-consumer").get().asFile
+    dir = binaryConsumerDirectory.get().asFile
     tasks = listOf("verifyBinaryCompatibility")
     startParameter.projectProperties = startParameter.projectProperties + listOf(
         "flowbus.consumer.java", "flowbus.consumer.expectedJava"

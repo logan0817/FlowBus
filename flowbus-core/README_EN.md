@@ -360,6 +360,70 @@ if (!result.accepted) {
 
 It does not mean subscribers already handled the event. `DROP_OLDEST` / `DROP_LATEST` are not reliable-queue policies.
 
+
+## 1.2.0 candidate: channel configuration
+
+1.2.0 is a local candidate and is not published to Maven Central. The 1.1.0 installation above remains the released version. To try the new APIs, publish from the repository root to an isolated repository:
+
+```bash
+./gradlew publishToMavenLocal "-Dmaven.repo.local=$PWD/build/candidate-maven"
+```
+
+Add `maven { url = uri("/absolute/path/to/FlowBus/build/candidate-maven") }` to the consumer repositories and use `io.github.logan0817:flowbus-core:1.2.0` (Android: `io.github.logan0817:flowbus:1.2.0`). Local compilation does not establish publication or device acceptance. See the [1.2.0 notes](../docs/en/release-notes-1.2.0.md).
+
+
+### Core, scopes, and explicit instances
+
+```kotlin
+import com.logan.flowbus.core.FlowBus
+import com.logan.flowbus.core.FlowBusChannelConfig
+import com.logan.flowbus.core.eventKey
+import kotlinx.coroutines.channels.BufferOverflow
+
+val bus = FlowBus()
+val refresh = eventKey<String>("home.refresh")
+val progress = eventKey<Int>("work.progress")
+bus.configureChannel(refresh, FlowBusChannelConfig(normalBufferCapacity = 1))
+bus.configureChannel(progress, FlowBusChannelConfig(
+    normalBufferCapacity = 16,
+    normalOverflowPolicy = BufferOverflow.SUSPEND
+))
+// Send from the business flow after the actual subscription becomes active.
+bus.post(refresh, "refresh")
+bus.emit(progress, 10) // In a suspending function; backpressure is not processing completion.
+```
+
+FlowBus, shared ScopedFlowBus, and owned FlowBusScope expose configureChannel(key, config). Convert a core EventChannel with asEventKey(); use DefaultFlowBus.raw() for the default bus.
+
+The nullable fields normalBufferCapacity, normalOverflowPolicy, stickyReplay, stickyExtraBufferCapacity, and stickyOverflowPolicy inherit bus defaults. Both overflow fields inherit FlowBusConfig.overflowPolicy. Default normal capacity 64, DROP_OLDEST, and sticky replay 1 remain. Capacities must be nonnegative, zero normal capacity or zero total sticky capacity requires SUSPEND, and the sticky capacity sum must fit Int.
+
+Identity is eventName within the current store; normal and sticky policies bind together. Configure before the first post/emit/flow, including sticky operations. Otherwise first use binds defaults. The same type and effective policy are idempotent. A type conflict throws IllegalArgumentException; a policy conflict throws IllegalStateException. Failure leaves no partial registration, flow, or send counters. First configuration racing first use follows the winning atomic binding.
+
+removeEvent/removeSticky/clearSticky retain the binding. Complete scope cleanup releases overrides; a reopened same-name scope requires configuration again. Root overrides live with the bus. Use a new instance and explicitly switch subscriptions to change an already bound policy. inspect().config describes bus defaults; PostResult.overflowPolicy describes the actual normal or sticky policy. Acceptance counters cannot establish delivery rate.
+
+### Migration and resource ownership
+
+When migrating from EventBus / LiveEventBus, choose the source and stable key first, then normal versus sticky. post reaches only normal collectors; postSticky reaches only sticky collectors. Normal events with no subscribers are lost, and a returned registration Job is not a readiness barrier. Sticky may replay after lifecycle restart. consume clears replay but cannot withdraw live in-flight events. SUSPEND + emit waits for active slow subscribers; DROP_OLDEST discards older notifications. Neither acknowledges business completion.
+
+There is no automatic inheritance dispatch. For sealed parents, send and collect through the same EventKey<Parent>, such as eventKey<UiEvent>("ui.event"), bus.post(key, ChildEvent(...)), and bus.flow(key). Full generic types are not checked at runtime. Bus collectors use their source error handler (default Rethrow); generic Flow collection propagates errors directly. Cooperative cancellation is not a normal callback failure and does not roll back side effects.
+
+Cancelling a subscriber does not delete channels; removing a channel does not cancel old Flow references. Avoid unbounded global per-user/task names. Bind task scopes to a Job and verify cleanup via inspector, rather than GC:
+
+```kotlin
+import kotlinx.coroutines.Job
+
+val taskJob = Job()
+val source = bus.openScope("sync-task", closeWhen = taskJob)
+source.configureChannel(progress, FlowBusChannelConfig(normalBufferCapacity = 1))
+source.postSticky(progress, 10)
+check(bus.inspect().scopes.any { it.scopeName == "sync-task" })
+taskJob.cancel()
+source.closeSuspending() // In a suspending function; cancel collection Jobs separately.
+check(bus.inspect().scopes.none { it.scopeName == "sync-task" })
+```
+
+Prefer the default bus for simple global notifications, stable channels with explicit owners for owner-local events, FlowBus + EventKey for injected instances, openScope(closeWhen = job) for tasks, generic Flow collectors for composed flows, and StateFlow for recoverable state. There is no automatic zero-subscriber cleanup.
+
 ## 1.1.0 suspend collection
 
 1.1.0 adds separately named suspend-callback APIs and retains existing `collect` / `collectSticky` APIs. These APIs are available starting with 1.1.0 without adding dependencies or raising base toolchain requirements.

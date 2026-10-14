@@ -67,6 +67,11 @@ class FlowBusScope internal constructor(
     val scopeName: String
         get() = busScopeName
 
+    /** 在当前句柄首次使用通道前配置策略；参与在途操作保护，关闭中或已关闭时拒绝。 */
+    fun <T : Any> configureChannel(key: EventKey<T>, config: FlowBusChannelConfig) {
+        withOpenOperation { operationBus -> operationBus.configureChannel(key, config) }
+    }
+
     /** 尝试向当前 scope 发送普通事件。 */
     fun <T : Any> post(key: EventKey<T>, value: T): Boolean {
         return withOpenOperation { operationBus ->

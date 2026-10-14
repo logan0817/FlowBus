@@ -494,6 +494,47 @@ toastChannel.post("保存成功")
 viewLifecycleOwner.onEvent(toastChannel) { showToast(it) }
 ```
 
+
+## 1.2.0 候选：按通道配置
+
+1.2.0 当前为本地候选，尚未发布到 Maven Central。上面的 1.1.0 安装示例仍用于正式版本。体验本节 API 时，先从仓库根目录将候选发布到隔离目录：
+
+```bash
+./gradlew publishToMavenLocal "-Dmaven.repo.local=$PWD/build/candidate-maven"
+```
+
+消费者将该目录作为 `maven { url = uri("/absolute/path/to/FlowBus/build/candidate-maven") }` 仓库，并选择 `io.github.logan0817:flowbus-core:1.2.0`（Android 使用 `io.github.logan0817:flowbus:1.2.0`）。不要把本地候选的成功构建当作正式发布或设备验收通过。实施状态见[1.2.0 发布说明](../docs/release-notes-1.2.0.md)。
+
+
+### Android owner 配置
+
+```kotlin
+import com.logan.flowbus.configureEventChannel
+import com.logan.flowbus.eventChannel
+import com.logan.flowbus.onEvent
+import com.logan.flowbus.emitTo
+import com.logan.flowbus.core.FlowBusChannelConfig
+import kotlinx.coroutines.channels.BufferOverflow
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+
+val progressChannel = eventChannel<Int>("work.progress")
+// Activity.onCreate 中、首次使用来源之前；owner 的获取必须在主线程。
+configureEventChannel(progressChannel, FlowBusChannelConfig(
+    normalBufferCapacity = 16,
+    normalOverflowPolicy = BufferOverflow.SUSPEND
+), owner = this)
+onEvent(channel = progressChannel, from = this) { progress -> renderProgress(progress) }
+// 后续用户操作、订阅已活跃时发送；renderProgress 由业务提供。
+lifecycleScope.launch { progressChannel.emitTo(this@MyActivity, 10) }
+```
+
+省略 owner 配置全局来源；指定 owner 则配置该 owner 已有的 FlowEventBus。发送与订阅必须使用相同 owner。Activity 重建保留 ViewModelStore 时重复同有效配置幂等，store 真正清理后重新配置。默认 STARTED 阈值、取消和 sticky 重放行为保持不变；SUSPEND 不为 STOP 期间的普通事件离线保存。
+
+显式 FlowEventBus 调用其 configureChannel(key, config)；注入的 core FlowBus/ScopedFlowBus/FlowBusScope 调用实例方法，随后使用 collectEventFrom 或 collectEventFromSuspending。接收方销毁只取消订阅，不关闭注入来源。容量继承、首次绑定/冲突、单通道删除、scope 重建及 inspector 边界详见 [core 配置与迁移说明](../flowbus-core/README.md#120-候选按通道配置)。
+
+从 EventBus/LiveEventBus 迁移时，普通与 sticky 是独立流；显式选择 isSticky，不按同名合并。注册返回 Job 不保证就绪；父类型事件需相同 EventKey<Parent> 或稳定父类型 channel。全局通知优先 postEvent/onEvent，owner 内通信优先稳定 channel + 明确 owner，注入来源优先 collectEventFrom，已有 Flow 组合用 collectEvent，可恢复状态用 StateFlow。默认 Rethrow 仅由总线收集入口应用；通用 Flow 收集直接传播错误。
+
 ## 1.1.0 挂起回调与实例接入
 
 下面 API 从 1.1.0 开始提供，旧入口保留。Kotlin、Coroutines、Lifecycle、minSdk 等基础要求不因这些入口提高，不新增 Compose、Hilt 或 Koin 依赖。

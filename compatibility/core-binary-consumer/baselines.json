@@ -1,0 +1,9 @@
+{
+  "1.0.7": {
+    "coreSha256": "25479d17a052729419914ce650a5dcb901628452b5b5c8d35eab3bc8075bae8d"
+  },
+  "1.1.0": {
+    "coreSha256": "ffafa4c77ed1e7b8183f53de26a14904b37a5d6958b49fa6930d2273173fcb9f",
+    "androidSha256": "bc7eb2750832da36f49f6be797ea76e922b864093b8ff0d3513b41a3f3450b6a"
+  }
+}

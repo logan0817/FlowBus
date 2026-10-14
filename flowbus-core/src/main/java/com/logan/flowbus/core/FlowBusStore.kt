@@ -15,9 +15,15 @@ internal class FlowBusStore(
 ) {
     private val normalEventFlows = ConcurrentHashMap<String, MutableSharedFlow<Any>>()
     private val stickyEventFlows = ConcurrentHashMap<String, StickyEventFlow>()
-    private val keyTypes = ConcurrentHashMap<String, KClass<out Any>>()
+    private val channelBindings = ConcurrentHashMap<String, ChannelBinding>()
+    private val registrationLock = Any()
+    private val defaultChannelConfig = FlowBusChannelConfig().resolve(config)
     private val eventMetrics = ConcurrentHashMap<EventFlowIdentity, FlowBusMetrics>()
     private val stickyReplayLock = Any()
+
+    fun <T : Any> configureChannel(key: EventKey<T>, channelConfig: FlowBusChannelConfig) {
+        bindChannel(key, channelConfig.resolve(config))
+    }
 
     fun <T : Any> post(key: EventKey<T>, value: T, isSticky: Boolean): Boolean {
         return postResult(key = key, value = value, isSticky = isSticky, scopeName = null).accepted
@@ -29,19 +35,20 @@ internal class FlowBusStore(
         isSticky: Boolean,
         scopeName: String?
     ): FlowBusPostResult {
-        registerKeyType(key)
+        val channelConfig = bindChannel(key)
+        val overflowPolicy = if (isSticky) channelConfig.stickyOverflowPolicy else channelConfig.normalOverflowPolicy
         var stickyReplayCount = 0
         val subscriptionCount: Int
         val accepted = if (isSticky) {
             synchronized(stickyReplayLock) {
-                val flow = getStickyEventFlow(key.name)
+                val flow = getStickyEventFlow(key.name, channelConfig)
                 subscriptionCount = flow.subscriptionCount
                 val accepted = flow.tryEmit(value)
                 stickyReplayCount = flow.replayCache.size
                 accepted
             }
         } else {
-            val flow = getNormalEventFlow(key.name)
+            val flow = getNormalEventFlow(key.name, channelConfig)
             subscriptionCount = flow.subscriptionCount.value
             flow.tryEmit(value)
         }
@@ -50,10 +57,10 @@ internal class FlowBusStore(
             scopeName = scopeName,
             isSticky = isSticky,
             accepted = accepted,
-            outcome = resolvePostOutcome(accepted = accepted, subscriptionCount = subscriptionCount),
+            outcome = resolvePostOutcome(accepted = accepted, subscriptionCount = subscriptionCount, overflowPolicy = overflowPolicy),
             subscriptionCount = subscriptionCount,
             stickyReplayCount = stickyReplayCount,
-            overflowPolicy = config.overflowPolicy
+            overflowPolicy = overflowPolicy
         )
         recordResult(key.name, isSticky, result)
         return result
@@ -65,13 +72,13 @@ internal class FlowBusStore(
         isSticky: Boolean,
         scopeName: String? = null
     ) {
-        registerKeyType(key)
+        val channelConfig = bindChannel(key)
         if (isSticky) {
-            emitSticky(key = key, value = value, scopeName = scopeName)
+            emitSticky(key = key, value = value, scopeName = scopeName, channelConfig = channelConfig)
             return
         }
 
-        val flow = getNormalEventFlow(key.name)
+        val flow = getNormalEventFlow(key.name, channelConfig)
         val subscriptionCount = flow.subscriptionCount.value
         flow.emit(value)
         val result = FlowBusPostResult(
@@ -79,10 +86,10 @@ internal class FlowBusStore(
             scopeName = scopeName,
             isSticky = false,
             accepted = true,
-            outcome = resolvePostOutcome(accepted = true, subscriptionCount = subscriptionCount),
+            outcome = resolvePostOutcome(accepted = true, subscriptionCount = subscriptionCount, overflowPolicy = channelConfig.normalOverflowPolicy),
             subscriptionCount = subscriptionCount,
             stickyReplayCount = 0,
-            overflowPolicy = config.overflowPolicy
+            overflowPolicy = channelConfig.normalOverflowPolicy
         )
         recordResult(key.name, isSticky = false, result = result)
     }
@@ -90,10 +97,11 @@ internal class FlowBusStore(
     private suspend fun <T : Any> emitSticky(
         key: EventKey<T>,
         value: T,
-        scopeName: String?
+        scopeName: String?,
+        channelConfig: ResolvedFlowBusChannelConfig
     ) {
-        if (!hasStickyReplayStorage()) {
-            val flow = getStickyEventFlow(key.name)
+        if (channelConfig.stickyReplay == 0 && channelConfig.stickyExtraBufferCapacity == 0) {
+            val flow = getStickyEventFlow(key.name, channelConfig)
             val subscriptionCount = flow.subscriptionCount
             flow.emit(value)
             val result = FlowBusPostResult(
@@ -101,17 +109,17 @@ internal class FlowBusStore(
                 scopeName = scopeName,
                 isSticky = true,
                 accepted = true,
-                outcome = resolvePostOutcome(accepted = true, subscriptionCount = subscriptionCount),
+                outcome = resolvePostOutcome(accepted = true, subscriptionCount = subscriptionCount, overflowPolicy = channelConfig.stickyOverflowPolicy),
                 subscriptionCount = subscriptionCount,
                 stickyReplayCount = 0,
-                overflowPolicy = config.overflowPolicy
+                overflowPolicy = channelConfig.stickyOverflowPolicy
             )
             recordResult(key.name, isSticky = true, result = result)
             return
         }
 
         val flow = synchronized(stickyReplayLock) {
-            getStickyEventFlow(key.name)
+            getStickyEventFlow(key.name, channelConfig)
         }
         val subscriptionCount = flow.subscriptionCount
         flow.emit(value)
@@ -123,16 +131,12 @@ internal class FlowBusStore(
             scopeName = scopeName,
             isSticky = true,
             accepted = true,
-            outcome = resolvePostOutcome(accepted = true, subscriptionCount = subscriptionCount),
+            outcome = resolvePostOutcome(accepted = true, subscriptionCount = subscriptionCount, overflowPolicy = channelConfig.stickyOverflowPolicy),
             subscriptionCount = subscriptionCount,
             stickyReplayCount = stickyReplayCount,
-            overflowPolicy = config.overflowPolicy
+            overflowPolicy = channelConfig.stickyOverflowPolicy
         )
         recordResult(key.name, isSticky = true, result = result)
-    }
-
-    private fun hasStickyReplayStorage(): Boolean {
-        return config.stickyReplay > 0 || config.stickyExtraBufferCapacity > 0
     }
 
     @Deprecated(
@@ -145,34 +149,25 @@ internal class FlowBusStore(
 
     @Suppress("UNCHECKED_CAST")
     fun <T : Any> flow(key: EventKey<T>, isSticky: Boolean): Flow<T> {
-        registerKeyType(key)
+        val channelConfig = bindChannel(key)
         return if (isSticky) {
-            getStickyEventFlow(key.name).asFlow() as Flow<T>
+            getStickyEventFlow(key.name, channelConfig).asFlow() as Flow<T>
         } else {
-            getNormalEventFlow(key.name) as Flow<T>
+            getNormalEventFlow(key.name, channelConfig) as Flow<T>
         }
     }
 
     fun <T : Any> clearSticky(key: EventKey<T>) {
+        if (!prepareCleanupKey(key, stickyEventFlows.containsKey(key.name))) return
         synchronized(stickyReplayLock) {
-            val flow = stickyEventFlows[key.name]
-            if (flow == null) {
-                requireKnownKeyTypeMatches(key)
-                return
-            }
-            registerKeyType(key)
-            flow.resetReplayCache()
+            stickyEventFlows[key.name]?.resetReplayCache()
         }
     }
 
     fun <T : Any> removeSticky(key: EventKey<T>) {
+        if (!prepareCleanupKey(key, stickyEventFlows.containsKey(key.name))) return
         synchronized(stickyReplayLock) {
-            val flow = stickyEventFlows[key.name]
-            if (flow == null) {
-                requireKnownKeyTypeMatches(key)
-                return
-            }
-            registerKeyType(key)
+            val flow = stickyEventFlows[key.name] ?: return
             stickyEventFlows.remove(key.name, flow)
             flow.resetReplayCache()
         }
@@ -184,18 +179,20 @@ internal class FlowBusStore(
             requireKnownKeyTypeMatches(key)
             return
         }
-        registerKeyType(key)
+        bindChannel(key)
         normalEventFlows.remove(key.name, flow)
     }
 
     fun clearAll() {
-        normalEventFlows.clear()
-        synchronized(stickyReplayLock) {
-            stickyEventFlows.values.forEach { it.resetReplayCache() }
-            stickyEventFlows.clear()
+        synchronized(registrationLock) {
+            normalEventFlows.clear()
+            synchronized(stickyReplayLock) {
+                stickyEventFlows.values.forEach { it.resetReplayCache() }
+                stickyEventFlows.clear()
+            }
+            channelBindings.clear()
+            eventMetrics.clear()
         }
-        keyTypes.clear()
-        eventMetrics.clear()
     }
 
     fun hasEventFlow(eventName: String, isSticky: Boolean): Boolean {
@@ -210,13 +207,9 @@ internal class FlowBusStore(
     }
 
     fun <T : Any> consumeStickyLatest(key: EventKey<T>): T? {
+        if (!prepareCleanupKey(key, stickyEventFlows.containsKey(key.name))) return null
         return synchronized(stickyReplayLock) {
-            val flow = stickyEventFlows[key.name]
-            if (flow == null) {
-                requireKnownKeyTypeMatches(key)
-                return@synchronized null
-            }
-            registerKeyType(key)
+            val flow = stickyEventFlows[key.name] ?: return@synchronized null
             val latest = flow.consumeLatestAndReset() ?: return@synchronized null
             @Suppress("UNCHECKED_CAST")
             latest as T
@@ -225,7 +218,7 @@ internal class FlowBusStore(
 
     fun snapshot(): List<FlowBusEventSnapshot> {
         val eventNames = buildSet {
-            addAll(keyTypes.keys)
+            addAll(channelBindings.keys)
             addAll(normalEventFlows.keys)
             addAll(stickyEventFlows.keys)
         }
@@ -239,7 +232,7 @@ internal class FlowBusStore(
                     ?: emptyFlowBusEventMetricsSnapshot()
                 FlowBusEventSnapshot(
                     eventName = eventName,
-                    valueTypeName = keyTypes[eventName]?.qualifiedName,
+                    valueTypeName = channelBindings[eventName]?.valueType?.qualifiedName,
                     hasNormalFlow = normalEventFlows.containsKey(eventName),
                     hasStickyFlow = stickyEventFlows.containsKey(eventName),
                     stickyReplayCount = stickyReplayCount(eventName),
@@ -268,17 +261,49 @@ internal class FlowBusStore(
         eventMetrics.getOrPut(EventFlowIdentity(eventName, isSticky)) { FlowBusMetrics() }.record(result)
     }
 
-    private fun registerKeyType(key: EventKey<*>) {
-        val expectedType = key.valueType ?: return
-        val existingType = keyTypes.putIfAbsent(key.name, expectedType)
-        require(existingType == null || existingType == expectedType) {
-            keyTypeConflictMessage(key.name, existingType, expectedType)
+    private fun bindChannel(
+        key: EventKey<*>,
+        requestedConfig: ResolvedFlowBusChannelConfig? = null
+    ): ResolvedFlowBusChannelConfig {
+        val existing = channelBindings[key.name]
+        if (existing != null && (key.valueType == null || existing.valueType == key.valueType)) {
+            requireSameConfig(key.name, existing.config, requestedConfig)
+            return existing.config
         }
+        return synchronized(registrationLock) {
+            val binding = channelBindings[key.name]
+            val expectedType = key.valueType
+            require(binding?.valueType == null || expectedType == null || binding.valueType == expectedType) {
+                keyTypeConflictMessage(key.name, binding?.valueType, checkNotNull(expectedType))
+            }
+            if (binding != null) requireSameConfig(key.name, binding.config, requestedConfig)
+            val resolved = binding?.config ?: requestedConfig ?: defaultChannelConfig
+            // 类型与策略一起发布；失败不留下半注册。raw key 后续可由带类型的 key 补全。
+            if (binding == null || (binding.valueType == null && expectedType != null)) {
+                channelBindings[key.name] = ChannelBinding(expectedType, resolved)
+            }
+            resolved
+        }
+    }
+
+    private fun requireSameConfig(
+        eventName: String,
+        existing: ResolvedFlowBusChannelConfig,
+        requested: ResolvedFlowBusChannelConfig?
+    ) {
+        check(requested == null || existing == requested) {
+            "Event key '$eventName' already has a bound configuration. Configure it before first use."
+        }
+    }
+
+    private fun prepareCleanupKey(key: EventKey<*>, hasFlow: Boolean): Boolean {
+        if (hasFlow) bindChannel(key) else requireKnownKeyTypeMatches(key)
+        return hasFlow
     }
 
     private fun requireKnownKeyTypeMatches(key: EventKey<*>) {
         val expectedType = key.valueType ?: return
-        val existingType = keyTypes[key.name] ?: return
+        val existingType = channelBindings[key.name]?.valueType ?: return
         require(existingType == expectedType) {
             keyTypeConflictMessage(key.name, existingType, expectedType)
         }
@@ -293,38 +318,53 @@ internal class FlowBusStore(
             "cannot reuse it with ${expectedType.qualifiedName}."
     }
 
-    private fun getNormalEventFlow(eventName: String): MutableSharedFlow<Any> {
+    private fun getNormalEventFlow(
+        eventName: String,
+        channelConfig: ResolvedFlowBusChannelConfig
+    ): MutableSharedFlow<Any> {
         // ConcurrentMap.getOrPut 用 putIfAbsent 保证最终只返回获胜的实例，兼容 Android API 21。
         return normalEventFlows.getOrPut(eventName) {
             MutableSharedFlow(
                 replay = 0,
-                extraBufferCapacity = config.normalBufferCapacity,
-                onBufferOverflow = config.overflowPolicy
+                extraBufferCapacity = channelConfig.normalBufferCapacity,
+                onBufferOverflow = channelConfig.normalOverflowPolicy
             )
         }
     }
 
-    private fun getStickyEventFlow(eventName: String): StickyEventFlow {
+    private fun getStickyEventFlow(
+        eventName: String,
+        channelConfig: ResolvedFlowBusChannelConfig
+    ): StickyEventFlow {
         return stickyEventFlows.getOrPut(eventName) {
             StickyEventFlow(
-                replay = config.stickyReplay,
-                extraBufferCapacity = config.stickyExtraBufferCapacity,
-                onBufferOverflow = config.overflowPolicy
+                replay = channelConfig.stickyReplay,
+                extraBufferCapacity = channelConfig.stickyExtraBufferCapacity,
+                onBufferOverflow = channelConfig.stickyOverflowPolicy
             )
         }
     }
 
-    private fun resolvePostOutcome(accepted: Boolean, subscriptionCount: Int): FlowBusPostOutcome {
+    private fun resolvePostOutcome(
+        accepted: Boolean,
+        subscriptionCount: Int,
+        overflowPolicy: BufferOverflow
+    ): FlowBusPostOutcome {
         if (!accepted) return FlowBusPostOutcome.RejectedByBuffer
         if (subscriptionCount == 0) return FlowBusPostOutcome.AcceptedWithoutActiveSubscriber
-        if (config.overflowPolicy == BufferOverflow.DROP_OLDEST) {
+        if (overflowPolicy == BufferOverflow.DROP_OLDEST) {
             return FlowBusPostOutcome.AcceptedWithDropOldestPolicy
         }
-        if (config.overflowPolicy == BufferOverflow.DROP_LATEST) {
+        if (overflowPolicy == BufferOverflow.DROP_LATEST) {
             return FlowBusPostOutcome.AcceptedWithDropLatestPolicy
         }
         return FlowBusPostOutcome.Accepted
     }
+
+    private class ChannelBinding(
+        val valueType: KClass<out Any>?,
+        val config: ResolvedFlowBusChannelConfig
+    )
 
     private data class EventFlowIdentity(
         val eventName: String,

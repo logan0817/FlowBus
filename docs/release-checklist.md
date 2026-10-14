@@ -1,6 +1,10 @@
-# 1.1.0 发布清单
+# 1.2.0 候选发布清单
 
 [English](en/release-checklist.md)
+
+当前本地候选：VERSION_NAME=1.2.0、APP_VERSION_NAME=1.2.0、APP_VERSION_CODE=9，尚未发布。最终候选证据记录在 [1.2.0 发布说明](release-notes-1.2.0.md)。API 21/API 35 与远端 CI 仍是必要门禁，历史 1.1.0 成功记录不能替代本次验收。
+
+## 1.1.0 历史发布证据
 
 1.1.0 已于 2026-10-12 发布：VERSION_NAME=1.1.0、APP_VERSION_NAME=1.1.0、APP_VERSION_CODE=8，版本目录同步为 1.1.0。以下清单保留本次门禁与后续版本的维护方式；每次发布必须检查最终候选产物，不能只依据旧批次报告。
 
@@ -13,6 +17,7 @@
 ```bash
 ./gradlew apiCheck :flowbus-core:test :library-android:testDebugUnitTest :app:testDebugUnitTest :library-android:lintRelease :app:lintRelease :app:assembleDebug :app:assembleRelease --warning-mode=all
 ./gradlew verifyMavenLocalArtifacts verifyMavenLocalCoreConsumer verifyMavenLocalBinaryCoreConsumer verifyMavenLocalConsumer verifyMavenLocalComposeConsumer "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8 --warning-mode=all
+./gradlew verifyMavenLocalBinaryCoreConsumer -Pflowbus.consumer.baselineVersion=1.1.0 "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8
 ./gradlew verifyCentralDeploymentName --warning-mode=all
 ./gradlew releaseToMavenCentral --dry-run --warning-mode=all
 git diff --check HEAD -- . ':(exclude)flowbus-core/api/*.api' ':(exclude)library-android/api/*.api'
@@ -23,11 +28,11 @@ Java 参数只选择消费者运行 JVM，构建仍用 JDK 17。需要本机已�
 仓库文档与发布配置作为 JVM 测试的显式输入；修改这些文件后应重新执行门禁，不能复用修改前的通过结果。
 
 - core / Android / app JVM 测试和 release lint 通过，示例 release 必须启用 R8/minify。
-- flowbus-core-1.1.0.jar、flowbus-1.1.0.aar、sources/javadoc、POM 与 module metadata 均存在。
+- flowbus-core-1.2.0.jar、flowbus-1.2.0.aar、sources/javadoc、POM 与 module metadata 均存在。
 - POM/module metadata 的依赖 scope、license、developer、SCM 与版本正确：core 暴露 Coroutines；Android 暴露同版本 core 和 Lifecycle runtime/viewmodel。
 - AAR 包含 classes.jar、proguard.txt；两个坐标均为 Java 8 字节码，不含消费者 fixture、Compose/Navigation 依赖或本地配置。
-- 真实 Maven core 消费者在 JDK 8 运行；旧 core 消费者只用 Central 原版 1.0.7 编译，相同字节码分别运行原版与候选；Android / Compose 消费者经过 release R8。
-- core 与 Android 的已发布 1.0.7 JVM 符号按各消费者 README 核对。保留 raw internal 差异，不把静态符号检查当作完整 ABI 认证。
+- 真实 Maven core 消费者在 JDK 8 运行；旧 core 消费者只用 Central 固定原版 1.0.7 与 1.1.0 分别编译，相同字节码分别运行原版与候选；Android / Compose 消费者经过 release R8。
+- core 与 Android 的已发布 1.0.7 与 1.1.0 JVM 符号按各消费者 README 核对。保留 raw internal 差异，不把静态符号检查当作完整 ABI 认证。
 - remote dry-run 确认统一发布与清理顺序；它不执行 clean，也不代表上传或签名成功。
 
 ## 设备与最低系统门禁
@@ -45,7 +50,7 @@ ANDROID_SERIAL=device-serial ./gradlew :library-android:connectedDebugAndroidTes
 
 1. 库 instrumentation 与示例 release instrumentation 覆盖主链路，示例走 R8/minify。
 2. minSdk 21 必须有 API 21 库层和测试签名的 minified Maven 消费者设备证据；API 24 通过、APK 文件名或 D8 静态检查均不能替代。
-3. [Android 消费者](../compatibility/android-consumer/README.md)四阶段、[Compose](../compatibility/compose-consumer/README.md)九阶段 effect / 八阶段错误取消、[Navigation](../compatibility/navigation-consumer/README.md)七阶段及[实际 NavHost](../compatibility/navhost-consumer/README.md)八阶段按版本分别验收。driver 必须同时匹配本次 runId 日志、同包 UI 和全部阶段。
+3. [Android 消费者](../compatibility/android-consumer/README.md)六阶段、[Compose](../compatibility/compose-consumer/README.md)九阶段 effect / 八阶段错误取消、[Navigation](../compatibility/navigation-consumer/README.md)七阶段及[实际 NavHost](../compatibility/navhost-consumer/README.md)八阶段按版本分别验收。driver 必须同时匹配本次 runId 日志、同包 UI 和全部阶段。
 4. mock 只验证驱动协议；设备不可用、超时、缺阶段或旧结果均不能写为通过。
 5. CI 已配置 API 21 与 API 35 设备门禁，远端成功记录需对应本次提交。
 
@@ -55,19 +60,21 @@ emulator-runner 的 `script` 会按行分别启动 Shell，不支持跨行 hered
 
 API 35 UI 门禁通过 `bash compatibility/run-api35.sh` 显式唤醒模拟器并解除非安全锁屏，再执行库层与示例 release 测试。退出前保存 `build/api35-environment/window.txt` 与 `power.txt`，用于分析 Activity 已恢复但 Espresso 无窗口焦点的失败；诊断不会覆盖原测试退出码。示例测试规则在 Activity 失焦时于 finish 前输出窗口状态，优先检查该现场；整批结束后的 Launcher 焦点不能单独证明失败占用方。
 
+API 35 脚本在屏幕准备和 Gradle 之前记录 `build/api35-environment/device.json`，并断言实际 API=35、boot_completed=1；错误设备或未启动完成会停止，退出诊断仍保留。三项 mocked-ADB 回归覆盖正常准备后的原始测试失败、错误 API 拒绝及未完成启动拒绝；它们不是设备运行证据。channel 示例的 release instrumentation 增加 Activity 重建后配置幂等、新普通事件收集与不重放旧值的用例。
+
 Google 模拟器的 Launcher ANR 系统窗口可能抢占示例焦点。测试规则在启动前检查窗口状态，仅在发现 `Application Not Responding: com.google.android.apps.nexuslauncher` 时保留现场并停止该 Launcher 进程，再正常启动示例。目标应用 ANR、其他系统错误和 Espresso 焦点断言仍按原规则失败；恢复环境本身不代表测试通过。
 
 消费者共用设备协议将 UI 层级写入 `/data/local/tmp/` 下包含本次 runId 的文件，避免依赖旧模拟器共享存储或读到上次层级。采集输出保存在 `ui-dump.txt`；命令失败、输出 ERROR、层级缺失或 XML 无效均不能通过。出现采集失败时先检查该输出，再核对 `current.log` 和 `current-ui.xml`，不能仅凭日志 PASS 认定验收成功。
 
 CI 的 SDK 初始化显式选择 `platform-tools`，命令行工具由 setup-android Action 准备；不要恢复其包含已下架 `tools` 包的默认安装列表。平台和 Build Tools 版本由后续安装步骤指定。
 
-本次发布的[最终 main CI](https://github.com/logan0817/FlowBus/actions/runs/38207876160) 对应 `efff42874b6c28a6074f72716b31acfcf6fa66b7`，已通过完整检查，包含 API 21 与 API 35 验收；报告为该运行的 `flowbus-verification-efff42874b6c28a6074f72716b31acfcf6fa66b7`。本机无 API 21 image，最低系统验收依赖远端设备。后续发布仍须核对最终提交的完整 CI 成功状态、API 21 实际设备身份和全部消费者报告；启动、排队或旧提交通过均不能替代。其余已测组合及未认证工具链见[兼容性评估](next-version-plan.md#兼容性评估)。
+历史 1.1.0 发布的[最终 main CI](https://github.com/logan0817/FlowBus/actions/runs/38207876160) 对应 `efff42874b6c28a6074f72716b31acfcf6fa66b7`，已通过完整检查，包含 API 21 与 API 35 验收；报告为该运行的 `flowbus-verification-efff42874b6c28a6074f72716b31acfcf6fa66b7`。本机无 API 21 image，最低系统验收依赖远端设备。后续发布仍须核对最终提交的完整 CI 成功状态、API 21 实际设备身份和全部消费者报告；启动、排队或旧提交通过均不能替代。其余已测组合及未认证工具链见[兼容性评估](next-version-plan.md#兼容性评估)。
 
 ## 兼容性、源码与文档检查
 
 基础版本保持 Kotlin 1.9.25、Coroutines 1.8.1、Lifecycle 2.6.2、AGP 8.6.1、Gradle 8.7、构建 JDK 17、Java 8 字节码、minSdk 21 / compileSdk 35 / targetSdk 35。Kotlin/compileSdk 消费者矩阵不能推导为所有旧工具链通过。
 
-核对根与模块 README 中英文、CHANGELOG、1.1.0 发布说明、API 注释、版本配置及 CI 路径。1.0.7 仅保留为已发布基准、历史或语义说明。普通无人订阅、sticky replay、关闭等待、错误策略和协作取消说明必须与实现一致。
+核对根与模块 README 中英文、CHANGELOG、1.2.0 发布说明、API 注释、版本配置及 CI 路径。1.0.7 仅保留为已发布基准、历史或语义说明。普通无人订阅、sticky replay、关闭等待、错误策略和协作取消说明必须与实现一致。
 
 检查 git status、工作区与暂存区差异；不提交构建产物、测试签名、密钥、日志、个人环境配置、临时沟通记录或无关改动。保留必要 fixtures、API 基准和回归测试。主仓直接维护两个模块，不能含子仓 .git/.gitmodules 或独立发布配置。
 
@@ -94,7 +101,7 @@ signing.gnupg.keyName=<完整密钥指纹>
 
 ### 上传、验收与回退
 
-后续上传批次名称采用 `GROUP-根项目名-VERSION_NAME`，当前为 `io.github.logan0817-FlowBus-1.1.0`，避免同一组下不同项目的相同版本只显示组名与版本。批次名称用于人工识别；查询、release 或 drop 必须依据本次上传返回的唯一 deployment ID，并核对批次内容。实际 Maven 坐标仍为 `io.github.logan0817:flowbus-core:1.1.0` 与 `io.github.logan0817:flowbus:1.1.0`。
+后续上传批次名称采用 `GROUP-根项目名-VERSION_NAME`，当前为 `io.github.logan0817-FlowBus-1.2.0`，避免同一组下不同项目的相同版本只显示组名与版本。批次名称用于人工识别；查询、release 或 drop 必须依据本次上传返回的唯一 deployment ID，并核对批次内容。实际 Maven 坐标仍为 `io.github.logan0817:flowbus-core:1.2.0` 与 `io.github.logan0817:flowbus:1.2.0`。
 
 发布插件 0.33.0 尚无公开的批次名称配置；根发布脚本只将两个 `createStagingRepository` 任务的暂存 artifact 标识统一为根项目名，让插件按同一个暂存标识生成名称，不修改 `MavenPublication` 或发布文件路径。单模块上传也使用同一项目名称，模块内容通过实际坐标区分。`verifyCentralDeploymentName` 在本地与 CI 核对两个暂存标识及实际发布坐标，并作为暂存任务的前置检查；该检查不执行签名或网络上传。升级发布插件后，必须重新核对其命名规则与暂存任务属性，并执行该检查及 remote dry-run。
 
@@ -102,6 +109,6 @@ signing.gnupg.keyName=<完整密钥指纹>
 
 发布逻辑位于 gradle/release-publishing.gradle.kts，产物验证位于 gradle/release-verification.gradle.kts。publishToMavenCentral / releaseToMavenCentral 当前只上传 Central Portal deployment，不会自动 release。上传后逐个检查两个坐标及 sources/javadoc 的 .asc 签名与 checksum，再在 Portal 决定 release 或 drop。本地 Maven 产物不生成远程签名，不能用其替代签名验收。
 
-正式发布且 Central 坐标可解析后，使用独立消费者从远端解析 1.1.0，完成普通/sticky 发送与订阅的 smoke check；核对实际解析版本，避免本地候选仓库或旧缓存替代已发布产物。
+正式发布且 Central 坐标可解析后，使用独立消费者从远端解析 1.2.0，完成普通/sticky 发送与订阅的 smoke check；核对实际解析版本，避免本地候选仓库或旧缓存替代已发布产物。
 
-消费者回退使用已发布 1.0.7，新增 API 调用需一起回退；未发布 deployment 可 drop。禁止覆盖已发布版本。
+消费者回退使用已发布 1.1.0，新增 API 调用需一起回退；未发布 deployment 可 drop。禁止覆盖已发布版本。

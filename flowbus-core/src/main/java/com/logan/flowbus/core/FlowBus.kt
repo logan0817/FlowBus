@@ -45,6 +45,14 @@ class FlowBus(
     private val scopedStoreLock = Any()
 
     /**
+     * 在首次发送或取流前绑定根总线通道的缓冲策略，不创建 Flow。
+     * 相同有效配置可重复调用；类型冲突抛 IllegalArgumentException，策略冲突抛 IllegalStateException。
+     */
+    fun <T : Any> configureChannel(key: EventKey<T>, config: FlowBusChannelConfig) {
+        rootStore.configureChannel(key, config)
+    }
+
+    /**
      * 尝试向根总线发送普通事件。
      *
      * 返回 `false` 表示当前共享流未能立刻接收该事件；如果你需要按既定溢出策略执行挂起发送，

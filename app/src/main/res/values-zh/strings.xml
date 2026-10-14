@@ -105,7 +105,7 @@
     <string name="channel_case_intro_when">什么时候用：当 Toast、导航命令、当前页提示这类消息数据结构相同，但绝不能混流时，就该用命名通道。</string>
     <string name="channel_case_intro_demo">这页演示什么：点不同按钮，只更新对应通道的结果区，让你一眼看出“相同类型，不同通道”的边界。</string>
     <string name="channel_case_channel_list_title">预定义通道</string>
-    <string name="channel_case_channel_list_desc">`ui.toast` 只管一次性反馈，`ui.navigation` 只管页面跳转命令，`ui.snackbar` 只管当前页提示。</string>
+    <string name="channel_case_channel_list_desc">`ui.toast` 只缓存一条待处理反馈，溢出丢旧值；`ui.navigation` 使用容量 16 和 SUSPEND；`ui.snackbar` 继承默认配置。三个通道都属于当前 Activity。</string>
     <string name="channel_case_toast_title">通道：toast</string>
     <string name="channel_case_toast_action">发送 Toast 消息</string>
     <string name="channel_case_toast_waiting">Toast 面板：等待一条 Toast 消息</string>
@@ -121,8 +121,8 @@
     <string name="channel_case_snackbar_waiting">当前页提示面板：等待一条页面内提示</string>
     <string name="channel_case_snackbar_result">当前页提示面板：已收到页面内提示</string>
     <string name="channel_case_snackbar_payload">Snackbar：草稿已保存在本地</string>
-    <string name="channel_case_compare_hint">如果只用裸 String 事件，Toast、导航命令、页面提示很容易混到一起；命名通道能在不改载荷类型的前提下把业务意图分开。</string>
-    <string name="channel_case_code">最小代码\nval toastChannel = eventChannel&lt;String&gt;(\"ui.toast\")\ntoastChannel.post(\"保存成功\")\ncollectEvent(toastChannel.flow()) {\n    showToast(it)\n}</string>
+    <string name="channel_case_compare_hint">先配置，再取流或发送。Toast 反馈允许丢旧值；导航通知使用挂起发送，对活跃慢订阅者施加背压。两者都不保存页面非活跃时的普通事件。总线由 Activity 持有，页面销毁取消订阅。</string>
+    <string name="channel_case_code">收集前完成配置\nconfigureEventChannel(toastChannel,\n    FlowBusChannelConfig(normalBufferCapacity = 1), owner = this)\ncollectEvent(toastChannel.flowFrom(this)) { showToast(it) }\n// 在页面活跃后的用户操作中发送：\ntoastChannel.postTo(this, \"保存成功\")</string>
     <string name="channel_case_anti_pattern">别这样用：只因为“现在偷懒方便”就把 Toast、导航、页面提示都塞进一个裸 String 事件，后面接收方一多，判断分支会很难看，也很容易串流。</string>
     <string name="non_ui_case_title">非 UI 链路</string>
     <string name="non_ui_case_desc">这一页演示 ViewModel、Repository、Worker 不直接依赖页面，也能把通知送回 UI。</string>

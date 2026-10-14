@@ -13,6 +13,12 @@ import androidx.lifecycle.ViewModelStoreOwner
 import com.logan.flowbus.collectEvent
 import com.logan.flowbus.collectEventFromSuspending
 import com.logan.flowbus.core.FlowBus
+import com.logan.flowbus.core.FlowBusChannelConfig
+import com.logan.flowbus.configureEventChannel
+import com.logan.flowbus.eventChannel
+import com.logan.flowbus.flowFrom
+import com.logan.flowbus.tryPostTo
+import com.logan.flowbus.emitTo
 import com.logan.flowbus.core.eventKey
 import com.logan.flowbus.onEvent
 import com.logan.flowbus.onEventSuspending
@@ -31,6 +37,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -61,6 +68,10 @@ class ConsumerActivity : Activity() {
                     passed += "owner-suspending"
                     verifyExplicitLifecycle()
                     passed += "explicit-lifecycle"
+                    verifyChannelConfiguration()
+                    passed += "channel-config"
+                    LegacyAndroidCalls.verify()
+                    passed += "binary-1.1.0-android"
                 }
                 val result = "PASS API=${Build.VERSION.SDK_INT} checks=${passed.size} runId=$runId"
                 Log.i(TAG, result)
@@ -218,6 +229,33 @@ class ConsumerActivity : Activity() {
             source.close()
             received.close()
             subscription.join()
+        }
+    }
+
+    private suspend fun verifyChannelConfiguration() = coroutineScope {
+        val owner = VerificationOwner()
+        val channel = eventChannel<Int>("consumer.runtime.config")
+        val config = FlowBusChannelConfig(
+            normalBufferCapacity = 0,
+            normalOverflowPolicy = BufferOverflow.SUSPEND
+        )
+        try {
+            configureEventChannel(channel, config, owner)
+            configureEventChannel(channel, config, owner)
+            val received = async(start = CoroutineStart.UNDISPATCHED) { channel.flowFrom(owner).first() }
+            try {
+                check(!channel.tryPostTo(owner, 51))
+                channel.emitTo(owner, 52)
+                check(received.await() == 52)
+            } finally {
+                received.cancelAndJoin()
+            }
+            val independent = FlowBus()
+            independent.configureChannel(channel.asEventKey(), config)
+            check(independent.tryPostResult(channel.asEventKey(), 53).overflowPolicy == BufferOverflow.SUSPEND)
+            check(independent.inspect().config.overflowPolicy == BufferOverflow.DROP_OLDEST)
+        } finally {
+            owner.destroy()
         }
     }
 

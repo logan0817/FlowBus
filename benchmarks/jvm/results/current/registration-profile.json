@@ -1,0 +1,47 @@
+{
+  "baseline": {
+    "recordingSha256": "ac9df3ada61c6511986dd62ccb588eacc5dfdebb5fe68faecbe1c1a72262d58f",
+    "allocationSampleEvents": 960,
+    "weightedSampleBytesByClass": {
+      "java.util.concurrent.ConcurrentHashMap$Node": 21365634424,
+      "java.util.concurrent.ConcurrentHashMap": 10802992344,
+      "[Ljava.util.concurrent.ConcurrentHashMap$Node;": 5606782848,
+      "kotlinx.coroutines.flow.SharedFlowImpl": 632921024,
+      "com.logan.flowbus.core.FlowBusStore": 4186112,
+      "java.lang.Object": 4186048
+    },
+    "topAllocationStacks": {
+      "java.util.concurrent.ConcurrentHashMap$Node | java.util.concurrent.ConcurrentHashMap.putVal > java.util.concurrent.ConcurrentHashMap.putIfAbsent > com.logan.flowbus.core.FlowBusStore.getNormalEventFlow > com.logan.flowbus.core.FlowBusStore.flow > com.logan.flowbus.core.FlowBus.flow > com.logan.flowbus.benchmark.Workload.run > com.logan.flowbus.benchmark.BusLifecycleBenchmark.operation": 21365634424,
+      "java.util.concurrent.ConcurrentHashMap | com.logan.flowbus.core.FlowBusStore.<init> > com.logan.flowbus.core.FlowBus.<init> > com.logan.flowbus.core.FlowBus.<init> > com.logan.flowbus.benchmark.Workload.run > com.logan.flowbus.benchmark.BusLifecycleBenchmark.operation > com.logan.flowbus.benchmark.jmh_generated.BusLifecycleBenchmark_operation_jmhTest.operation_thrpt_jmhStub > com.logan.flowbus.benchmark.jmh_generated.BusLifecycleBenchmark_operation_jmhTest.operation_Throughput": 9720045976,
+      "[Ljava.util.concurrent.ConcurrentHashMap$Node; | java.util.concurrent.ConcurrentHashMap.initTable > java.util.concurrent.ConcurrentHashMap.putVal > java.util.concurrent.ConcurrentHashMap.putIfAbsent > com.logan.flowbus.core.FlowBusStore.registerKeyType > com.logan.flowbus.core.FlowBusStore.flow > com.logan.flowbus.core.FlowBus.flow > com.logan.flowbus.benchmark.Workload.run": 5602596992,
+      "java.util.concurrent.ConcurrentHashMap | com.logan.flowbus.core.FlowBus.<init> > com.logan.flowbus.core.FlowBus.<init> > com.logan.flowbus.benchmark.Workload.run > com.logan.flowbus.benchmark.BusLifecycleBenchmark.operation > com.logan.flowbus.benchmark.jmh_generated.BusLifecycleBenchmark_operation_jmhTest.operation_thrpt_jmhStub > com.logan.flowbus.benchmark.jmh_generated.BusLifecycleBenchmark_operation_jmhTest.operation_Throughput > jdk.internal.reflect.NativeMethodAccessorImpl.invoke0": 1082946368,
+      "kotlinx.coroutines.flow.SharedFlowImpl | kotlinx.coroutines.flow.SharedFlowKt.MutableSharedFlow > com.logan.flowbus.core.FlowBusStore.getNormalEventFlow > com.logan.flowbus.core.FlowBusStore.flow > com.logan.flowbus.core.FlowBus.flow > com.logan.flowbus.benchmark.Workload.run > com.logan.flowbus.benchmark.BusLifecycleBenchmark.operation > com.logan.flowbus.benchmark.jmh_generated.BusLifecycleBenchmark_operation_jmhTest.operation_thrpt_jmhStub": 632921024,
+      "com.logan.flowbus.core.FlowBusStore | com.logan.flowbus.core.FlowBus.<init> > com.logan.flowbus.core.FlowBus.<init> > com.logan.flowbus.benchmark.Workload.run > com.logan.flowbus.benchmark.BusLifecycleBenchmark.operation > com.logan.flowbus.benchmark.jmh_generated.BusLifecycleBenchmark_operation_jmhTest.operation_thrpt_jmhStub > com.logan.flowbus.benchmark.jmh_generated.BusLifecycleBenchmark_operation_jmhTest.operation_Throughput > jdk.internal.reflect.NativeMethodAccessorImpl.invoke0": 4186112,
+      "java.lang.Object | com.logan.flowbus.core.FlowBus.<init> > com.logan.flowbus.core.FlowBus.<init> > com.logan.flowbus.benchmark.Workload.run > com.logan.flowbus.benchmark.BusLifecycleBenchmark.operation > com.logan.flowbus.benchmark.jmh_generated.BusLifecycleBenchmark_operation_jmhTest.operation_thrpt_jmhStub > com.logan.flowbus.benchmark.jmh_generated.BusLifecycleBenchmark_operation_jmhTest.operation_Throughput > jdk.internal.reflect.NativeMethodAccessorImpl.invoke0": 4186048,
+      "[Ljava.util.concurrent.ConcurrentHashMap$Node; | java.util.concurrent.ConcurrentHashMap.initTable > java.util.concurrent.ConcurrentHashMap.putVal > java.util.concurrent.ConcurrentHashMap.putIfAbsent > com.logan.flowbus.core.FlowBusStore.getNormalEventFlow > com.logan.flowbus.core.FlowBusStore.flow > com.logan.flowbus.core.FlowBus.flow > com.logan.flowbus.benchmark.Workload.run": 4185856
+    },
+    "limitation": "Weighted JFR allocation samples are not exact class allocation totals; do not compare weights across different profiled throughputs."
+  },
+  "candidate": {
+    "recordingSha256": "328a110f754398f26e589a51ae6f5c3621ff2387d5b60713abc2ac70bce98479",
+    "allocationSampleEvents": 960,
+    "weightedSampleBytesByClass": {
+      "java.util.concurrent.ConcurrentHashMap": 17442666576,
+      "[Ljava.util.concurrent.ConcurrentHashMap$Node;": 12348549104,
+      "kotlinx.coroutines.flow.SharedFlowImpl": 4006665640,
+      "java.util.HashMap$KeyIterator": 17785992,
+      "java.util.concurrent.ConcurrentHashMap$Node": 4186112,
+      "com.logan.flowbus.core.FlowBus": 4186048
+    },
+    "topAllocationStacks": {
+      "java.util.concurrent.ConcurrentHashMap | com.logan.flowbus.core.FlowBus.<init> > com.logan.flowbus.core.FlowBus.<init> > com.logan.flowbus.benchmark.Workload.run > com.logan.flowbus.benchmark.BusLifecycleBenchmark.operation > com.logan.flowbus.benchmark.jmh_generated.BusLifecycleBenchmark_operation_jmhTest.operation_thrpt_jmhStub > com.logan.flowbus.benchmark.jmh_generated.BusLifecycleBenchmark_operation_jmhTest.operation_Throughput > jdk.internal.reflect.NativeMethodAccessorImpl.invoke0": 17438480528,
+      "[Ljava.util.concurrent.ConcurrentHashMap$Node; | java.util.concurrent.ConcurrentHashMap.initTable > java.util.concurrent.ConcurrentHashMap.putVal > java.util.concurrent.ConcurrentHashMap.put > com.logan.flowbus.core.FlowBusStore.bindChannel > com.logan.flowbus.core.FlowBusStore.bindChannel$default > com.logan.flowbus.core.FlowBusStore.flow > com.logan.flowbus.core.FlowBus.flow": 12348549104,
+      "kotlinx.coroutines.flow.SharedFlowImpl | kotlinx.coroutines.flow.SharedFlowKt.MutableSharedFlow > com.logan.flowbus.core.FlowBusStore.getNormalEventFlow > com.logan.flowbus.core.FlowBusStore.flow > com.logan.flowbus.core.FlowBus.flow > com.logan.flowbus.benchmark.Workload.run > com.logan.flowbus.benchmark.BusLifecycleBenchmark.operation > com.logan.flowbus.benchmark.jmh_generated.BusLifecycleBenchmark_operation_jmhTest.operation_thrpt_jmhStub": 4006665640,
+      "java.util.HashMap$KeyIterator | java.util.HashMap$KeySet.iterator > java.util.HashSet.iterator > jdk.jfr.internal.Control.findCombine > jdk.jfr.internal.Control.apply > jdk.jfr.internal.SettingsManager.setEventControl > jdk.jfr.internal.SettingsManager.setSettings > jdk.jfr.internal.MetadataRepository.setSettings": 17785992,
+      "java.util.concurrent.ConcurrentHashMap$Node | java.util.concurrent.ConcurrentHashMap.putVal > java.util.concurrent.ConcurrentHashMap.put > com.logan.flowbus.core.FlowBusStore.bindChannel > com.logan.flowbus.core.FlowBusStore.bindChannel$default > com.logan.flowbus.core.FlowBusStore.flow > com.logan.flowbus.core.FlowBus.flow > com.logan.flowbus.benchmark.Workload.run": 4186112,
+      "com.logan.flowbus.core.FlowBus | com.logan.flowbus.benchmark.Workload.run > com.logan.flowbus.benchmark.BusLifecycleBenchmark.operation > com.logan.flowbus.benchmark.jmh_generated.BusLifecycleBenchmark_operation_jmhTest.operation_thrpt_jmhStub > com.logan.flowbus.benchmark.jmh_generated.BusLifecycleBenchmark_operation_jmhTest.operation_Throughput > jdk.internal.reflect.NativeMethodAccessorImpl.invoke0 > jdk.internal.reflect.NativeMethodAccessorImpl.invoke > jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke": 4186048,
+      "java.util.concurrent.ConcurrentHashMap | com.logan.flowbus.core.FlowBusStore.<init> > com.logan.flowbus.core.FlowBus.<init> > com.logan.flowbus.core.FlowBus.<init> > com.logan.flowbus.benchmark.Workload.run > com.logan.flowbus.benchmark.BusLifecycleBenchmark.operation > com.logan.flowbus.benchmark.jmh_generated.BusLifecycleBenchmark_operation_jmhTest.operation_thrpt_jmhStub > com.logan.flowbus.benchmark.jmh_generated.BusLifecycleBenchmark_operation_jmhTest.operation_Throughput": 4186048
+    },
+    "limitation": "Weighted JFR allocation samples are not exact class allocation totals; do not compare weights across different profiled throughputs."
+  }
+}

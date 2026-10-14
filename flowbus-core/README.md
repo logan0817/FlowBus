@@ -357,6 +357,72 @@ if (!result.accepted) {
 
 它不表示订阅者已经处理事件。`DROP_OLDEST` / `DROP_LATEST` 也不是可靠队列策略。
 
+
+## 1.2.0 候选：按通道配置
+
+1.2.0 当前为本地候选，尚未发布到 Maven Central。上面的 1.1.0 安装示例仍用于正式版本。体验本节 API 时，先从仓库根目录将候选发布到隔离目录：
+
+```bash
+./gradlew publishToMavenLocal "-Dmaven.repo.local=$PWD/build/candidate-maven"
+```
+
+消费者将该目录作为 `maven { url = uri("/absolute/path/to/FlowBus/build/candidate-maven") }` 仓库，并选择 `io.github.logan0817:flowbus-core:1.2.0`（Android 使用 `io.github.logan0817:flowbus:1.2.0`）。不要把本地候选的成功构建当作正式发布或设备验收通过。实施状态见[1.2.0 发布说明](../docs/release-notes-1.2.0.md)。
+
+
+### core、scope 与实例用法
+
+```kotlin
+import com.logan.flowbus.core.FlowBus
+import com.logan.flowbus.core.FlowBusChannelConfig
+import com.logan.flowbus.core.eventKey
+import kotlinx.coroutines.channels.BufferOverflow
+
+val bus = FlowBus()
+val refresh = eventKey<String>("home.refresh")
+val progress = eventKey<Int>("work.progress")
+bus.configureChannel(refresh, FlowBusChannelConfig(normalBufferCapacity = 1))
+bus.configureChannel(progress, FlowBusChannelConfig(
+    normalBufferCapacity = 16,
+    normalOverflowPolicy = BufferOverflow.SUSPEND
+))
+// 在订阅真正活跃后，由业务流程发送。
+bus.post(refresh, "refresh")
+bus.emit(progress, 10) // 位于挂起函数；有慢订阅者时可能背压，不代表处理成功。
+```
+
+`FlowBus`、共享 `ScopedFlowBus`、owned `FlowBusScope` 均提供 `configureChannel(key, config)`。core `EventChannel` 通过 `channel.asEventKey()` 配置；默认单例通过 `DefaultFlowBus.raw().configureChannel(...)` 配置。
+
+五个可空字段 `normalBufferCapacity`、`normalOverflowPolicy`、`stickyReplay`、`stickyExtraBufferCapacity`、`stickyOverflowPolicy` 的 `null` 值继承 bus 默认值。两种 overflow 分别继承 `FlowBusConfig.overflowPolicy`。默认普通缓冲 64、DROP_OLDEST、sticky replay 1 保持。容量不得为负；普通零容量或 sticky 总容量为零时只能用 SUSPEND；sticky replay 与额外容量之和不能超过 Int.MAX_VALUE。
+
+配置身份是当前 store 内的 eventName，普通与 sticky 策略一次绑定。在首次 post/emit/flow（含 sticky）前配置；未配置的首次使用绑定默认值。相同类型和相同**有效配置**重复调用是幂等，不同类型抛 IllegalArgumentException，不同策略抛 IllegalStateException。参数或冲突失败不会创建半份注册、Flow 或发送计数。
+
+removeEvent/removeSticky/clearSticky 不解除配置和类型绑定。完整 scope 清理会释放覆盖，同名 scope 重开时需重新配置；root 配置跟随 bus 实例。更换已绑定策略需要新实例及明确切换订阅。配置与首次使用并发时以先绑定者为准；应由来源持有者集中初始化。`inspect().config` 仍是 bus 默认摘要，不包含通道覆盖；`tryPostResult` / `tryPostStickyResult` 的 overflowPolicy 才是对应流实际策略。accepted/rejected 计数不能推算送达率。
+
+### 迁移与资源管理
+
+从 EventBus / LiveEventBus 迁移时，首先确定来源 bus/owner 和稳定 key，再确定普通或 sticky。post 只进入普通流，postSticky 只进入 sticky 流，同名不合并。普通无人订阅不会留存；注册返回 Job 不等于订阅就绪；sticky 的生命周期重启可再次重放，consume 只清除 replay，不撤回实时在途数据。慢订阅者使用 SUSPEND + emit 等待缓冲，或 DROP_OLDEST 丢弃旧通知；两者都不提供 ACK 或业务完成保证。
+
+没有自动继承分发。需要 sealed 父类型时，两端使用相同 `EventKey<Parent>`，例如 `val key = eventKey<UiEvent>("ui.event")`，再用 `bus.post(key, ChildEvent(...))` 与 `bus.flow(key)`；不要按子类默认 key 发送、按父类默认 key 订阅。完整泛型类型不作运行时验证。
+
+总线收集入口遵循来源的 errorHandler（默认 Rethrow）；通用 Flow 收集直接传播错误。协作取消不会作为普通回调错误处理，也不会撤销已产生的副作用。
+
+取消订阅不删除通道，移除通道也不取消旧 Flow。避免为每个用户或任务创建永久全局 key。任务使用 Job 绑定的 scope，清理以 inspector 的登记项为依据：
+
+```kotlin
+import kotlinx.coroutines.Job
+
+val taskJob = Job()
+val source = bus.openScope("sync-task", closeWhen = taskJob)
+source.configureChannel(progress, FlowBusChannelConfig(normalBufferCapacity = 1))
+source.postSticky(progress, 10)
+check(bus.inspect().scopes.any { it.scopeName == "sync-task" })
+taskJob.cancel()
+source.closeSuspending() // 挂起函数中等待清理；收集 Job 仍由调用方取消。
+check(bus.inspect().scopes.none { it.scopeName == "sync-task" })
+```
+
+首选入口：简单全局通知使用默认 bus；owner 内通知使用稳定 channel + 明确 owner；注入与测试使用显式 FlowBus + EventKey；任务使用 openScope(closeWhen = job)；已有 Flow 组合使用通用 Flow 收集；可恢复状态使用 StateFlow。没有零订阅自动清理。
+
 ## 1.1.0 挂起订阅
 
 1.1.0 增加独立命名的挂起回调入口，旧 `collect` / `collectSticky` 与公开入口保留。下面 API 从 1.1.0 开始提供，不要求新增依赖或升级现有基础工具链。
@@ -731,7 +797,7 @@ DefaultFlowBus.install(
 
 关闭结果里如果出现 `ClosingInProgress`，表示已有另一个等待入口发起关闭且仍在等待在途操作，本次调用没有重复抢占。这个阶段禁止新发送和取流，但 `isClosed` 仍为 `false`，保留 1.0.7 的状态语义。
 
-未发布修订中的取消规则：如果 `closeSuspending()` 自己发起关闭，在准备 store 清理之前被取消，且没有收到永久关闭请求，会撤销这次等待并恢复 scope 可用，调用方可以稍后重试。若 `close()` 或生命周期绑定已经先让句柄失效并准备关闭，`closeSuspending()` 只等待该关闭；取消只终止当前调用方的等待，不会恢复旧句柄或撤销清理。准备清理之后取消也不会回滚关闭。若本次关闭等待期间收到显式 `close()`、`removeScope()` 或绑定 Job 完成请求，库会保留该永久关闭请求：即使发起等待随后取消，也继续关闭，不恢复 scope 可用。等待使用可取消挂起，不占用线程进行条件变量等待。
+1.1.0 已发布的取消规则：如果 `closeSuspending()` 自己发起关闭，在准备 store 清理之前被取消，且没有收到永久关闭请求，会撤销这次等待并恢复 scope 可用，调用方可以稍后重试。若 `close()` 或生命周期绑定已经先让句柄失效并准备关闭，`closeSuspending()` 只等待该关闭；取消只终止当前调用方的等待，不会恢复旧句柄或撤销清理。准备清理之后取消也不会回滚关闭。若本次关闭等待期间收到显式 `close()`、`removeScope()` 或绑定 Job 完成请求，库会保留该永久关闭请求：即使发起等待随后取消，也继续关闭，不恢复 scope 可用。等待使用可取消挂起，不占用线程进行条件变量等待。
 
 在另一关闭等待期间调用 `close()`，新操作已经被拒绝，永久关闭请求会被记住；`isClosed` 仍沿用该等待的状态，直到等待成功或取消/超时/中断后准备清理才变为 true。
 

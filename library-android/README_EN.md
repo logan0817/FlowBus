@@ -432,6 +432,47 @@ toastChannel.post("saved")
 viewLifecycleOwner.onEvent(toastChannel) { showToast(it) }
 ```
 
+
+## 1.2.0 candidate: channel configuration
+
+1.2.0 is a local candidate and is not published to Maven Central. The 1.1.0 installation above remains the released version. To try the new APIs, publish from the repository root to an isolated repository:
+
+```bash
+./gradlew publishToMavenLocal "-Dmaven.repo.local=$PWD/build/candidate-maven"
+```
+
+Add `maven { url = uri("/absolute/path/to/FlowBus/build/candidate-maven") }` to the consumer repositories and use `io.github.logan0817:flowbus-core:1.2.0` (Android: `io.github.logan0817:flowbus:1.2.0`). Local compilation does not establish publication or device acceptance. See the [1.2.0 notes](../docs/en/release-notes-1.2.0.md).
+
+
+### Android owner configuration
+
+```kotlin
+import com.logan.flowbus.configureEventChannel
+import com.logan.flowbus.eventChannel
+import com.logan.flowbus.onEvent
+import com.logan.flowbus.emitTo
+import com.logan.flowbus.core.FlowBusChannelConfig
+import kotlinx.coroutines.channels.BufferOverflow
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+
+val progressChannel = eventChannel<Int>("work.progress")
+// Activity.onCreate, on the main thread, before first source use.
+configureEventChannel(progressChannel, FlowBusChannelConfig(
+    normalBufferCapacity = 16,
+    normalOverflowPolicy = BufferOverflow.SUSPEND
+), owner = this)
+onEvent(channel = progressChannel, from = this) { renderProgress(it) }
+// A later user action, after the actual subscription becomes active.
+lifecycleScope.launch { progressChannel.emitTo(this@MyActivity, 10) }
+```
+
+Omitting owner configures the global source; an explicit owner configures its existing FlowEventBus. Send and collect through the same owner. Recreating an Activity with a retained ViewModelStore permits the same effective configuration; a cleared store requires configuration again. STARTED gating, cancellation, and sticky replay retain their behavior. SUSPEND does not retain ordinary events while STOPPED.
+
+An explicit FlowEventBus exposes configureChannel(key, config). Injected core FlowBus/ScopedFlowBus/FlowBusScope instances use their member method followed by collectEventFrom or collectEventFromSuspending. Receiver destruction cancels the subscription without closing its injected source. See [core configuration and migration](../flowbus-core/README_EN.md#120-candidate-channel-configuration) for inheritance, binding/conflicts, cleanup, scope recreation, and inspector limits.
+
+When migrating from EventBus/LiveEventBus, normal and sticky are independent streams; choose isSticky explicitly. Registration Jobs do not prove readiness. Parent events require the same EventKey<Parent> or stable parent channel. Prefer postEvent/onEvent for global notifications, a stable channel + explicit owner for owner-local events, collectEventFrom for injected sources, generic collectors for composed Flow, and StateFlow for recoverable state. Default Rethrow applies to bus collectors; generic Flow collection propagates errors directly.
+
 ## 1.1.0 suspend callbacks and instance integration
 
 These APIs are available starting with 1.1.0. Existing APIs remain. Kotlin, Coroutines, Lifecycle, and minSdk requirements stay unchanged; no Compose, Hilt, or Koin dependency is added.

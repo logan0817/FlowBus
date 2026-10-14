@@ -2,6 +2,20 @@ package com.logan.flowbus
 
 import androidx.annotation.MainThread
 import androidx.lifecycle.ViewModelStoreOwner
+import com.logan.flowbus.core.FlowBusChannelConfig
+
+/**
+ * 在指定来源首次使用 channel 前绑定缓冲策略；owner 决定来源总线，不决定订阅生命周期。
+ * 相同有效配置可重复调用；不同策略不能在已有通道上动态替换。
+ */
+@MainThread
+fun <T : Any> configureEventChannel(
+    channel: EventChannel<T>,
+    config: FlowBusChannelConfig,
+    owner: ViewModelStoreOwner = GlobalViewModelStore
+) {
+    flowEventBusFor(owner).configureChannel(channel.asEventKey(), config)
+}
 
 /**
  * 向 Android 全局总线发送普通事件。

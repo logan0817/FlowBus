@@ -168,6 +168,19 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 6. `consumeStickyLatestEvent(...)` only reads and clears the current sticky replay. It does not prevent another thread from writing a new sticky value later.
 7. Do not put phone numbers, tokens, order IDs, user IDs, or similar sensitive values into `eventName` or `scopeName` logs.
 
+
+## 1.2.0 candidate: channel configuration
+
+1.2.0 is a local candidate and is not published to Maven Central. The 1.1.0 installation above remains the released version. To try the new APIs, publish from the repository root to an isolated repository:
+
+```bash
+./gradlew publishToMavenLocal "-Dmaven.repo.local=$PWD/build/candidate-maven"
+```
+
+Add `maven { url = uri("/absolute/path/to/FlowBus/build/candidate-maven") }` to the consumer repositories and use `io.github.logan0817:flowbus-core:1.2.0` (Android: `io.github.logan0817:flowbus:1.2.0`). Local compilation does not establish publication or device acceptance. See the [1.2.0 notes](docs/en/release-notes-1.2.0.md).
+
+See [core channel configuration](flowbus-core/README_EN.md#120-candidate-channel-configuration), [Android owner configuration](library-android/README_EN.md#android-owner-configuration), and [JVM benchmarks](benchmarks/jvm/README.md).
+
 ## 1.1.0 integration APIs
 
 1.1.0 adds suspending callbacks and Android collection from explicit instances while preserving existing APIs. These APIs are available starting with 1.1.0; base dependencies and the minSdk target remain unchanged.
@@ -223,6 +236,7 @@ Release gates:
 6. Chinese document: [`README.md`](./README.md)
 7. 1.1.0 scope, compatibility assessment, and future extension conditions: [`docs/en/next-version-plan.md`](./docs/en/next-version-plan.md)
 8. [Core 1.0.7 binary consumer regression](compatibility/core-binary-consumer/README_EN.md): unchanged old consumer bytecode passed Java 8 runs against original and candidate JARs, with additional JVM descriptor checks; this is not full ABI certification.
+9. [Next-version implementation proposal (suggested 1.2.0, Chinese)](docs/implementation-plan-1.2.0.md): per-channel configuration, delivery contracts, performance baselines, and acceptance gates; not implemented yet.
 
 ## Repository layout
 
