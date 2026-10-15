@@ -100,7 +100,8 @@ class FlowBusReleaseReadinessTest {
 
     @Test
     fun `ci runs maven local artifact and minified consumer gates`() {
-        val ci = File("../.github/workflows/ci.yml").readText()
+        val ci = File("../.github/workflows/ci.yml").readText() +
+            File("../.github/actions/setup-verification/action.yml").readText()
 
         assertTrue(ci.contains("permissions:"))
         assertTrue(ci.contains("contents: read"))

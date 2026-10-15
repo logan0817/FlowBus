@@ -16,6 +16,29 @@ val mavenLocalRoot = mavenRepositoryRoot.resolve(groupPath)
 val consumerRepositoryUri = mavenRepositoryRoot.toURI().toASCIIString()
 val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
 
+// CI 下游只验收归档候选；默认本地入口仍先发布，保持既有使用方式。
+val reuseCandidate = providers.gradleProperty("flowbus.verification.reuseCandidate")
+    .map { value ->
+        require(value == "true" || value == "false") { "reuseCandidate must be true or false." }
+        value.toBoolean()
+    }.orElse(false).get()
+val candidatePrerequisite = if (reuseCandidate) "verifyExistingCandidate" else "publishToMavenLocal"
+val verifyExistingCandidate = tasks.register<Exec>("verifyExistingCandidate") {
+    group = "verification"
+    description = "Verify archived candidate identity and digests without publishing again."
+    commandLine("python3", "-B", rootProject.file("compatibility/candidate_bundle.py"), "check")
+    doFirst {
+        check(mavenRepositoryRoot.canonicalFile == rootProject.file("build/candidate-maven").canonicalFile) {
+            "Archived candidates require -Dmaven.repo.local=<root>/build/candidate-maven."
+        }
+    }
+}
+
+tasks.withType<GradleBuild>().configureEach {
+    // 外层任务跟踪候选内容；嵌套构建继续使用独占 Maven 仓库解析同一坐标。
+    inputs.files(fileTree(mavenLocalRoot)).withPropertyName("candidateArtifacts")
+}
+
 fun VersionCatalog.version(alias: String): String {
     val candidates = listOf(alias, alias.replace('_', '-'), alias.replace('_', '.'))
     candidates.forEach { candidate ->
@@ -45,7 +68,7 @@ val consumerAndroidCompileSdk = providers.gradleProperty("flowbus.consumer.compi
 tasks.register("verifyMavenLocalArtifacts") {
     group = "verification"
     description = "Verify locally published flowbus-core and flowbus Maven artifacts and POM metadata."
-    dependsOn("publishToMavenLocal")
+    dependsOn(candidatePrerequisite)
 
     doLast {
         val coreBase = mavenLocalRoot.resolve("flowbus-core/$artifactVersion/flowbus-core-$artifactVersion")
@@ -530,6 +553,12 @@ val prepareMavenLocalConsumer = tasks.register("prepareMavenLocalConsumer") {
                 testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:${libsCatalog.version("kotlinx_coroutines")}")
             }
             tasks.withType<Test>().configureEach {
+                outputs.upToDateWhen { false }
+                outputs.doNotCacheIf("Runtime compatibility must execute for this invocation") { true }
+                inputs.files(
+                    "${mavenLocalRoot.resolve("flowbus-core/$artifactVersion/flowbus-core-$artifactVersion.jar").invariantSeparatorsPath}",
+                    "${mavenLocalRoot.resolve("flowbus/$artifactVersion/flowbus-$artifactVersion.aar").invariantSeparatorsPath}"
+                ).withPropertyName("candidateArtifacts")
                 doFirst { layout.buildDirectory.file("reports/binary-android-compatibility.txt").get().asFile.delete() }
                 classpath = classpath.filter { !it.canonicalPath.startsWith(file("baseline").canonicalPath + File.separator) }
                 systemProperty("flowbus.candidate.core", "${mavenLocalRoot.resolve("flowbus-core/$artifactVersion/flowbus-core-$artifactVersion.jar").invariantSeparatorsPath}")
@@ -630,7 +659,7 @@ val prepareMavenLocalConsumer = tasks.register("prepareMavenLocalConsumer") {
 tasks.register<GradleBuild>("verifyMavenLocalConsumer") {
     group = "verification"
     description = "Build a minified Android consumer from Maven local coordinates."
-    dependsOn("publishToMavenLocal", prepareMavenLocalConsumer)
+    dependsOn(candidatePrerequisite, prepareMavenLocalConsumer)
     dir = layout.buildDirectory.dir("maven-local-consumer").get().asFile
     tasks = listOf(":legacy:testReleaseUnitTest", ":app:assembleRelease")
 }
@@ -638,7 +667,7 @@ tasks.register<GradleBuild>("verifyMavenLocalConsumer") {
 tasks.register<GradleBuild>("verifyMavenLocalCoreConsumer") {
     group = "verification"
     description = "Compile and run a Kotlin/JVM consumer from the Maven local flowbus-core coordinate."
-    dependsOn("publishToMavenLocal", prepareMavenLocalCoreConsumer)
+    dependsOn(candidatePrerequisite, prepareMavenLocalCoreConsumer)
     dir = layout.buildDirectory.dir("maven-local-core-consumer").get().asFile
     tasks = listOf(":app:compileKotlin", ":app:run")
     // GradleBuild 不自动继承 -P 参数，显式传递运行 JVM，避免 Java 8 门禁实际在构建 JVM 上运行。
@@ -715,7 +744,7 @@ val prepareMavenLocalBinaryCoreConsumer = tasks.register("prepareMavenLocalBinar
 tasks.register<GradleBuild>("verifyMavenLocalBinaryCoreConsumer") {
     group = "verification"
     description = "Run unchanged $binaryConsumerBaselineVersion Kotlin/Java consumer bytecode on published and candidate core JARs."
-    dependsOn("publishToMavenLocal", prepareMavenLocalBinaryCoreConsumer)
+    dependsOn(candidatePrerequisite, prepareMavenLocalBinaryCoreConsumer)
     dir = binaryConsumerDirectory.get().asFile
     tasks = listOf("verifyBinaryCompatibility")
     startParameter.projectProperties = startParameter.projectProperties + listOf(
@@ -852,7 +881,7 @@ val prepareMavenLocalComposeConsumer = tasks.register("prepareMavenLocalComposeC
 tasks.register<GradleBuild>("verifyMavenLocalComposeConsumer") {
     group = "verification"
     description = "Build a minified Compose consumer; Compose dependencies stay outside the base library."
-    dependsOn("publishToMavenLocal", prepareMavenLocalComposeConsumer)
+    dependsOn(candidatePrerequisite, prepareMavenLocalComposeConsumer)
     dir = layout.buildDirectory.dir("maven-local-compose-consumer").get().asFile
     tasks = listOf(":app:assembleRelease")
 }

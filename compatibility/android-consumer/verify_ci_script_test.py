@@ -59,7 +59,7 @@ exit 43
         self.assertEqual(result.returncode, 42, result.stderr)
         self.assertEqual(properties["ro.build.version.sdk"], "21")
         self.assertEqual(properties["sys.boot_completed"], "1")
-        self.assertEqual(invocation.strip(), ":library-android:connectedDebugAndroidTest --warning-mode=all")
+        self.assertEqual(invocation.strip(), ":library-android:connectedDebugAndroidTest --rerun --warning-mode=all")
         # Gradle 失败后不应继续调用签名或消费者命令。
         self.assertNotIn("apksigner", result.stderr)
         self.assertNotIn("ANDROID_HOME", result.stderr)

@@ -24,10 +24,15 @@ subprojects {
         options.compilerArgs.add("-Xlint:-options")
     }
     tasks.withType<Test>().configureEach {
+        // CI 只强制测试本身执行，编译与打包仍可增量复用。
+        val freshTests = providers.environmentVariable("CI").orNull == "true" ||
+            providers.gradleProperty("flowbus.verification.freshTests").orNull == "true"
+        outputs.upToDateWhen { !freshTests }
+        outputs.doNotCacheIf("This verification requires fresh test execution") { freshTests }
         // 仓库门禁直接读取文档与配置，必须将它们纳入输入，避免复用旧通过结果。
         inputs.files(rootProject.fileTree(rootProject.projectDir) {
             include("*.md", ".gitignore", ".gitmodules", "*.gradle.kts", "gradle.properties")
-            include(".github/workflows/*.yml", "docs/**/*.md", "gradle/**")
+            include(".github/workflows/*.yml", ".github/actions/**/*.yml", "docs/**/*.md", "gradle/**")
             include("flowbus-core/build.gradle.kts", "flowbus-core/README*.md")
             include("library-android/build.gradle.kts", "library-android/README*.md")
             include("app/build.gradle.kts", "app/proguard*.pro", "app/src/**")
