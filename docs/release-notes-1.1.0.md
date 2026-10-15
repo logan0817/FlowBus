@@ -39,7 +39,7 @@ viewLifecycleOwner.onEventSuspending<RefreshHomeEvent> { event ->
 
 ## 兼容性与验证
 
-基础线保持 Kotlin 1.9.25、Coroutines 1.8.1、Lifecycle 2.6.2、AGP 8.6.1、Gradle 8.7、构建 JDK 17、Java 8 字节码、minSdk 21 / compileSdk 35 / targetSdk 35。已测消费者组合、解析依赖及边界见[兼容性评估](next-version-plan.md#兼容性评估)，不以库自身构建版本强制要求全部使用者升级。
+基础线保持 Kotlin 1.9.25、Coroutines 1.8.1、Lifecycle 2.6.2、AGP 8.6.1、Gradle 8.7、构建 JDK 17、Java 8 字节码、minSdk 21 / compileSdk 35 / targetSdk 35。已测消费者组合、解析依赖及边界见[兼容性评估](compatibility.md)，不以库自身构建版本强制要求全部使用者升级。
 
 发布清单覆盖 apiCheck、JVM 单测、release lint/R8、POM/module metadata、license/developer、verifyMavenLocalArtifacts、verifyMavenLocalCoreConsumer、verifyMavenLocalBinaryCoreConsumer、verifyMavenLocalConsumer 和独立 Compose 消费者。设备入口为 :library-android:connectedDebugAndroidTest 与 :app:connectedReleaseAndroidTest，示例设备验收走 release R8。
 

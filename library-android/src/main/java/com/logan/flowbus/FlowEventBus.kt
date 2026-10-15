@@ -9,6 +9,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewModelScope
 import com.logan.flowbus.core.EventKey
 import com.logan.flowbus.core.FlowBus
+import com.logan.flowbus.core.FlowBusChannelConfig
 import com.logan.flowbus.core.FlowBusPostResult
 import com.logan.flowbus.core.collectFlowBusSequentially
 import com.logan.flowbus.core.collectFlowBusSuspendingSequentially
@@ -33,6 +34,11 @@ import kotlin.reflect.KClass
  */
 class FlowEventBus : ViewModel() {
     private val bus = FlowBusAndroid.createFlowBus()
+
+    /** 在当前来源首次使用通道前绑定缓冲策略；重复相同有效配置为幂等。 */
+    fun <T : Any> configureChannel(key: EventKey<T>, config: FlowBusChannelConfig) {
+        bus.configureChannel(key, config)
+    }
 
     /**
      * 以 `LifecycleOwner` 感知的方式订阅当前总线中的事件。

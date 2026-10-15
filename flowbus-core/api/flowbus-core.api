@@ -167,6 +167,7 @@ public final class com/logan/flowbus/core/FlowBus {
 	public static synthetic fun collectStickySuspending$default (Lcom/logan/flowbus/core/FlowBus;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun collectSuspending (Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun collectSuspending$default (Lcom/logan/flowbus/core/FlowBus;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun configureChannel (Lcom/logan/flowbus/core/EventKey;Lcom/logan/flowbus/core/FlowBusChannelConfig;)V
 	public final fun consumeStickyLatest (Lcom/logan/flowbus/core/EventKey;)Ljava/lang/Object;
 	public final fun emit (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun emitSticky (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -192,6 +193,27 @@ public final class com/logan/flowbus/core/FlowBus {
 	public final fun stickyFlow (Lcom/logan/flowbus/core/EventKey;)Lkotlinx/coroutines/flow/Flow;
 	public final fun tryPostResult (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;)Lcom/logan/flowbus/core/FlowBusPostResult;
 	public final fun tryPostStickyResult (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;)Lcom/logan/flowbus/core/FlowBusPostResult;
+}
+
+public final class com/logan/flowbus/core/FlowBusChannelConfig {
+	public fun <init> ()V
+	public fun <init> (Ljava/lang/Integer;Lkotlinx/coroutines/channels/BufferOverflow;Ljava/lang/Integer;Ljava/lang/Integer;Lkotlinx/coroutines/channels/BufferOverflow;)V
+	public synthetic fun <init> (Ljava/lang/Integer;Lkotlinx/coroutines/channels/BufferOverflow;Ljava/lang/Integer;Ljava/lang/Integer;Lkotlinx/coroutines/channels/BufferOverflow;ILkotlin/jvm/internal/DefaultConstructorMarker;)V
+	public final fun component1 ()Ljava/lang/Integer;
+	public final fun component2 ()Lkotlinx/coroutines/channels/BufferOverflow;
+	public final fun component3 ()Ljava/lang/Integer;
+	public final fun component4 ()Ljava/lang/Integer;
+	public final fun component5 ()Lkotlinx/coroutines/channels/BufferOverflow;
+	public final fun copy (Ljava/lang/Integer;Lkotlinx/coroutines/channels/BufferOverflow;Ljava/lang/Integer;Ljava/lang/Integer;Lkotlinx/coroutines/channels/BufferOverflow;)Lcom/logan/flowbus/core/FlowBusChannelConfig;
+	public static synthetic fun copy$default (Lcom/logan/flowbus/core/FlowBusChannelConfig;Ljava/lang/Integer;Lkotlinx/coroutines/channels/BufferOverflow;Ljava/lang/Integer;Ljava/lang/Integer;Lkotlinx/coroutines/channels/BufferOverflow;ILjava/lang/Object;)Lcom/logan/flowbus/core/FlowBusChannelConfig;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getNormalBufferCapacity ()Ljava/lang/Integer;
+	public final fun getNormalOverflowPolicy ()Lkotlinx/coroutines/channels/BufferOverflow;
+	public final fun getStickyExtraBufferCapacity ()Ljava/lang/Integer;
+	public final fun getStickyOverflowPolicy ()Lkotlinx/coroutines/channels/BufferOverflow;
+	public final fun getStickyReplay ()Ljava/lang/Integer;
+	public fun hashCode ()I
+	public fun toString ()Ljava/lang/String;
 }
 
 public final class com/logan/flowbus/core/FlowBusCloseOutcome : java/lang/Enum {
@@ -432,6 +454,7 @@ public final class com/logan/flowbus/core/FlowBusScope : com/logan/flowbus/core/
 	public static synthetic fun collectStickySuspending$default (Lcom/logan/flowbus/core/FlowBusScope;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun collectSuspending (Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun collectSuspending$default (Lcom/logan/flowbus/core/FlowBusScope;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun configureChannel (Lcom/logan/flowbus/core/EventKey;Lcom/logan/flowbus/core/FlowBusChannelConfig;)V
 	public final fun consumeStickyLatest (Lcom/logan/flowbus/core/EventKey;)Ljava/lang/Object;
 	public final fun emit (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun emitSticky (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -504,6 +527,7 @@ public final class com/logan/flowbus/core/ScopedFlowBus {
 	public static synthetic fun collectStickySuspending$default (Lcom/logan/flowbus/core/ScopedFlowBus;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
 	public final fun collectSuspending (Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun collectSuspending$default (Lcom/logan/flowbus/core/ScopedFlowBus;Lcom/logan/flowbus/core/EventKey;Lkotlinx/coroutines/CoroutineDispatcher;Lkotlin/jvm/functions/Function2;Lkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;
+	public final fun configureChannel (Lcom/logan/flowbus/core/EventKey;Lcom/logan/flowbus/core/FlowBusChannelConfig;)V
 	public final fun consumeStickyLatest (Lcom/logan/flowbus/core/EventKey;)Ljava/lang/Object;
 	public final fun emit (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public final fun emitSticky (Lcom/logan/flowbus/core/EventKey;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;

@@ -1,18 +1,23 @@
 # 支持与提问
 
+[English](docs/en/support.md) · [文档索引](docs/README.md)
+
 FlowBus 是开源项目，维护者会优先处理可复现、信息完整、影响清晰的问题。使用问题、Bug 报告和功能建议都可以通过 GitHub Issues 提交。
 
 ## 提问前检查
 
-1. 已阅读根目录 `README.md`、`TROUBLESHOOTING.md`，以及相关模块文档。2. 已确认正在使用最新可用版本，或说明了当前无法升级的原因。3. 已在最小示例中复现问题，或说明问题只在特定业务工程中出现。4. 已删除日志中的 token、密钥、手机号、邮箱、订单号等敏感信息。
+1. 已阅读根目录 `README.md`、`TROUBLESHOOTING.md`，以及相关模块文档。
+2. 已确认正在使用最新可用版本，或说明了当前无法升级的原因。
+3. 已在最小示例中复现问题，或说明问题只在特定业务工程中出现。
+4. 已删除日志中的 token、密钥、手机号、邮箱、订单号等敏感信息。
 
 ## 选择提问位置
 
 | 场景 | 建议入口 |
 | --- | --- |
-| Android 接入层、Demo、主仓库构建问题 | `https://github.com/logan0817/FlowBus/issues` |
-| `flowbus-core` 平台无关能力问题 | `https://github.com/logan0817/FlowBus/issues` |
-| 疑似安全漏洞 | 先看 `SECURITY.md`，不要公开可利用细节 |
+| Android 接入层、Demo、主仓库构建问题 | [GitHub Issues](https://github.com/logan0817/FlowBus/issues) |
+| `flowbus-core` 平台无关能力问题 | [GitHub Issues](https://github.com/logan0817/FlowBus/issues) |
+| 疑似安全漏洞 | 先看[安全策略](SECURITY.md)，不要公开可利用细节 |
 | 行为准则或隐私相关问题 | 发送邮件至 `notwalnut@163.com`，不要公开个人隐私或争议细节 |
 
 ## Issue 信息模板
@@ -51,4 +56,6 @@ AGP：
 
 ## 响应预期
 
-1. 信息完整的问题会更快进入排查。2. 缺少复现路径的问题，维护者可能会先请求补充信息。3. 与 FlowBus 无关的业务代码问题，维护者只能给出有限建议。
+1. 信息完整的问题会更快进入排查。
+2. 缺少复现路径的问题，维护者可能会先请求补充信息。
+3. 与 FlowBus 无关的业务代码问题，维护者只能给出有限建议。

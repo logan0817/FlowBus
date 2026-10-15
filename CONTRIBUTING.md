@@ -1,5 +1,7 @@
 # 贡献指南
 
+[English](docs/en/contributing.md) · [文档索引](docs/README.md)
+
 感谢参与 FlowBus。这个仓库直接维护 `flowbus-core`、`library-android` 和 `app`，提交前请保持改动小而清楚，避免把无关重构、文档整理和功能改动混在同一个 PR 里。
 
 ## 环境要求
@@ -19,7 +21,7 @@ git clone https://github.com/logan0817/FlowBus.git
 cd FlowBus
 ```
 
-`flowbus-core` 已经是主仓内目录，不再需要 `git submodule update`。
+所有模块均在主仓内维护，无需初始化子模块。
 
 ## 本地验证
 
@@ -57,8 +59,8 @@ macOS / Linux：
 | --- | --- |
 | verifyMavenLocalArtifacts | JAR/AAR、POM/module metadata、公开依赖 scope、sources/javadoc、license/developer |
 | verifyMavenLocalCoreConsumer | 候选 core Kotlin/Java 编译与指定 JVM 运行 |
-| [verifyMavenLocalBinaryCoreConsumer](compatibility/core-binary-consumer/README.md) | 原版 1.0.7 编译、同一字节码在原版/候选运行、稳定 JVM 符号 |
-| [verifyMavenLocalConsumer](compatibility/android-consumer/README.md) | 普通 Android release R8、设备四阶段、Android AAR 公开符号 |
+| [verifyMavenLocalBinaryCoreConsumer](compatibility/core-binary-consumer/README.md) | 原版 1.0.7 / 1.1.0 编译、同一字节码在原版/候选运行、稳定 JVM 符号 |
+| [verifyMavenLocalConsumer](compatibility/android-consumer/README.md) | 普通 Android release R8、设备六组验收、Android AAR 公开符号 |
 | [verifyMavenLocalComposeConsumer](compatibility/compose-consumer/README.md) | 独立 Compose release R8、effect 与错误/取消设备自检 |
 | [可选 Navigation](compatibility/navigation-consumer/README.md) / [实际 NavHost](compatibility/navhost-consumer/README.md) | 返回栈、动画生命周期阈值与 Activity 配置重建 |
 
@@ -70,13 +72,13 @@ macOS / Linux：
 ./gradlew :flowbus-core:verifyCoreRuntime -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8
 ```
 
-Kotlin 参数只选择 core/普通 Android 消费者编译器，不用于 Compose compiler 配对。已测组合、实际依赖解析和未认证范围统一见[兼容性评估](docs/next-version-plan.md#兼容性评估)。
+Kotlin 参数只选择 core/普通 Android 消费者编译器，不用于 Compose compiler 配对。已测组合、实际依赖解析和未认证范围统一见[兼容性评估](docs/compatibility.md)。
 
 设备测试使用 :library-android:connectedDebugAndroidTest 与 :app:connectedReleaseAndroidTest，必须与 UI driver 串行。driver 要求当前 runId 日志、同包 UI 与全部阶段一致；mock 不替代设备执行。API 21 与远端 CI 仍为发布门禁，不能从 API 24 结果推导通过。完整环境和签名步骤见[发布清单](docs/release-checklist.md)。
 
 ## PR 要求
 
-1. PR 标题说明改动范围，例如 `core: fix scope close cleanup` 或 `docs: update quick start`。
+1. PR 标题说明最终改动，例如 `fix(core): 修复 scope 关闭后的清理竞态` 或 `docs: 整理入门指南`。
 2. PR 描述包含目的、主要改动、验证命令和结果。
 3. 涉及行为变化时补充测试或说明无法补测的原因。
 4. 涉及公开 API、依赖版本或使用方式时同步更新 README、README_EN、KDoc、API 基线和发布说明。
@@ -89,3 +91,38 @@ Kotlin 参数只选择 core/普通 Android 消费者编译器，不用于 Compos
 2. Android 相关改动优先放在 `library-android` 或 `app`，平台无关逻辑优先放在 `flowbus-core`。
 3. 中文文档保持简洁，中文与英文、数字之间保留空格。
 4. 示例代码优先给出可直接复制运行的最小片段。
+
+## 命名与文档维护
+
+- 新分支按 `<type>/<short-description>` 命名，例如 `fix/scope-cleanup`、`docs/release-guides`；已有候选分支不为统一形式而重命名。
+- 提交标题使用 `<type>(<scope>): <中文简述>`，scope 可省略；正文说明实际变更和验证。常用 type 为 `feat`、`fix`、`docs`、`test`、`build`、`ci`、`refactor`、`perf`。
+- 不在分支、文件、提交或 PR 名称中加入与功能无关的执行工具或模型身份。
+- 文档命名与双语组织见[文档约定](docs/README.md#文档约定)。根 README 负责选型与入门，模块 README 负责功能用法，兼容性矩阵统一维护，发布说明保存版本变化和受测提交，发布清单维护操作流程。
+- 调整文档位置或标题时检查相对链接、锚点和双语入口。安装示例保持最新已发布版本，新 API 显式标注起始版本；正式发布后再同步版本状态。
+
+<a id="candidate-builds"></a>
+
+## 本地体验候选版本
+
+当前分支目标为 1.2.0，尚未发布到 Maven Central。在仓库根目录执行：
+
+```bash
+./gradlew publishToMavenLocal "-Dmaven.repo.local=$PWD/build/candidate-maven"
+```
+
+在消费者的依赖仓库中加入候选目录，并仅将本项目 group 指向该目录，避免解析到远端旧制品：
+
+```kotlin
+repositories {
+    exclusiveContent {
+        forRepository {
+            maven { url = uri("/absolute/path/to/FlowBus/build/candidate-maven") }
+        }
+        filter { includeGroup("io.github.logan0817") }
+    }
+    mavenCentral()
+    google() // Android 消费者
+}
+```
+
+Android 使用 `implementation("io.github.logan0817:flowbus:1.2.0")`；纯 JVM 使用 `implementation("io.github.logan0817:flowbus-core:1.2.0")`。若使用集中仓库管理，将仓库配置放入消费者 `settings.gradle.kts` 的 `dependencyResolutionManagement.repositories`。不要把本地候选安装成功当作正式发布或完整设备验收。

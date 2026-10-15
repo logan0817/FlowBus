@@ -39,7 +39,7 @@ Normal events without subscribers are not retained; registration does not establ
 
 ## Compatibility and verification
 
-Base settings remain Kotlin 1.9.25, Coroutines 1.8.1, Lifecycle 2.6.2, AGP 8.6.1, Gradle 8.7, build JDK 17, Java 8 bytecode, and minSdk 21 / compileSdk 35 / targetSdk 35. See the [compatibility assessment](next-version-plan.md#compatibility-assessment) for tested combinations and actual resolution.
+Base settings remain Kotlin 1.9.25, Coroutines 1.8.1, Lifecycle 2.6.2, AGP 8.6.1, Gradle 8.7, build JDK 17, Java 8 bytecode, and minSdk 21 / compileSdk 35 / targetSdk 35. See the [compatibility assessment](compatibility.md) for tested combinations and actual resolution.
 
 Gates include apiCheck, JVM tests, release lint/R8, POM/module metadata, license/developer, verifyMavenLocalArtifacts, verifyMavenLocalCoreConsumer, verifyMavenLocalBinaryCoreConsumer, verifyMavenLocalConsumer, and the independent Compose consumer. Device tasks are :library-android:connectedDebugAndroidTest and :app:connectedReleaseAndroidTest; the sample uses release R8.
 

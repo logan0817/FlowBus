@@ -1,6 +1,8 @@
 package com.logan.flowbus.compatibility
 
 import com.logan.flowbus.core.FlowBus
+import com.logan.flowbus.core.FlowBusChannelConfig
+import kotlinx.coroutines.channels.BufferOverflow
 import com.logan.flowbus.core.collectSuspendingOn
 import com.logan.flowbus.core.collectStickySuspending
 import com.logan.flowbus.core.collectSuspending
@@ -13,6 +15,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -37,9 +41,45 @@ object CoreRuntimeConsumer {
                 verifyNormalAndSticky()
                 verifyScopedOwnership()
                 verifyCollectorsAndChannel()
+                verifyChannelConfig()
             }
         }
         println("Core consumer passed on Java $runtimeVersion")
+    }
+
+    private suspend fun verifyChannelConfig() = coroutineScope {
+        val bus = FlowBus()
+        val key = eventKey<Int>("consumer.config")
+        val config = FlowBusChannelConfig(
+            normalBufferCapacity = 0,
+            normalOverflowPolicy = BufferOverflow.SUSPEND,
+            stickyReplay = 2,
+            stickyOverflowPolicy = BufferOverflow.DROP_LATEST
+        )
+        bus.configureChannel(key, config)
+        bus.configureChannel(key, config)
+        val normal = async(start = CoroutineStart.UNDISPATCHED) { bus.flow(key).first() }
+        try {
+            check(!bus.post(key, 1))
+            bus.emit(key, 2)
+            check(normal.await() == 2)
+            check(bus.tryPostResult(key, 3).overflowPolicy == BufferOverflow.SUSPEND)
+            bus.postSticky(key, 4)
+            bus.postSticky(key, 5)
+            check(bus.stickyFlow(key).take(2).toList() == listOf(4, 5))
+            check(bus.tryPostStickyResult(key, 6).overflowPolicy == BufferOverflow.DROP_LATEST)
+        } finally {
+            normal.cancelAndJoin()
+        }
+        val scope = bus.openScope("consumer.config.scope")
+        scope.configureChannel(key, config)
+        scope.closeSuspending()
+        val reopened = bus.openScope(scope.scopeName)
+        try {
+            check(reopened.tryPostResult(key, 7).overflowPolicy == BufferOverflow.DROP_OLDEST)
+        } finally {
+            reopened.close()
+        }
     }
 
     private suspend fun verifyNormalAndSticky() = coroutineScope {

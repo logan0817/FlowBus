@@ -15,6 +15,11 @@ class ScopedFlowBus internal constructor(
     private val removeScopeAction: (String) -> Unit,
     private val configProvider: () -> FlowBusConfig = { FlowBusConfig() }
 ) {
+    /** 绑定当前 store 的通道策略；同名 store 重建后需重新配置。 */
+    fun <T : Any> configureChannel(key: EventKey<T>, config: FlowBusChannelConfig) {
+        storeProvider(scopeName).configureChannel(key, config)
+    }
+
     /**
      * 尝试向当前 scoped bus 发送普通事件。
      */

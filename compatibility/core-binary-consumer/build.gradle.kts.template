@@ -22,7 +22,7 @@ val releasedCore = configurations.create("releasedCore") {
     isTransitive = false
 }
 dependencies {
-    releasedCore("@GROUP@:flowbus-core:1.0.7")
+    releasedCore("@GROUP@:flowbus-core:@BASELINE@")
     implementation(files(releasedCore))
     implementation("org.jetbrains.kotlin:kotlin-stdlib:@STDLIB@")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:@COROUTINES@")
@@ -47,6 +47,7 @@ val runReleased = tasks.register<JavaExec>("runReleased") {
     doFirst {
         layout.buildDirectory.file("reports/binary-compatibility.json").get().asFile.delete()
         val released = releasedCore.singleFile.canonicalFile
+        check(sha256(released) == "@BASELINE_SHA256@") { "Published baseline digest changed." }
         check(candidateJar.isFile) { "Missing candidate JAR: $candidateJar" }
         check(sha256(released) != sha256(candidateJar)) { "Original and candidate must differ." }
         val classes = compiledClasses()
@@ -72,7 +73,7 @@ val runCandidate = tasks.register<JavaExec>("runCandidate") {
         val report = layout.buildDirectory.file("reports/binary-compatibility.json").get().asFile
         report.parentFile.mkdirs()
         report.writeText(JsonOutput.prettyPrint(JsonOutput.toJson(mapOf(
-            "baselineCoordinate" to "@GROUP@:flowbus-core:1.0.7",
+            "baselineCoordinate" to "@GROUP@:flowbus-core:@BASELINE@",
             "baselineJar" to releasedCore.singleFile.canonicalPath,
             "baselineSha256" to sha256(releasedCore.singleFile),
             "candidateJar" to candidateJar.canonicalPath,

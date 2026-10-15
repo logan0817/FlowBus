@@ -52,6 +52,8 @@ def run_self_check(description, *, package, activity, tag, phases, report_dir, e
         logs = adb("logcat", "-d", "-v", "brief", "-s", tag + ":I", "AndroidRuntime:E")
         (report / "current.log").write_text(logs)
         if f"FAIL runId={run_id}" in logs:
+            # 将失败时的本次日志直接保留在 CI step 输出中，避免只能看到报告目录而无法定位失败阶段。
+            print(logs, end="" if logs.endswith("\n") else "\n", flush=True)
             raise AssertionError(f"本次设备自检失败，证据见 {report}")
         if expected in logs:
             # 使用 shell 临时目录，避免旧模拟器依赖共享存储；runId 隔离旧层级文件。

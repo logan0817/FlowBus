@@ -6,11 +6,17 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
+import androidx.lifecycle.lifecycleScope
 import com.logan.flowbus.collectEvent
+import com.logan.flowbus.configureEventChannel
 import com.logan.flowbus.eventChannel
-import com.logan.flowbus.flow
-import com.logan.flowbus.post
+import com.logan.flowbus.emitTo
+import com.logan.flowbus.flowFrom
+import com.logan.flowbus.postTo
+import com.logan.flowbus.core.FlowBusChannelConfig
 import com.logan.flowbusapp.databinding.ActivityChannelCaseBinding
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -31,8 +37,19 @@ class ChannelCaseActivity : AppCompatActivity() {
         setContentView(binding.root)
         setupInsets()
         renderInitialState()
+        configureChannels()
         setListeners()
         subscribeChannels()
+    }
+
+    private fun configureChannels() {
+        // 配置绑定到 Activity 的 ViewModelStore；配置重建重复绑定同值，不延长到进程全局。
+        configureEventChannel(toastChannel, FlowBusChannelConfig(normalBufferCapacity = 1), owner = this)
+        configureEventChannel(
+            navigationChannel,
+            FlowBusChannelConfig(normalBufferCapacity = 16, normalOverflowPolicy = BufferOverflow.SUSPEND),
+            owner = this
+        )
     }
 
     private fun setupInsets() {
@@ -54,24 +71,26 @@ class ChannelCaseActivity : AppCompatActivity() {
 
     private fun setListeners() {
         binding.btnSendToastCommand.setOnClickListener {
-            toastChannel.post(getString(R.string.channel_case_toast_payload))
+            toastChannel.postTo(this, getString(R.string.channel_case_toast_payload))
         }
         binding.btnSendNavigationCommand.setOnClickListener {
-            navigationChannel.post(getString(R.string.channel_case_navigation_payload))
+            lifecycleScope.launch {
+                navigationChannel.emitTo(this@ChannelCaseActivity, getString(R.string.channel_case_navigation_payload))
+            }
         }
         binding.btnSendSnackbarCommand.setOnClickListener {
-            snackbarChannel.post(getString(R.string.channel_case_snackbar_payload))
+            snackbarChannel.postTo(this, getString(R.string.channel_case_snackbar_payload))
         }
     }
 
     private fun subscribeChannels() {
-        collectEvent(toastChannel.flow()) {
+        collectEvent(toastChannel.flowFrom(this)) {
             binding.tvToastChannelLog.text = withTimestamp(getString(R.string.channel_case_toast_result))
         }
-        collectEvent(navigationChannel.flow()) {
+        collectEvent(navigationChannel.flowFrom(this)) {
             binding.tvNavigationChannelLog.text = withTimestamp(getString(R.string.channel_case_navigation_result))
         }
-        collectEvent(snackbarChannel.flow()) {
+        collectEvent(snackbarChannel.flowFrom(this)) {
             binding.tvSnackbarChannelLog.text = withTimestamp(getString(R.string.channel_case_snackbar_result))
         }
     }

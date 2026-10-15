@@ -36,10 +36,10 @@ class VerifyDeviceTest(unittest.TestCase):
             if args[0] == "logcat":
                 self.assertFalse(any(value.startswith("--pid") for value in args))
                 if scenario == "stale":
-                    return "PASS API=21 checks=4 runId=previous-run"
+                    return "PASS API=21 checks=6 runId=previous-run"
                 if scenario == "failed":
                     return f"FAIL runId={run_id} completed=legacy-android"
-                return f"PASS API=21 checks=4 runId={run_id}"
+                return f"PASS API=21 checks=6 runId={run_id}"
             if args[:3] == ["shell", "uiautomator", "dump"]:
                 self.assertEqual(args[-1], f"/data/local/tmp/flowbus-flowbusconsumer-{run_id}.xml")
                 if scenario == "dump-command-failed":
@@ -53,8 +53,8 @@ class VerifyDeviceTest(unittest.TestCase):
                     return "cat: No such file or directory"
                 root = ET.Element("hierarchy")
                 text = chr(10).join([
-                    f"PASS API=21 checks=4 runId={run_id}", "normal-sticky-scope",
-                    "legacy-android", "owner-suspending", "explicit-lifecycle",
+                    f"PASS API=21 checks=6 runId={run_id}", "normal-sticky-scope",
+                    "legacy-android", "owner-suspending", "explicit-lifecycle", "channel-config", "binary-1.1.0-android",
                 ])
                 package = "another.application" if scenario == "wrong-ui" else "com.logan.flowbus.consumer"
                 ET.SubElement(root, "node", package=package, text=text)

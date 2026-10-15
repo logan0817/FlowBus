@@ -22,7 +22,7 @@ python3 -B compatibility/core-binary-consumer/verify_symbols.py \
 python3 -B -m unittest discover -s compatibility/core-binary-consumer -p '*_test.py' -v
 ```
 
-The task publishes the 1.1.0 candidate to the selected local repository, without remote publication. The baseline is the non-transitive original io.github.logan0817:flowbus-core:1.0.7 from Maven Central. Candidate execution uses an absolute JAR path; local artifacts must never be used as the published baseline.
+The task publishes the 1.2.0 candidate to the selected local repository, without remote publication. The baseline is the non-transitive original io.github.logan0817:flowbus-core:1.0.7 from Maven Central. Candidate execution uses an absolute JAR path; local artifacts must never be used as the published baseline.
 
 The generated build/maven-local-binary-core-consumer compiles only against the original core, baseline stdlib, and Coroutines. Candidate execution removes the original core from its classpath. Both executions verify the actual FlowBus codeSource. JAR hashes must differ, and consumer class hashes must remain unchanged across execution. A failed runtime verification does not retain an earlier successful runtime report.
 
@@ -39,3 +39,7 @@ The script accepts --baseline-artifact and --candidate-artifact for direct JAR/A
 Optional --baseline-api-snapshot limits the supported API gate to an original binary-compatibility-validator snapshot, first verified against actual original bytecode. Raw JVM differences remain in otherJvmRemovals, including internal changes. The snapshot must belong to the original release, rather than the current module with candidate additions. Without a snapshot, all included descriptors must remain; the existing core runtime-report command retains this behavior.
 
 This is not full ABI certification: visibility, inheritance, interface implementation, Android AAR binary replacement, all public API behavior, arbitrary dependency versions, and other toolchains are outside the symbol check. Unexecuted inline paths have no runtime evidence. Verify API 21 device checks and remote CI against the final commit through the [release checklist](../../docs/en/release-checklist.md). Base dependencies remain unchanged; 1.1.0 was published on 2026-10-12.
+
+## 1.1.0 baseline
+
+Repeat verifyMavenLocalBinaryCoreConsumer with -Pflowbus.consumer.baselineVersion=1.1.0. The version-specific fixture additionally executes suspend callbacks on root/shared/owned sources and channel adapters, plus Java FlowBusConfig constructor/component/copy descriptors. baselines.json pins the original Central JAR SHA-256. The unchanged-bytecode runtime report is build/maven-local-binary-core-consumer-1.1.0/build/reports/binary-compatibility.json; pass that path to verify_symbols.py. The default still preserves 1.0.7 regression coverage. Current local candidate is 1.2.0, not yet published. Android old-bytecode runtime coverage is documented in the Android consumer README.

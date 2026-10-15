@@ -12,7 +12,7 @@ def main():
     verification.run_self_check(
         __doc__, package="com.logan.flowbus.consumer", activity="ConsumerActivity",
         tag="FlowBusConsumer", timeout=30, report_dir="build/android-consumer-device",
-        phases=("normal-sticky-scope", "legacy-android", "owner-suspending", "explicit-lifecycle"),
+        phases=("normal-sticky-scope", "legacy-android", "owner-suspending", "explicit-lifecycle", "channel-config", "binary-1.1.0-android"),
     )
 
 

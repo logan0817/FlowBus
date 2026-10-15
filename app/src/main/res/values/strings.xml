@@ -105,7 +105,7 @@
     <string name="channel_case_intro_when">When to use it: when toast messages, navigation commands, and page-only tips share the same data shape but must never flow through the same stream.</string>
     <string name="channel_case_intro_demo">What this page shows: tap different buttons and only the matching result area updates, so the boundary of “same type, different channel” is obvious.</string>
     <string name="channel_case_channel_list_title">Predefined channels</string>
-    <string name="channel_case_channel_list_desc">`ui.toast` is for one-shot feedback, `ui.navigation` is for route commands, and `ui.snackbar` is for page-only tips.</string>
+    <string name="channel_case_channel_list_desc">`ui.toast` keeps one pending message and drops older feedback; `ui.navigation` uses a 16-message buffer with SUSPEND; `ui.snackbar` inherits defaults. All three belong to this Activity.</string>
     <string name="channel_case_toast_title">Channel: toast</string>
     <string name="channel_case_toast_action">Send Toast message</string>
     <string name="channel_case_toast_waiting">Toast panel: Waiting for a toast message</string>
@@ -121,8 +121,8 @@
     <string name="channel_case_snackbar_waiting">Page tip panel: Waiting for a page-only tip</string>
     <string name="channel_case_snackbar_result">Page tip panel: Inline tip received</string>
     <string name="channel_case_snackbar_payload">Snackbar: Draft saved locally</string>
-    <string name="channel_case_compare_hint">If you only use raw String events, toast, navigation, and page tips are easy to mix together. Named channels keep the type the same while separating intent.</string>
-    <string name="channel_case_code">Smallest useful code\nval toastChannel = eventChannel&lt;String&gt;(\"ui.toast\")\ntoastChannel.post(\"Saved\")\ncollectEvent(toastChannel.flow()) {\n    showToast(it)\n}</string>
+    <string name="channel_case_compare_hint">Configure each channel before first use. Toast feedback may drop old values; navigation uses suspend emission to apply backpressure to active collectors. Neither policy retains ordinary events while the page is inactive. The Activity owns the bus; page destruction cancels collection.</string>
+    <string name="channel_case_code">Configure before collecting\nconfigureEventChannel(toastChannel,\n    FlowBusChannelConfig(normalBufferCapacity = 1), owner = this)\ncollectEvent(toastChannel.flowFrom(this)) { showToast(it) }\n// Send from an active-page user action:\ntoastChannel.postTo(this, \"Saved\")</string>
     <string name="channel_case_anti_pattern">Do not throw toast messages, navigation commands, and page tips into one raw String event just because it feels faster today. The moment receivers grow, the branching logic becomes messy and meanings start to leak together.</string>
     <string name="non_ui_case_title">Non-UI flow</string>
     <string name="non_ui_case_desc">This case shows how ViewModel, Repository, and Worker can notify the page without calling the page directly.</string>

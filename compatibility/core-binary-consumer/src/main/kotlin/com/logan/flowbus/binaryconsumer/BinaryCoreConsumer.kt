@@ -29,6 +29,7 @@ object BinaryCoreConsumer {
                 verifyInlineAndChannelCalls()
                 verifyScopeLifecycle()
                 verifyOldCollectorErrorContract()
+                // @VERSION_SPECIFIC_CHECK@
             }
         }
         val sha = MessageDigest.getInstance("SHA-256").digest(actualJar.readBytes())

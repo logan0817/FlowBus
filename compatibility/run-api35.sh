@@ -10,6 +10,19 @@ preserve_device_state() {
   exit "$test_status"
 }
 trap preserve_device_state EXIT
+python3 - <<'PY'
+import json
+from pathlib import Path
+import subprocess
+properties = {}
+for name in ("ro.build.version.sdk", "ro.build.version.release", "ro.product.cpu.abi", "sys.boot_completed"):
+    properties[name] = subprocess.check_output(
+        ["adb", "-s", "emulator-5554", "shell", "getprop", name], text=True
+    ).strip()
+Path("build/api35-environment/device.json").write_text(json.dumps(properties, indent=2))
+assert properties["ro.build.version.sdk"] == "35", properties
+assert properties["sys.boot_completed"] == "1", properties
+PY
 adb -s emulator-5554 shell input keyevent 224
 adb -s emulator-5554 shell wm dismiss-keyguard
 adb -s emulator-5554 shell settings put global window_animation_scale 0

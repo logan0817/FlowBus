@@ -1,4 +1,4 @@
-Chinese document [中文文档](./README.md)
+[中文](README.md) · [Documentation](docs/en/README.md)
 
 # FlowBus
 
@@ -168,72 +168,47 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 6. `consumeStickyLatestEvent(...)` only reads and clears the current sticky replay. It does not prevent another thread from writing a new sticky value later.
 7. Do not put phone numbers, tokens, order IDs, user IDs, or similar sensitive values into `eventName` or `scopeName` logs.
 
-## 1.1.0 integration APIs
 
-1.1.0 adds suspending callbacks and Android collection from explicit instances while preserving existing APIs. These APIs are available starting with 1.1.0; base dependencies and the minSdk target remain unchanged.
+## 1.2.0 candidate
 
-| Need | API | Behavior |
-| --- | --- | --- |
-| Suspend work in core callbacks | `collectSuspending` / `collectStickySuspending` | sequential per subscription, using the instance's error policy and dispatcher |
-| Android global or owner suspend subscription | `onEventSuspending` | LifecycleOwner / CoroutineScope and reified / channel variants |
-| Collect an injected instance in Android | `collectEventFrom` / `collectEventFromSuspending` | explicit `FlowBus` / `ScopedFlowBus` / `FlowBusScope` and `EventKey`; does not close the source |
-| Generic Flow suspend collection | `collectEventSuspending(flow)` | lifecycle collection with direct exception propagation, without bus error policy |
+1.1.0 is the latest published version. The 1.2.0 candidate adds per-channel buffer and overflow configuration. Its implementation is available on this branch and has not been published to Maven Central.
 
-```kotlin
-viewLifecycleOwner.onEventSuspending<RefreshHomeEvent> { event ->
-    viewModel.refreshSuspending(event.source)
-}
-```
-
-`refreshSuspending` is an application-provided suspend function. Each callback completes before the next starts. Leaving the active lifecycle state requests callback cancellation; business code must cooperate. Restart within the same lifecycle collection waits for the previous callback. Blocking or NonCancellable work cannot be forcibly stopped, and cancellation does not roll back side effects. Slow callbacks still obey existing buffering/overflow policy, and registration does not establish immediate readiness. Select sticky and an explicit instance when latest-value replay or isolation is needed. See [Android integration](library-android/README_EN.md#110-suspend-callbacks-and-instance-integration) and [core suspend collection](flowbus-core/README_EN.md#110-suspend-collection).
-
-Compose has an [independent consumer example](compatibility/compose-consumer/README_EN.md), with optional [Navigation](compatibility/navigation-consumer/README_EN.md) and [actual NavHost](compatibility/navhost-consumer/README_EN.md) verification. These fixtures are excluded from published artifacts and base dependencies. See the [compatibility assessment](docs/en/next-version-plan.md#compatibility-assessment) for tested combinations and limits.
+- [Channel configuration](flowbus-core/README_EN.md#channel-configuration) and [Android owner configuration](library-android/README_EN.md#android-owner-configuration)
+- [Try a local candidate](docs/en/contributing.md#candidate-builds): `io.github.logan0817:flowbus:1.2.0` or `io.github.logan0817:flowbus-core:1.2.0`
+- [Changes, migration, verification, and performance limits](docs/en/release-notes-1.2.0.md)
 
 ## Compatibility and release status
 
-`1.1.0` was published to Maven Central on 2026-10-12, and both coordinates are available. See the [1.1.0 release notes](docs/en/release-notes-1.1.0.md) for changes and the [release checklist](docs/en/release-checklist.md) for verification entry points.
+Android supports API 21+. Published bytecode targets Java 8. The library is built with Kotlin 1.9.25, Coroutines 1.8.1, Lifecycle 2.6.2, AGP 8.6.1, Gradle 8.7, JDK 17, and compileSdk/targetSdk 35. Consumer toolchain requirements and tested combinations are described in the [compatibility guide](docs/en/compatibility.md).
 
-| Item | Version |
-| --- | --- |
-| Kotlin | `1.9.25` |
-| Android Gradle Plugin | `8.6.1` |
-| Gradle | `8.7` |
-| Gradle runtime JDK | `17` |
-| Published bytecode | Java 8 |
-| Android SDK | `minSdk=21`, `compileSdk=35`, `targetSdk=35` |
-
-Release gates:
-
-1. `apiCheck` protects public API compatibility.
-2. `:flowbus-core:test`, `:library-android:testDebugUnitTest`, and `:app:testDebugUnitTest` cover core, Android wrappers, and sample unit tests.
-3. `:library-android:lintRelease`, `:app:lintRelease`, `:app:assembleDebug`, and `:app:assembleRelease` cover library and sample release build quality.
-4. `:library-android:connectedDebugAndroidTest :app:connectedReleaseAndroidTest` covers device regression; the app tests run against release R8/minify.
-5. `verifyMavenLocalArtifacts` validates local Maven artifacts, POM, module metadata, license metadata, and developer metadata.
-6. `verifyMavenLocalCoreConsumer` compiles a real Kotlin/JVM consumer, validating the standalone `flowbus-core` coordinate.
-7. `verifyMavenLocalConsumer` builds a real Android consumer, validating the `flowbus` coordinate and release shrink.
-8. `verifyCentralDeploymentName` checks the project-specific upload batch identity and actual Maven coordinates; `releaseToMavenCentral --dry-run` checks the remote publication task graph. Neither uploads artifacts.
+Use `mavenCentral()` in your dependency repositories. The Android coordinate includes core transitively. There is no published Compose or Navigation module; independent [Compose](compatibility/compose-consumer/README_EN.md), [Navigation](compatibility/navigation-consumer/README_EN.md), and [NavHost](compatibility/navhost-consumer/README_EN.md) consumers demonstrate integration.
 
 ## Documentation map
 
-1. Android integration and full scenarios: [`library-android/README_EN.md`](./library-android/README_EN.md)
-2. Core capabilities, multi-instance usage, and scope lifecycle: [`flowbus-core/README_EN.md`](./flowbus-core/README_EN.md)
-3. Release checklist: [`docs/en/release-checklist.md`](./docs/en/release-checklist.md)
-4. Release notes: [`docs/en/release-notes-1.1.0.md`](./docs/en/release-notes-1.1.0.md)
-5. Version history: [`CHANGELOG.md`](./CHANGELOG.md)
-6. Chinese document: [`README.md`](./README.md)
-7. 1.1.0 scope, compatibility assessment, and future extension conditions: [`docs/en/next-version-plan.md`](./docs/en/next-version-plan.md)
-8. [Core 1.0.7 binary consumer regression](compatibility/core-binary-consumer/README_EN.md): unchanged old consumer bytecode passed Java 8 runs against original and candidate JARs, with additional JVM descriptor checks; this is not full ABI certification.
+| Goal | Guide |
+| --- | --- |
+| Android lifecycle, owners, and configuration | [Android guide](library-android/README_EN.md) |
+| JVM, explicit instances, scope ownership, and diagnostics | [Core guide](flowbus-core/README_EN.md) |
+| Suspend callbacks | [Android](library-android/README_EN.md#suspend-callbacks) / [core](flowbus-core/README_EN.md#suspend-collection) |
+| Troubleshoot delivery, sticky, or builds | [Troubleshooting](TROUBLESHOOTING.md) (Chinese) |
+| Browse releases and maintained documentation | [Documentation index](docs/en/README.md) / [changelog](CHANGELOG.md) |
+| Contribute, report a bug, or report a vulnerability | [Contributing](docs/en/contributing.md) / [support](docs/en/support.md) / [security](docs/en/security.md) |
 
 ## Repository layout
 
+`flowbus-core` is maintained directly in the FlowBus main repository, sharing build, CI, and publication with the Android adapter.
+
 | Directory | Purpose |
 | --- | --- |
-| `flowbus-core` | platform-neutral core module, published as `io.github.logan0817:flowbus-core`; `flowbus-core` is maintained directly in the FlowBus main repository |
-| `library-android` | Android adapter module, published as `io.github.logan0817:flowbus`; it depends on the in-repository `flowbus-core` |
-| `app` | sample app and integration verification entry |
-| `docs` | release checklist and release notes |
-| `gradle/release-publishing.gradle.kts` | Maven local and Maven Central publication entry points |
-| `gradle/release-verification.gradle.kts` | Maven artifact, POM, module metadata, and real consumer checks |
+| `flowbus-core` | Kotlin/JVM core, published as `io.github.logan0817:flowbus-core` |
+| `library-android` | Android adapter, published as `io.github.logan0817:flowbus` |
+| `app` | Sample app and release instrumentation |
+| `compatibility` | Independent consumer fixtures and device verification drivers |
+| `benchmarks/jvm` | JVM benchmarks and measured results |
+| `docs` | Compatibility, release procedure, release notes, and design history |
+| `gradle` | Publication and artifact-verification scripts |
+
+Contributors can start with `./gradlew :flowbus-core:test :library-android:testDebugUnitTest :library-android:lintRelease`. See [contributing](docs/en/contributing.md) and the [release checklist](docs/en/release-checklist.md) for environment setup and the complete gates.
 
 ## Sample app
 
@@ -248,6 +223,4 @@ The sample source lives in the [`app`](./app) module and can be run directly or 
 
 ## License
 
-```text
-MIT License
-```
+[MIT](LICENSE). The core module retains its [copyright notice](flowbus-core/LICENSE). See the [code of conduct](docs/en/code-of-conduct.md) for project participation.

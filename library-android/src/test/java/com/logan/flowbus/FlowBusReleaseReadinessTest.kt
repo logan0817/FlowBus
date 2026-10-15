@@ -137,8 +137,8 @@ class FlowBusReleaseReadinessTest {
     fun `release checklist documents shrink and dependency metadata gates`() {
         val checklist = File("../docs/release-checklist.md").readText()
         val englishChecklist = File("../docs/en/release-checklist.md").readText()
-        val releaseNotes = File("../docs/release-notes-1.1.0.md").readText()
-        val englishReleaseNotes = File("../docs/en/release-notes-1.1.0.md").readText()
+        val releaseNotes = File("../docs/release-notes-1.2.0.md").readText()
+        val englishReleaseNotes = File("../docs/en/release-notes-1.2.0.md").readText()
         val changelog = File("../CHANGELOG.md").readText()
 
         listOf(checklist to "依赖", englishChecklist to "dependency").forEach { (text, dependencyText) ->
@@ -161,8 +161,8 @@ class FlowBusReleaseReadinessTest {
     }
 
     @Test
-    fun `release documentation and versions target 1_1_0`() {
-        val releaseVersion = "1.1.0"
+    fun `release documentation and versions target 1_2_0`() {
+        val releaseVersion = "1.2.0"
         val gradleProperties = File("../gradle.properties").readText()
         val versionCatalog = File("../gradle/libs.versions.toml").readText()
         val rootReadme = File("../README.md").readText()
@@ -173,14 +173,14 @@ class FlowBusReleaseReadinessTest {
         val androidEnglishReadme = File("../library-android/README_EN.md").readText()
         val checklist = File("../docs/release-checklist.md").readText()
         val englishChecklist = File("../docs/en/release-checklist.md").readText()
-        val releaseNotes = File("../docs/release-notes-1.1.0.md").readText()
-        val englishReleaseNotes = File("../docs/en/release-notes-1.1.0.md").readText()
+        val releaseNotes = File("../docs/release-notes-1.2.0.md").readText()
+        val englishReleaseNotes = File("../docs/en/release-notes-1.2.0.md").readText()
         val changelog = File("../CHANGELOG.md").readText()
 
         listOf(
             gradleProperties to "VERSION_NAME=$releaseVersion",
             gradleProperties to "APP_VERSION_NAME=$releaseVersion",
-            gradleProperties to "APP_VERSION_CODE=8",
+            gradleProperties to "APP_VERSION_CODE=9",
             versionCatalog to "flowbus_version = \"$releaseVersion\"",
             rootReadme to "flowbus:$releaseVersion",
             rootReadme to "flowbus-core:$releaseVersion",
@@ -192,9 +192,9 @@ class FlowBusReleaseReadinessTest {
             androidEnglishReadme to "flowbus:$releaseVersion",
             checklist to "VERSION_NAME=$releaseVersion",
             englishChecklist to "VERSION_NAME=$releaseVersion",
-            releaseNotes to "FlowBus 1.1.0",
-            englishReleaseNotes to "FlowBus 1.1.0",
-            changelog to "## 1.1.0"
+            releaseNotes to "FlowBus 1.2.0",
+            englishReleaseNotes to "FlowBus 1.2.0",
+            changelog to "## 1.2.0"
         ).forEach { (text, expected) ->
             assertTrue("Release target must include `$expected`.", text.contains(expected))
         }

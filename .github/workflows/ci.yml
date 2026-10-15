@@ -63,6 +63,7 @@ jobs:
           python3 -B -m unittest discover -s compatibility/compose-consumer -p '*_test.py' -v
           python3 -B -m unittest discover -s compatibility/navigation-consumer -p '*_test.py' -v
           python3 -B -m unittest discover -s compatibility/core-binary-consumer -p '*_test.py' -v
+          python3 -B -m unittest discover -s benchmarks/jvm -p '*_test.py' -v
 
       - name: Check public API compatibility
         run: ./gradlew apiCheck --rerun-tasks --warning-mode=all
@@ -99,6 +100,13 @@ jobs:
             "-Dmaven.repo.local=$PWD/build/candidate-maven" \
             "-Pflowbus.consumer.java=$JAVA_HOME_8_X64/bin/java" -Pflowbus.consumer.expectedJava=1.8 --warning-mode=all
 
+      - name: Check JVM benchmark scenarios and smoke
+        run: |
+          for benchmark_target in baseline candidate shared; do
+            ./gradlew -p benchmarks/jvm selfCheck jmh \
+              "-Pbenchmark.target=$benchmark_target" -Pbenchmark.smoke --warning-mode=all
+          done
+
       - name: Verify unchanged 1.0.7 core consumer bytecode
         run: |
           ./gradlew verifyMavenLocalBinaryCoreConsumer \
@@ -107,6 +115,16 @@ jobs:
           python3 -B compatibility/core-binary-consumer/verify_symbols.py \
             --runtime-report build/maven-local-binary-core-consumer/build/reports/binary-compatibility.json \
             --output build/core-jvm-symbol-verification.json
+
+      - name: Verify unchanged 1.1.0 core consumer bytecode
+        run: |
+          ./gradlew verifyMavenLocalBinaryCoreConsumer \
+            "-Dmaven.repo.local=$PWD/build/candidate-maven" \
+            -Pflowbus.consumer.baselineVersion=1.1.0 \
+            "-Pflowbus.consumer.java=$JAVA_HOME_8_X64/bin/java" -Pflowbus.consumer.expectedJava=1.8 --warning-mode=all
+          python3 -B compatibility/core-binary-consumer/verify_symbols.py \
+            --runtime-report build/maven-local-binary-core-consumer-1.1.0/build/reports/binary-compatibility.json \
+            --output build/core-1.1.0-jvm-symbol-verification.json
 
       - name: Verify published Android JVM symbols
         run: |
@@ -117,9 +135,21 @@ jobs:
           python3 -c 'import hashlib, pathlib; actual = hashlib.sha256(pathlib.Path("build/published-baseline/flowbus-1.0.7.aar").read_bytes()).hexdigest(); assert actual == "84380a3e456285a77133a4535dd4ff69b2eeb85ee516e3a24326411503ff5592", actual'
           python3 -B compatibility/core-binary-consumer/verify_symbols.py \
             --baseline-artifact build/published-baseline/flowbus-1.0.7.aar \
-            --candidate-artifact build/candidate-maven/io/github/logan0817/flowbus/1.1.0/flowbus-1.1.0.aar \
+            --candidate-artifact build/candidate-maven/io/github/logan0817/flowbus/1.2.0/flowbus-1.2.0.aar \
             --baseline-api-snapshot compatibility/android-consumer/api/flowbus-1.0.7.api \
             --output build/android-jvm-symbol-verification.json
+
+      - name: Verify published 1.1.0 Android JVM symbols
+        run: |
+          curl --fail --location --silent --show-error \
+            --output build/published-baseline/flowbus-1.1.0.aar \
+            https://repo.maven.apache.org/maven2/io/github/logan0817/flowbus/1.1.0/flowbus-1.1.0.aar
+          python3 -c 'import hashlib, pathlib; actual = hashlib.sha256(pathlib.Path("build/published-baseline/flowbus-1.1.0.aar").read_bytes()).hexdigest(); assert actual == "bc7eb2750832da36f49f6be797ea76e922b864093b8ff0d3513b41a3f3450b6a", actual'
+          python3 -B compatibility/core-binary-consumer/verify_symbols.py \
+            --baseline-artifact build/published-baseline/flowbus-1.1.0.aar \
+            --candidate-artifact build/candidate-maven/io/github/logan0817/flowbus/1.2.0/flowbus-1.2.0.aar \
+            --baseline-api-snapshot compatibility/android-consumer/api/flowbus-1.1.0.api \
+            --output build/android-1.1.0-jvm-symbol-verification.json
 
       - name: Verify Kotlin consumer compiler matrix
         run: |
@@ -174,8 +204,13 @@ jobs:
             library-android/build/outputs/androidTest-results/
             app/build/outputs/androidTest-results/
             build/maven-local-binary-core-consumer/build/reports/binary-compatibility.json
+            build/maven-local-binary-core-consumer-1.1.0/build/reports/binary-compatibility.json
+            build/core-1.1.0-jvm-symbol-verification.json
             build/core-jvm-symbol-verification.json
             build/android-jvm-symbol-verification.json
+            build/android-1.1.0-jvm-symbol-verification.json
+            build/maven-local-consumer/legacy/build/reports/binary-android-compatibility.txt
+            build/maven-local-consumer/legacy/build/test-results/
             build/api21-environment/
             build/api35-environment/
             build/android-consumer-device/
@@ -183,3 +218,4 @@ jobs:
             build/compose-policies-device/
             build/navigation-device/
             build/navhost-device/
+            benchmarks/jvm/build/reports/

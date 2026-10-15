@@ -1,8 +1,8 @@
-# 1.0.7 core 二进制消费者回归
+# 1.0.7 / 1.1.0 core 二进制消费者回归
 
 [English](README_EN.md)
 
-此 fixture 只调用已发布 1.0.7 的入口。它先用 Maven Central 的原始 core JAR 编译 Kotlin 与 Java 消费者，再将同一批消费者 class 文件分别放到原版和候选 JAR 上运行。它补充“针对候选重新编译”的消费者验证，检查旧 inline、默认参数和直接 Java JVM 调用的链接路径。
+此 fixture 按所选基线调用已发布 1.0.7 或 1.1.0 的入口，默认基线为 1.0.7。它先用 Maven Central 的原始 core JAR 编译 Kotlin 与 Java 消费者，再将同一批消费者 class 文件分别放到原版和候选 JAR 上运行。它补充“针对候选重新编译”的消费者验证，检查旧 inline、默认参数和直接 Java JVM 调用的链接路径。
 
 ## 运行
 
@@ -22,7 +22,7 @@ python3 -B compatibility/core-binary-consumer/verify_symbols.py \
 python3 -B -m unittest discover -s compatibility/core-binary-consumer -p '*_test.py' -v
 ```
 
-Gradle 任务会将 1.1.0 候选发布到指定本地目录，不做远端发布。原版固定为 Maven Central 的 io.github.logan0817:flowbus-core:1.0.7，非传递解析；候选 JAR 按绝对路径加入第二次运行。不能把本地产物当作原版基准。
+Gradle 任务会将 1.2.0 候选发布到指定本地目录，不做远端发布。原版固定为 Maven Central 的 io.github.logan0817:flowbus-core:1.0.7，非传递解析；候选 JAR 按绝对路径加入第二次运行。不能把本地产物当作原版基准。
 
 生成工程为 build/maven-local-binary-core-consumer。消费者编译 classpath 只含原版 core、基线 stdlib 和 Coroutines；运行候选时移除原版 core。两次运行都检查 FlowBus 的实际 codeSource，检查产物摘要不同，并核对消费者 class 摘要在切换前后不变。任务失败时不保留旧的成功 runtime report。
 
@@ -39,3 +39,9 @@ Gradle 任务会将 1.1.0 候选发布到指定本地目录，不做远端发布
 可选 --baseline-api-snapshot 将受支持 API 门禁限定为原版 binary-compatibility-validator 快照；脚本先确认快照符号实际存在于原版字节码，再比较候选。原始 JVM 差异仍保存在 otherJvmRemovals，不因 internal 变化自动消失。该模式的快照必须来自固定原版，不能使用已增加候选 API 的当前模块快照。未指定快照时仍要求全部已纳入比较的描述符保留，core runtime-report 命令不受影响。
 
 这不是完整 ABI 认证：符号检查不判断全部可见性、继承关系或接口实现兼容，也不覆盖 Android AAR 二进制替换、所有公开 API 行为、任意依赖版本及不同工具链。旧消费者中未执行的 inline 路径也没有运行证明。API 21 设备与远端 CI 结果按最终提交核对，入口见[发布清单](../../docs/release-checklist.md)；基础依赖保持不变，1.1.0 已于 2026-10-12 发布。
+
+## 1.1.0 基线
+
+上述 Gradle 命令增加 -Pflowbus.consumer.baselineVersion=1.1.0，保留默认 1.0.7 检查。src-1.1.0 额外实际执行 root/shared/owned 挂起回调、channel 入口，以及 Java FlowBusConfig 无参构造/component/copy 描述符。baselines.json 固定 Central 原版 JAR 摘要；不能用源码重建旧基线。
+
+该版本报告为 build/maven-local-binary-core-consumer-1.1.0/build/reports/binary-compatibility.json，verify_symbols.py 的 --runtime-report 参数相应切换。当前候选为尚未发布的 1.2.0。Android 原版编译的挂起/显式实例运行验证见 [Android 消费者说明](../android-consumer/README.md#110-原版编译的-android-消费者)。

@@ -8,6 +8,8 @@ public final class com/logan/flowbus/CollectEventExtensionKt {
 public final class com/logan/flowbus/EventChannelExtensionKt {
 	public static final fun clearSticky (Lcom/logan/flowbus/core/EventChannel;)V
 	public static final fun clearStickyFrom (Lcom/logan/flowbus/core/EventChannel;Landroidx/lifecycle/ViewModelStoreOwner;)V
+	public static final fun configureEventChannel (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBusChannelConfig;Landroidx/lifecycle/ViewModelStoreOwner;)V
+	public static synthetic fun configureEventChannel$default (Lcom/logan/flowbus/core/EventChannel;Lcom/logan/flowbus/core/FlowBusChannelConfig;Landroidx/lifecycle/ViewModelStoreOwner;ILjava/lang/Object;)V
 	public static final fun consumeStickyLatest (Lcom/logan/flowbus/core/EventChannel;)Ljava/lang/Object;
 	public static final fun consumeStickyLatestFrom (Lcom/logan/flowbus/core/EventChannel;Landroidx/lifecycle/ViewModelStoreOwner;)Ljava/lang/Object;
 	public static final fun emit (Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;JLkotlin/coroutines/Continuation;)Ljava/lang/Object;
@@ -58,6 +60,7 @@ public final class com/logan/flowbus/FlowBusAndroid {
 public final class com/logan/flowbus/FlowEventBus : androidx/lifecycle/ViewModel {
 	public fun <init> ()V
 	public final fun clearStickyEvent (Ljava/lang/String;Lkotlin/reflect/KClass;)V
+	public final fun configureChannel (Lcom/logan/flowbus/core/EventKey;Lcom/logan/flowbus/core/FlowBusChannelConfig;)V
 	public final fun consumeStickyLatestEvent (Ljava/lang/String;Lkotlin/reflect/KClass;)Ljava/lang/Object;
 	public final fun emit (Ljava/lang/String;Ljava/lang/Object;Lkotlin/reflect/KClass;ZJLkotlin/coroutines/Continuation;)Ljava/lang/Object;
 	public static synthetic fun emit$default (Lcom/logan/flowbus/FlowEventBus;Ljava/lang/String;Ljava/lang/Object;Lkotlin/reflect/KClass;ZJLkotlin/coroutines/Continuation;ILjava/lang/Object;)Ljava/lang/Object;

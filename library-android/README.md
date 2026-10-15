@@ -1,6 +1,6 @@
-英文文档 [English Document](./README_EN.md)
+[English](README_EN.md) · [文档索引](../docs/README.md)
 
-# library-android
+# FlowBus Android
 
 `library-android` 是 FlowBus 的 Android 适配模块。
 
@@ -13,6 +13,13 @@ implementation("io.github.logan0817:flowbus:1.1.0")
 ```
 
 如果你是 Android 项目接入 FlowBus，通常就从这个模块开始，不需要先研究 `flowbus-core`。
+
+## 阅读导航
+
+- [快速开始](#3-分钟上手) · [API 选择](#api-选择矩阵)
+- [owner 配置](#android-owner-configuration) · [挂起回调与实例接入](#suspend-callbacks)
+- [sticky](#sticky-与-replay) · [全局默认配置](#可选配置)
+- [兼容性](../docs/compatibility.md) · [排障](../TROUBLESHOOTING.md)
 
 ## 功能点
 
@@ -72,7 +79,9 @@ postEvent(RefreshHomeEvent(source = "login"))
 
 看到这里就已经可以开始用了：1. 发送：`postEvent(...)`。2. 接收：`onEvent<T> { ... }`。3. 如果要限制在某个 Activity / Fragment / NavBackStackEntry 作用域内，再用 `owner` 版本。
 
-## 先记住这 7 句话
+<a id="先记住这-7-句话"></a>
+
+## 使用约定
 
 1. `postEvent(...)` / `emitEvent(...)` 发的是全局事件，整个 app 都能订阅。
 2. `postEventTo(owner, ...)` / `owner.postScopedEvent(...)` 发的是局部事件，只在这个 `owner` 对应的总线里流动。
@@ -82,7 +91,9 @@ postEvent(RefreshHomeEvent(source = "login"))
 6. `emit*` 遵循既定溢出策略；`SUSPEND` 且存在活跃订阅者时可背压，不保证普通事件留存、业务成功或进程死亡后恢复。
 7. `onEvent(...)` 是推荐的 UI 最短路径；`collectEvent(flow)` 更适合你已经拿到了 `Flow`。
 
-## 为什么文档常写 `onEvent(...)`，示例里有时会写 `collectEvent(eventFlow(...))`
+<a id="为什么文档常写-onevent示例里有时会写-collecteventeventflow"></a>
+
+## 订阅入口与 Flow 组合
 
 这两个写法不是对立关系，而是同一套能力的两个入口层级：
 
@@ -124,7 +135,9 @@ viewLifecycleOwner.collectEvent(requireActivity().scopedEventFlow<ReloadToolbarE
 2. 你还想自己做 `map`、`filter`、`debounce`、`combine`，就用 `eventFlow(...) + collectEvent(...)`
 3. 示例同时出现这两种写法，是为了把“最短路径”和“先拿 Flow 再组合”都演示出来，不代表它们的事件来源不同
 
-## 最常见的 4 个使用场景
+<a id="最常见的-4-个使用场景"></a>
+
+## 常用场景
 
 ### 场景 1：全局广播，一个事件多个地方都能收到
 
@@ -275,7 +288,9 @@ viewLifecycleOwner.onEvent<UploadFinishedEvent>(from = requireActivity()) { even
 | 按配置进行挂起发送 | `emitEvent(...)` / `emitStickyEvent(...)` | 是 | 全局或 owner | 普通 / sticky 都可用 | `SUSPEND` 且存在活跃订阅者时可背压；丢弃策略仍生效 |
 | 一次性读取 sticky 最新值 | `consumeStickyLatestEvent(...)` / `channel.consumeStickyLatest()` | 否 | 全局或 owner | 读取后清空 | 返回最新值；没有 replay 时返回 `null` |
 
-## 发送 API 怎么选
+<a id="发送-api-怎么选"></a>
+
+## 发送 API
 
 | API | 是否挂起 | 是否支持延迟 | 返回值 | 推荐场景 | 风险边界 |
 | --- | --- | --- | --- | --- | --- |
@@ -315,7 +330,9 @@ toastChannel.post("保存成功")
 toastChannel.postTo(requireActivity(), "保存成功")
 ```
 
-## 接收 API 怎么选
+<a id="接收-api-怎么选"></a>
+
+## 接收 API
 
 | 场景 | 推荐 API | 生命周期托管 | 是否直接拿到 `Flow` | sticky 支持 | 推荐理由 |
 | --- | --- | --- | --- | --- | --- |
@@ -365,7 +382,9 @@ viewLifecycleOwner.collectEvent(toastChannel.flow()) { message ->
 }
 ```
 
-## `postEvent` 和 `emitEvent` 到底有什么区别
+<a id="postevent-和-emitevent-到底有什么区别"></a>
+
+## 发送语义
 
 | 维度 | `postEvent(...)` | `tryPostEvent(...)` | `tryPostEventResult(...)` | `emitEvent(...)` |
 | --- | --- | --- | --- | --- |
@@ -379,7 +398,9 @@ viewLifecycleOwner.collectEvent(toastChannel.flow()) { message ->
 
 `emitEvent(...)` 不会覆盖配置的溢出策略。`SUSPEND` 且存在活跃订阅者时可以通过挂起施加背压；`DROP_OLDEST` 仍可能丢旧值，`DROP_LATEST` 仍可能丢本次实时值。普通事件无人订阅时立即完成，不为未来订阅者保留；返回也不等于订阅者业务处理完成。必须恢复或可靠完成的操作应使用业务状态、数据库或持久化任务机制。
 
-## sticky event 什么时候该用
+<a id="sticky-event-什么时候该用"></a>
+
+## sticky 与 replay
 
 sticky event 的核心语义是“事件发出后保留最近值，后来订阅的人也能先拿到这个值”。
 
@@ -428,7 +449,9 @@ val channelEvent = sessionReadyChannel.consumeStickyLatest()
 
 这类 API 只读取当前 sticky replay 中的最新值，然后清掉 replay 缓存。它不消费普通事件，也不会阻止其他线程后续写入新的 sticky 值，因此不适合替代 `StateFlow` 做长期状态。
 
-## 事件类型怎么设计，最容易读也最不容易出错
+<a id="事件类型怎么设计最容易读也最不容易出错"></a>
+
+## 事件建模
 
 推荐顺序：
 
@@ -470,31 +493,50 @@ viewLifecycleOwner.onEvent<MainUiEvent> { event ->
 
 如果你不显式写父类型，Kotlin 可能会把通道推断成具体子类型，这不是 FlowBus 的限制，而是类型推断的自然结果。
 
-## 如果你只想记最短用法，看这里
+<a id="如果你只想记最短用法看这里"></a>
 
-### 全局事件
+<a id="120-候选按通道配置"></a>
+<a id="channel-configuration"></a>
 
-```kotlin
-postEvent(RefreshHomeEvent(source = "login"))
-viewLifecycleOwner.onEvent<RefreshHomeEvent> { render(it) }
-```
+## 按通道配置
 
-### Activity 局部事件
+从 1.2.0 起提供。当前分支为未发布候选，正式 1.1.0 不包含这些 API。[本地体验候选版本](../CONTRIBUTING.md#candidate-builds)可使用 `io.github.logan0817:flowbus-core:1.2.0` 或 `io.github.logan0817:flowbus:1.2.0`；变化与验收记录见[发布说明](../docs/release-notes-1.2.0.md)。
 
-```kotlin
-requireActivity().postScopedEvent(ReloadToolbarEvent)
-viewLifecycleOwner.onEvent<ReloadToolbarEvent>(from = requireActivity()) { renderToolbar() }
-```
+<a id="android-owner-configuration"></a>
 
-### 命名 channel
+### Android owner 配置
 
 ```kotlin
-val toastChannel = eventChannel<String>("ui.toast")
-toastChannel.post("保存成功")
-viewLifecycleOwner.onEvent(toastChannel) { showToast(it) }
+import com.logan.flowbus.configureEventChannel
+import com.logan.flowbus.eventChannel
+import com.logan.flowbus.onEvent
+import com.logan.flowbus.emitTo
+import com.logan.flowbus.core.FlowBusChannelConfig
+import kotlinx.coroutines.channels.BufferOverflow
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+
+val progressChannel = eventChannel<Int>("work.progress")
+// Activity.onCreate 中、首次使用来源之前；owner 的获取必须在主线程。
+configureEventChannel(progressChannel, FlowBusChannelConfig(
+    normalBufferCapacity = 16,
+    normalOverflowPolicy = BufferOverflow.SUSPEND
+), owner = this)
+onEvent(channel = progressChannel, from = this) { progress -> renderProgress(progress) }
+// 后续用户操作、订阅已活跃时发送；renderProgress 由业务提供。
+lifecycleScope.launch { progressChannel.emitTo(this@MyActivity, 10) }
 ```
 
-## 1.1.0 挂起回调与实例接入
+省略 owner 配置全局来源；指定 owner 则配置该 owner 已有的 FlowEventBus。发送与订阅必须使用相同 owner。Activity 重建保留 ViewModelStore 时重复同有效配置幂等，store 真正清理后重新配置。默认 STARTED 阈值、取消和 sticky 重放行为保持不变；SUSPEND 不为 STOP 期间的普通事件离线保存。
+
+显式 FlowEventBus 调用其 configureChannel(key, config)；注入的 core FlowBus/ScopedFlowBus/FlowBusScope 调用实例方法，随后使用 collectEventFrom 或 collectEventFromSuspending。接收方销毁只取消订阅，不关闭注入来源。容量继承、首次绑定/冲突、单通道删除、scope 重建及 inspector 边界详见 [core 配置与迁移说明](../flowbus-core/README.md#120-候选按通道配置)。
+
+从 EventBus/LiveEventBus 迁移时，普通与 sticky 是独立流；显式选择 isSticky，不按同名合并。注册返回 Job 不保证就绪；父类型事件需相同 EventKey<Parent> 或稳定父类型 channel。全局通知优先 postEvent/onEvent，owner 内通信优先稳定 channel + 明确 owner，注入来源优先 collectEventFrom，已有 Flow 组合用 collectEvent，可恢复状态用 StateFlow。默认 Rethrow 仅由总线收集入口应用；通用 Flow 收集直接传播错误。
+
+<a id="110-挂起回调与实例接入"></a>
+<a id="suspend-callbacks"></a>
+
+## 挂起回调与实例接入
 
 下面 API 从 1.1.0 开始提供，旧入口保留。Kotlin、Coroutines、Lifecycle、minSdk 等基础要求不因这些入口提高，不新增 Compose、Hilt 或 Koin 依赖。
 
@@ -591,7 +633,9 @@ Android 模块没有单独做 UI 面板式诊断。
 
 写日志前请确认 `eventName`、`scopeName` 没有包含手机号、token、订单号等敏感值。
 
-## 什么时候再去看 `flowbus-core`
+<a id="什么时候再去看-flowbus-core"></a>
+
+## Core 模块边界
 
 当你有这些需求时，再看 core 文档就够了：
 
@@ -601,7 +645,7 @@ Android 模块没有单独做 UI 面板式诊断。
 4. 需要 `FlowBusScope`、`EventKey`、`DefaultFlowBus` 这些更底层能力
 
 文档入口：
-1. GitHub 地址：[flowbus-core README](https://github.com/logan0817/FlowBus/blob/main/flowbus-core/README.md)
+1. GitHub 地址：[flowbus-core README](../flowbus-core/README.md)
 
 ## 仓库链接
 

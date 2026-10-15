@@ -1,4 +1,6 @@
-# Troubleshooting
+# 排障指南
+
+[项目首页](README.md) · [文档索引](docs/README.md)
 
 ## 1. `gradlew` 无法执行
 
@@ -22,7 +24,7 @@ chmod +x ./gradlew
 
 ## 2. JDK 版本不对
 
-FlowBus 当前使用 Java 17 编译。如果本地 JDK 版本不匹配，Gradle 同步或编译可能失败。
+构建 FlowBus 仓库需要 JDK 17，发布字节码仍为 Java 8。如果本地 JDK 版本不匹配，Gradle 同步或编译可能失败。
 
 可以先检查本地版本：
 
@@ -74,7 +76,7 @@ sticky event 适合“后来订阅的人也应该拿到最近一次值”的场�
 
 sticky replay 与实时广播独立管理。`DROP_LATEST` 下新值可能被实时缓冲丢掉，却仍成为后订阅者的 replay；例如活跃慢订阅者收到 `[1, 2]`，新订阅者先读到 `3`。这是现有契约，replay 不能作为“所有订阅者已接收”的证据。
 
-未发布修订的 scope 关闭等待支持取消：`closeSuspending()` 自己发起关闭、等待在途操作时，禁止新操作但 `isClosed=false`，其他等待关闭返回 `ClosingInProgress`；准备清理前取消且未收到永久关闭请求时会恢复可用。若 `close()` 或生命周期绑定已准备关闭，取消只结束这次等待，句柄和清理都不会回滚。等待期间到达的显式 `close()`、`removeScope()` 或绑定 Job 完成请求都会保留，取消、`tryClose` 超时或线程中断都不会让该 scope 恢复使用或丢失请求。详细边界见 [core README](flowbus-core/README.md#scope-关闭后会发生什么)。
+1.1.0 已发布的 scope 关闭等待支持取消：`closeSuspending()` 自己发起关闭、等待在途操作时，禁止新操作但 `isClosed=false`，其他等待关闭返回 `ClosingInProgress`；准备清理前取消且未收到永久关闭请求时会恢复可用。若 `close()` 或生命周期绑定已准备关闭，取消只结束这次等待，句柄和清理都不会回滚。等待期间到达的显式 `close()`、`removeScope()` 或绑定 Job 完成请求都会保留，取消、`tryClose` 超时或线程中断都不会让该 scope 恢复使用或丢失请求。详细边界见 [core README](flowbus-core/README.md#scope-关闭后会发生什么)。
 
 ## 7. `flowbus-core` 目录缺文件或无法编译
 
@@ -101,7 +103,7 @@ ls flowbus-core
 
 1.0.7 的 core 产物包含 Android API 24 才提供的 `compute`、`computeIfPresent`、`computeIfAbsent` 调用。`minSdk=21` 声明本身不会补齐这些平台方法；普通 D8 转换也不能替代 core library desugaring。
 
-1.1.0 已将这些调用替换为低 API 可用的并发操作与内部同步，不提高 minSdk 或基础依赖要求。最终 main CI 已通过 API 21 库层和未启用 core library desugaring 的 minified Maven 消费者设备验收；使用旧版本遇到该问题时可升级到 1.1.0。已测组合及支持边界见[兼容性评估](docs/next-version-plan.md)。
+1.1.0 已将这些调用替换为低 API 可用的并发操作与内部同步，不提高 minSdk 或基础依赖要求。最终 main CI 已通过 API 21 库层和未启用 core library desugaring 的 minified Maven 消费者设备验收；使用旧版本遇到该问题时可升级到 1.1.0。已测组合及支持边界见[兼容性评估](docs/compatibility.md)。
 
 ## 9. 挂起订阅未收到事件或处理被取消
 
@@ -112,3 +114,11 @@ LifecycleOwner 订阅离开指定活跃状态会向当前回调发出取消请�
 总线挂起入口的普通回调异常使用来源 errorHandler，默认重新抛出并终止订阅；CancellationException 直接传播。通用 `collectEventSuspending(flow)` 的上游和回调异常都直接传播，不自动套用总线日志/错误策略。显式来源取流失败（例如再次活跃时传入 scope 句柄已关闭）也直接传播，不会悄悄换到同名新句柄。
 
 收集取消不会关闭注入实例或 scope。业务持有者需管理它们的生命周期；业务挂起函数应遵循协作式取消。详细用法见 [Android 挂起回调与实例接入](library-android/README.md#110-挂起回调与实例接入)。
+
+## 1.2.0 通道配置冲突或策略不符合预期
+
+先核对发送和接收是否使用同一个 bus/owner/store 与 key，再核对订阅是否真正活跃，最后检查有效 overflow。全局配置不会修改 owner 或注入实例；普通发送不会进入 sticky 订阅。STARTED 以下无普通事件补收，增加容量也不会变成离线队列。
+
+configureChannel 必须早于首次 post/emit/flow。IllegalArgumentException 表示非法容量或同名不同运行时类型；IllegalStateException 表示当前 store 已绑定不同有效配置。清理单条流不会解除绑定；完整 scope 清理后的同名新 store 需要重新配置。相同有效配置可重复调用，不要在业务发送后动态调整策略。
+
+inspect().config 显示 bus 默认值；tryPostResult/tryPostStickyResult.overflowPolicy 才是本次流策略。accepted 不代表没有丢弃或业务完成。确认来源、就绪、生命周期和实际策略后再排查回调错误，避免以 sticky 或固定延时掩盖时序问题。详细契约见 [core README](flowbus-core/README.md#120-候选按通道配置)。

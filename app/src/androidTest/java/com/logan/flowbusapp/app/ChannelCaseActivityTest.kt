@@ -10,6 +10,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.logan.flowbusapp.ChannelCaseActivity
 import com.logan.flowbusapp.R
 import com.logan.flowbusapp.testutil.ShellLaunchedActivityRule
+import com.logan.flowbusapp.testutil.recreateCurrentActivity
 import com.logan.flowbusapp.testutil.stableScrollTo
 import com.logan.flowbusapp.testutil.targetString
 import com.logan.flowbusapp.testutil.waitForTextContaining
@@ -87,4 +88,31 @@ class ChannelCaseActivityTest {
         )
     }
 
+    @Test
+    fun recreateOwner_keepsConfigurationAndCollectsNewOrdinaryEvents() {
+        onView(withId(R.id.btnSendNavigationCommand)).perform(stableScrollTo(), click())
+        onView(isRoot()).perform(
+            waitForTextContaining(R.id.tvNavigationChannelLog, targetString(R.string.channel_case_navigation_result))
+        )
+
+        // 重建会重复绑定相同配置；普通事件不重放，新的收发必须使用保留的 owner 来源。
+        onView(isRoot()).perform(recreateCurrentActivity(ChannelCaseActivity::class.java))
+        onView(isRoot()).perform(
+            waitForTextContaining(R.id.tvNavigationChannelLog, targetString(R.string.channel_case_navigation_waiting))
+        )
+        onView(withId(R.id.tvNavigationChannelLog)).check(
+            matches(withText(targetString(R.string.channel_case_navigation_waiting)))
+        )
+        onView(withId(R.id.btnSendNavigationCommand)).perform(stableScrollTo(), click())
+        onView(isRoot()).perform(
+            waitForTextContaining(R.id.tvNavigationChannelLog, targetString(R.string.channel_case_navigation_result))
+        )
+        onView(withId(R.id.btnSendToastCommand)).perform(stableScrollTo(), click())
+        onView(isRoot()).perform(
+            waitForTextContaining(R.id.tvToastChannelLog, targetString(R.string.channel_case_toast_result))
+        )
+        onView(withId(R.id.tvSnackbarChannelLog)).check(
+            matches(withText(targetString(R.string.channel_case_snackbar_waiting)))
+        )
+    }
 }
