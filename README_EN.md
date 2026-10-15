@@ -25,7 +25,7 @@ Android projects should usually start with `flowbus`:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.1.0")
+implementation("io.github.logan0817:flowbus:1.2.0")
 ```
 
 Pure Kotlin / Coroutines / non-Android projects should use `flowbus-core`:
@@ -33,7 +33,7 @@ Pure Kotlin / Coroutines / non-Android projects should use `flowbus-core`:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.1.0")
+implementation("io.github.logan0817:flowbus-core:1.2.0")
 ```
 
 Module choice:
@@ -169,12 +169,14 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 7. Do not put phone numbers, tokens, order IDs, user IDs, or similar sensitive values into `eventName` or `scopeName` logs.
 
 
-## 1.2.0 candidate
+<a id="120-candidate"></a>
 
-1.1.0 is the latest published version. The 1.2.0 candidate adds per-channel buffer and overflow configuration. Its implementation is available on this branch and has not been published to Maven Central.
+## Version 1.2.0
+
+The latest stable version is **1.2.0**, published to Maven Central on 2026-10-15. It adds per-channel buffer and overflow configuration.
 
 - [Channel configuration](flowbus-core/README_EN.md#channel-configuration) and [Android owner configuration](library-android/README_EN.md#android-owner-configuration)
-- [Try a local candidate](docs/en/contributing.md#candidate-builds): `io.github.logan0817:flowbus:1.2.0` or `io.github.logan0817:flowbus-core:1.2.0`
+- Maven Central coordinates: `io.github.logan0817:flowbus:1.2.0` or `io.github.logan0817:flowbus-core:1.2.0`
 - [Changes, migration, verification, and performance limits](docs/en/release-notes-1.2.0.md)
 
 ## Compatibility and release status

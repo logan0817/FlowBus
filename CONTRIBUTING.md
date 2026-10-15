@@ -102,9 +102,11 @@ Kotlin 参数只选择 core/普通 Android 消费者编译器，不用于 Compos
 
 <a id="candidate-builds"></a>
 
-## 本地体验候选版本
+<a id="本地体验候选版本"></a>
 
-当前分支目标为 1.2.0，尚未发布到 Maven Central。在仓库根目录执行：
+## 本地验证开发制品
+
+1.2.0 已发布到 Maven Central，普通接入直接使用正式仓库。验证本地源码修改时，在仓库根目录执行：
 
 ```bash
 ./gradlew publishToMavenLocal "-Dmaven.repo.local=$PWD/build/candidate-maven"

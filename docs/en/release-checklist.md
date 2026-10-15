@@ -1,8 +1,8 @@
-# 1.2.0 candidate release checklist
+# 1.2.0 release checklist
 
 [中文](../release-checklist.md)
 
-Target configuration: VERSION_NAME=1.2.0, APP_VERSION_NAME=1.2.0, APP_VERSION_CODE=9. 1.2.0 is an unpublished candidate. This checklist defines the procedure; tested commits and reports belong in the [1.2.0 notes](release-notes-1.2.0.md). Historical publication evidence belongs in the [1.1.0 notes](release-notes-1.1.0.md).
+Target configuration: VERSION_NAME=1.2.0, APP_VERSION_NAME=1.2.0, APP_VERSION_CODE=9. 1.2.0 was published to Maven Central on 2026-10-15. This checklist defines the procedure; tested commits and reports belong in the [1.2.0 notes](release-notes-1.2.0.md). Historical publication evidence belongs in the [1.1.0 notes](release-notes-1.1.0.md).
 
 ## Release sequence
 

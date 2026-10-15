@@ -1,12 +1,12 @@
 # Changelog
 
-## 1.2.0（候选，尚未发布）
+## 1.2.0（2026-10-15）
 
 新增 FlowBusChannelConfig、core/root/shared/owned 的 configureChannel、Android owner 配置入口。普通与 sticky 可分别覆盖容量和溢出策略；首次使用原子绑定，相同有效配置幂等，冲突明确失败，PostResult 返回实际策略。旧默认值、既有数据类 JVM 描述符、minSdk 21、Java 8 和基础依赖保持。
 
-补充投递/就绪/资源所有权契约、不同策略的 owner 示例、1.1.0 固定原版二进制消费者及独立 JMH 对照。发布门禁仍包括 verifyMavenLocalCoreConsumer、verifyMavenLocalConsumer、POM/module metadata、license、developer、R8 和设备检查；候选状态与证据见 [1.2.0 发布说明](docs/release-notes-1.2.0.md)。
+补充投递/就绪/资源所有权契约、不同策略的 owner 示例、1.1.0 固定原版二进制消费者及独立 JMH 对照。发布门禁仍包括 verifyMavenLocalCoreConsumer、verifyMavenLocalConsumer、POM/module metadata、license、developer、R8 和设备检查；发布状态与证据见 [1.2.0 发布说明](docs/release-notes-1.2.0.md)。
 
-本版整理中英文文档索引、兼容性指南、模块功能导航、候选安装与发布流程，保留历史链接；同步贡献命名约定、安全维护政策和 Issue/PR 模板。正式安装示例在 Central 发布前仍指向 1.1.0。
+本版整理中英文文档索引、兼容性指南、模块功能导航、候选安装与发布流程，保留历史链接；同步贡献命名约定、安全维护政策和 Issue/PR 模板。两个坐标已发布到 Maven Central，正式安装示例同步至 1.2.0；公开制品、签名和独立消费者已验证。
 
 ## 1.1.0（2026-10-12）
 

@@ -1,8 +1,8 @@
-# 1.2.0 候选发布清单
+# 1.2.0 发布清单
 
 [English](en/release-checklist.md)
 
-目标配置：VERSION_NAME=1.2.0、APP_VERSION_NAME=1.2.0、APP_VERSION_CODE=9。1.2.0 为未发布候选。本清单维护操作流程，受测提交与报告统一记录在 [1.2.0 发布说明](release-notes-1.2.0.md)；1.1.0 历史发布证据见[对应发布说明](release-notes-1.1.0.md)。
+目标配置：VERSION_NAME=1.2.0、APP_VERSION_NAME=1.2.0、APP_VERSION_CODE=9。1.2.0 已于 2026-10-15 正式发布到 Maven Central。本清单维护操作流程，受测提交与报告统一记录在 [1.2.0 发布说明](release-notes-1.2.0.md)；1.1.0 历史发布证据见[对应发布说明](release-notes-1.1.0.md)。
 
 ## 发布顺序
 
