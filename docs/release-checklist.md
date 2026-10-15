@@ -99,6 +99,8 @@ emulator-runner 的 `script` 会按行分别启动 Shell，不支持跨行 hered
 
 API 35 UI 门禁通过 `bash compatibility/run-api35.sh` 显式唤醒模拟器并解除非安全锁屏，再执行库层与示例 release 测试。退出前保存 `build/api35-environment/window.txt` 与 `power.txt`，用于分析 Activity 已恢复但 Espresso 无窗口焦点的失败；诊断不会覆盖原测试退出码。示例测试规则在 Activity 失焦时于 finish 前输出窗口状态，优先检查该现场；整批结束后的 Launcher 焦点不能单独证明失败占用方。
 
+首页连续导航测试在主线程结束每个子页面，并等待其实际销毁后再确认首页恢复、点击下一入口。`RESUMED` 或主线程空闲不代表前一个窗口已经退出；若 logcat 出现 `InputDispatcher: No new touched window`，应检查点击与窗口退出的时序，不能仅延长 Activity 启动等待或重试点击。清理超时仍使测试失败，回归用例明确拒绝把被覆盖的未销毁 Activity 当作清理完成。可在已授权设备上用 `ANDROID_SERIAL=device-serial ./gradlew :app:connectedReleaseAndroidTest --rerun -Pandroid.testInstrumentationRunnerArguments.class=com.logan.flowbusapp.app.MainActivityTest --warning-mode=all` 定向验证；其他 API 的本地结果不能替代 API 35 云端门禁。
+
 API 35 脚本在屏幕准备和 Gradle 之前记录 `build/api35-environment/device.json`，并断言实际 API=35、boot_completed=1；错误设备或未启动完成会停止，退出诊断仍保留。三项 mocked-ADB 回归覆盖正常准备后的原始测试失败、错误 API 拒绝及未完成启动拒绝；它们不是设备运行证据。channel 示例的 release instrumentation 增加 Activity 重建后配置幂等、新普通事件收集与不重放旧值的用例。
 
 Google 模拟器的 Launcher ANR 系统窗口可能抢占示例焦点。测试规则在启动前检查窗口状态，仅在发现 `Application Not Responding: com.google.android.apps.nexuslauncher` 时保留现场并停止该 Launcher 进程，再正常启动示例。目标应用 ANR、其他系统错误和 Espresso 焦点断言仍按原规则失败；恢复环境本身不代表测试通过。

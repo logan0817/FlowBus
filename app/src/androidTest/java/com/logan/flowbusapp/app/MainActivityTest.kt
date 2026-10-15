@@ -1,6 +1,7 @@
 package com.logan.flowbusapp.app
 
 import android.app.Activity
+import android.content.Intent
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.assertion.ViewAssertions.matches
@@ -20,6 +21,8 @@ import com.logan.flowbusapp.testutil.ResumedActivityRegistry
 import com.logan.flowbusapp.testutil.ShellLaunchedActivityRule
 import com.logan.flowbusapp.testutil.stableScrollTo
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -42,6 +45,27 @@ class MainActivityTest {
         assertLaunchesActivity(R.id.btnOpenDecisionGuide, DecisionGuideActivity::class.java)
     }
 
+    @Test
+    fun activityCleanup_doesNotTreatPausedActivityAsDestroyed() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val mainActivity = ResumedActivityRegistry.requireResumedActivity(MainActivity::class.java)
+        instrumentation.runOnMainSync {
+            mainActivity.startActivity(Intent(mainActivity, GlobalCaseActivity::class.java))
+        }
+        val childActivity = ResumedActivityRegistry.waitForResumedActivity(GlobalCaseActivity::class.java)
+
+        try {
+            val failure = assertThrows(IllegalStateException::class.java) {
+                ResumedActivityRegistry.waitForActivityToBeDestroyed(mainActivity, timeoutMs = 100)
+            }
+            assertTrue(failure.message.orEmpty().contains("MainActivity"))
+        } finally {
+            instrumentation.runOnMainSync { childActivity.finish() }
+            ResumedActivityRegistry.waitForActivityToBeDestroyed(childActivity)
+            ResumedActivityRegistry.waitForResumedActivity(MainActivity::class.java)
+        }
+    }
+
     private fun assertLaunchesActivity(triggerViewId: Int, activityClass: Class<out Activity>) {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         val monitor = instrumentation.addMonitor(activityClass.name, null, false)
@@ -50,8 +74,9 @@ class MainActivityTest {
             onView(withId(triggerViewId)).perform(stableScrollTo(), click())
             val launchedActivity = instrumentation.waitForMonitorWithTimeout(monitor, 3_000)
             assertNotNull("Expected ${activityClass.simpleName} to launch", launchedActivity)
-            launchedActivity?.finish()
-            instrumentation.waitForIdleSync()
+            val activity = requireNotNull(launchedActivity)
+            instrumentation.runOnMainSync { activity.finish() }
+            ResumedActivityRegistry.waitForActivityToBeDestroyed(activity)
             ResumedActivityRegistry.waitForResumedActivity(MainActivity::class.java)
         } finally {
             instrumentation.removeMonitor(monitor)

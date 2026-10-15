@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.Application
 import android.content.Intent
 import android.os.Bundle
+import android.os.SystemClock
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.rules.ExternalResource
 import java.io.FileInputStream
@@ -54,7 +55,7 @@ class ShellLaunchedActivityRule(
             InstrumentationRegistry.getInstrumentation().runOnMainSync {
                 activity.finish()
             }
-            ResumedActivityRegistry.waitForActivityToStop(activity)
+            ResumedActivityRegistry.waitForActivityToBeDestroyed(activity)
         }
         launchedActivity = null
     }
@@ -154,16 +155,20 @@ internal object ResumedActivityRegistry {
         currentActivity.set(null)
     }
 
-    fun waitForActivityToStop(activity: Activity, timeoutMs: Long = 5_000L) {
-        val endTime = System.currentTimeMillis() + timeoutMs
+    fun waitForActivityToBeDestroyed(activity: Activity, timeoutMs: Long = 5_000L) {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        val destroyed = AtomicBoolean(false)
+        val endTime = SystemClock.uptimeMillis() + timeoutMs
         do {
-            if (currentActivity.get() !== activity || activity.isDestroyed) {
+            // PAUSED 后窗口可能仍在退出，不能据此开始下一次触摸。
+            instrumentation.runOnMainSync { destroyed.set(activity.isDestroyed) }
+            if (destroyed.get()) {
                 return
             }
             Thread.sleep(50)
-        } while (System.currentTimeMillis() < endTime)
+        } while (SystemClock.uptimeMillis() < endTime)
 
-        error("${activity::class.java.simpleName} was still resumed after $timeoutMs ms")
+        error("${activity::class.java.simpleName} was not destroyed within $timeoutMs ms")
     }
 
     fun requireResumedActivity(activityClass: Class<out Activity>): Activity {
