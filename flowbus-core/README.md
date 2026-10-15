@@ -59,7 +59,7 @@
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.1.0")
+implementation("io.github.logan0817:flowbus-core:1.2.0")
 ```
 
 <a id="先看最短路径"></a>
@@ -383,7 +383,7 @@ if (!result.accepted) {
 
 ## 按通道配置
 
-从 1.2.0 起提供。当前分支为未发布候选，正式 1.1.0 不包含这些 API。[本地体验候选版本](../CONTRIBUTING.md#candidate-builds)可使用 `io.github.logan0817:flowbus-core:1.2.0` 或 `io.github.logan0817:flowbus:1.2.0`；变化与验收记录见[发布说明](../docs/release-notes-1.2.0.md)。
+从已发布的 1.2.0 起提供，1.1.0 不包含这些 API。通过 Maven Central 使用 `io.github.logan0817:flowbus-core:1.2.0` 或 `io.github.logan0817:flowbus:1.2.0`；变化与验收记录见[发布说明](../docs/release-notes-1.2.0.md)。
 
 ### core、scope 与实例用法
 

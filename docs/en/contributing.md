@@ -37,9 +37,11 @@ Root `publishToMavenLocal` deletes the selected repository's current-version dir
 - Do not commit credentials, signing keys, personal configuration, generated APKs, logs, or build outputs.
 - Use the PR template to explain background, behavior, scope, actual checks, limitations, and rollback when relevant.
 
-## Candidate builds
+<a id="candidate-builds"></a>
 
-The current branch targets unpublished 1.2.0. Publish the candidate locally from the repository root:
+## Local development artifacts
+
+1.2.0 is available from Maven Central for normal installation. To verify local source changes, publish development artifacts from the repository root:
 
 ```bash
 ./gradlew publishToMavenLocal "-Dmaven.repo.local=$PWD/build/candidate-maven"

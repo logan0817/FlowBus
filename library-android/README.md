@@ -9,7 +9,7 @@ Gradle 模块目录名是 `library-android`，对外发布的依赖坐标是：
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.1.0")
+implementation("io.github.logan0817:flowbus:1.2.0")
 ```
 
 如果你是 Android 项目接入 FlowBus，通常就从这个模块开始，不需要先研究 `flowbus-core`。
@@ -40,7 +40,7 @@ FlowBus 适合“某个地方发出通知，多个地方可能关心”的异步
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.1.0")
+implementation("io.github.logan0817:flowbus:1.2.0")
 ```
 
 ### 2. 定义一个事件类型
@@ -500,7 +500,7 @@ viewLifecycleOwner.onEvent<MainUiEvent> { event ->
 
 ## 按通道配置
 
-从 1.2.0 起提供。当前分支为未发布候选，正式 1.1.0 不包含这些 API。[本地体验候选版本](../CONTRIBUTING.md#candidate-builds)可使用 `io.github.logan0817:flowbus-core:1.2.0` 或 `io.github.logan0817:flowbus:1.2.0`；变化与验收记录见[发布说明](../docs/release-notes-1.2.0.md)。
+从已发布的 1.2.0 起提供，1.1.0 不包含这些 API。通过 Maven Central 使用 `io.github.logan0817:flowbus-core:1.2.0` 或 `io.github.logan0817:flowbus:1.2.0`；变化与验收记录见[发布说明](../docs/release-notes-1.2.0.md)。
 
 <a id="android-owner-configuration"></a>
 

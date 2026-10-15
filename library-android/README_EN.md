@@ -9,7 +9,7 @@ The Gradle module directory is `library-android`, and the published artifact is:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.1.0")
+implementation("io.github.logan0817:flowbus:1.2.0")
 ```
 
 If you are integrating FlowBus into an Android app, this is usually the place to start.
@@ -41,7 +41,7 @@ FlowBus is a good fit for asynchronous events where one place sends a notificati
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.1.0")
+implementation("io.github.logan0817:flowbus:1.2.0")
 ```
 
 ### 2. Define an event type
@@ -436,7 +436,7 @@ postEvent<MainEvent>(MainEvent.ShowToast(message = "success"))
 
 ## Channel configuration
 
-Available since 1.2.0. This branch contains an unpublished candidate; released 1.1.0 does not provide these APIs. See [candidate builds](../docs/en/contributing.md#candidate-builds) to try `io.github.logan0817:flowbus-core:1.2.0` or `io.github.logan0817:flowbus:1.2.0`, and [release notes](../docs/en/release-notes-1.2.0.md) for changes and evidence.
+Available in the published 1.2.0 release; 1.1.0 does not provide these APIs. Use Maven Central with `io.github.logan0817:flowbus-core:1.2.0` or `io.github.logan0817:flowbus:1.2.0`, and [release notes](../docs/en/release-notes-1.2.0.md) for changes and evidence.
 
 <a id="android-owner-configuration"></a>
 

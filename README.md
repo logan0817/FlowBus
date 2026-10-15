@@ -25,7 +25,7 @@ Android 项目优先使用 `flowbus`：
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.1.0")
+implementation("io.github.logan0817:flowbus:1.2.0")
 ```
 
 纯 Kotlin / Coroutines / 非 Android 场景使用 `flowbus-core`：
@@ -33,7 +33,7 @@ implementation("io.github.logan0817:flowbus:1.1.0")
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.1.0")
+implementation("io.github.logan0817:flowbus-core:1.2.0")
 ```
 
 模块选择：
@@ -169,12 +169,14 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 7. 日志里的 `eventName`、`scopeName` 不要包含手机号、token、订单号、用户 ID 等敏感信息。
 
 
-## 1.2.0 候选版本
+<a id="120-候选版本"></a>
 
-最新正式版本为 1.1.0。1.2.0 候选新增按通道覆盖缓冲与溢出策略，实现在当前分支中，尚未发布到 Maven Central。
+## 1.2.0 版本
+
+最新正式版本为 **1.2.0**，已于 2026-10-15 发布到 Maven Central。本版新增按通道覆盖缓冲与溢出策略。
 
 - [通道配置](flowbus-core/README.md#channel-configuration)与 [Android owner 配置](library-android/README.md#android-owner-configuration)
-- [本地体验候选版本](CONTRIBUTING.md#candidate-builds)：使用 `io.github.logan0817:flowbus:1.2.0` 或 `io.github.logan0817:flowbus-core:1.2.0`
+- Maven Central 坐标：使用 `io.github.logan0817:flowbus:1.2.0` 或 `io.github.logan0817:flowbus-core:1.2.0`
 - [变化、迁移、验证证据与性能边界](docs/release-notes-1.2.0.md)
 
 ## 兼容与发布状态

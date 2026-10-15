@@ -44,4 +44,4 @@ Gradle 任务会将 1.2.0 候选发布到指定本地目录，不做远端发布
 
 上述 Gradle 命令增加 -Pflowbus.consumer.baselineVersion=1.1.0，保留默认 1.0.7 检查。src-1.1.0 额外实际执行 root/shared/owned 挂起回调、channel 入口，以及 Java FlowBusConfig 无参构造/component/copy 描述符。baselines.json 固定 Central 原版 JAR 摘要；不能用源码重建旧基线。
 
-该版本报告为 build/maven-local-binary-core-consumer-1.1.0/build/reports/binary-compatibility.json，verify_symbols.py 的 --runtime-report 参数相应切换。当前候选为尚未发布的 1.2.0。Android 原版编译的挂起/显式实例运行验证见 [Android 消费者说明](../android-consumer/README.md#110-原版编译的-android-消费者)。
+该版本报告为 build/maven-local-binary-core-consumer-1.1.0/build/reports/binary-compatibility.json，verify_symbols.py 的 --runtime-report 参数相应切换。当前受测版本为已发布的 1.2.0；此任务验证本地源码生成的候选制品，不能替代公开仓库验收。Android 原版编译的挂起/显式实例运行验证见 [Android 消费者说明](../android-consumer/README.md#110-原版编译的-android-消费者)。

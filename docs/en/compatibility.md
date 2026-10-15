@@ -12,7 +12,7 @@ Android minSdk is 21. Both coordinates target Java 8 bytecode; the repository bu
 
 Base settings remain Kotlin 1.9.25, Coroutines 1.8.1, Lifecycle 2.6.2, AGP 8.6.1, Gradle 8.7, build JDK 17, Java 8 bytecode, and minSdk 21 / compileSdk 35 / targetSdk 35. Library build settings do not establish minimum requirements for every consumer.
 
-The table below records historical 1.1.0 checks. It does not certify arbitrary version combinations or the current 1.2.0 working tree. Current candidate evidence is listed separately below.
+The table below records historical 1.1.0 checks. It does not certify arbitrary version combinations or the current 1.2.0 working tree. Evidence for 1.2.0 is listed separately below.
 
 | Tested combination | Evidence and limits |
 | --- | --- |
@@ -28,11 +28,13 @@ The table below records historical 1.1.0 checks. It does not certify arbitrary v
 
 Binary checks are not full ABI certification. Android symbol checks do not establish old-consumer bytecode execution on devices. NavHost recreation uses a retained ViewModel in the same process and proves neither process-death recovery nor sticky persistence.
 
-## 1.2.0 candidate checks
+<a id="120-candidate-checks"></a>
 
-The candidate retains base dependencies, Java 8 bytecode, minSdk 21, and existing public constructor/copy/component descriptors. New channel configuration is additive; code using the new APIs must remove those calls before rolling back to 1.1.0.
+## 1.2.0 checks
 
-| Area | Recorded candidate evidence |
+1.2.0 retains base dependencies, Java 8 bytecode, minSdk 21, and existing public constructor/copy/component descriptors. New channel configuration is additive; code using the new APIs must remove those calls before rolling back to 1.1.0.
+
+| Area | Recorded verification evidence |
 | --- | --- |
 | Core binary consumers | Unchanged 1.0.7 and 1.1.0 Kotlin/Java bytecode runs on Java 8; 631/681 JVM descriptors retained |
 | Android binary consumers | Fixed original AAR symbol checks and original 1.1.0 suspend/instance consumer classes run with candidate runtime; minified API 21 execution |

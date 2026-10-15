@@ -19,7 +19,7 @@ release 使用 R8，未配置签名。预期输出为：
 - APK：`build/maven-local-consumer/app/build/outputs/apk/release/app-release-unsigned.apk`
 - mapping：`build/maven-local-consumer/app/build/outputs/mapping/release/mapping.txt`
 
-此目录消费当前未发布的 1.2.0 候选；已发布基准为 1.0.7 与 1.1.0。
+此目录验证本地源码生成的 1.2.0 候选制品；1.2.0 已正式发布，旧版兼容基准固定为 1.0.7 与 1.1.0。本地消费者验收不能替代公开仓库验证。
 
 ## 本地测试签名
 

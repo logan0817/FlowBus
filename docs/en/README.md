@@ -2,7 +2,7 @@
 
 [中文](../README.md) · [Project home](../../README_EN.md)
 
-The latest published version is **1.1.0**. This branch targets the **1.2.0 candidate**. APIs marked “since 1.2.0” require candidate artifacts and are not available from Maven Central yet. Update installation versions and status through the [release checklist](release-checklist.md) after publication.
+The latest stable version is **1.2.0**, published to Maven Central on 2026-10-15. APIs marked “since 1.2.0” are available through the released coordinates. Publication and public-artifact verification are recorded in the [release notes](release-notes-1.2.0.md).
 
 ## User guides
 
@@ -21,12 +21,12 @@ The sample app is in [app](../../app). [Compose](../../compatibility/compose-con
 
 | Version | Status | Changes |
 | --- | --- | --- |
-| [1.2.0](release-notes-1.2.0.md) | Candidate, unpublished | Channel configuration, delivery contracts, performance baseline |
+| [1.2.0](release-notes-1.2.0.md) | Published | Channel configuration, delivery contracts, performance baseline |
 | [1.1.0](release-notes-1.1.0.md) | Published | API 21, scope closure, suspend callbacks, instance integration |
 | [1.0.7](release-notes-1.0.7.md) | Historical | Scope close/remove race fix |
 | [1.0.6](release-notes-1.0.6.md) | Historical | Single repository, diagnostics, close waiting, sticky consumption |
 
-See the [changelog](../../CHANGELOG.md) for a summary. Historical notes describe their own release; old installation examples and verification records do not establish current candidate publication or validation.
+See the [changelog](../../CHANGELOG.md) for a summary. Historical notes describe their own release; old installation examples and verification records do not replace evidence for the current release.
 
 ## Contributing and maintenance
 
