@@ -1,6 +1,6 @@
-英文文档 [English Document](./README_EN.md)
+[English](README_EN.md) · [文档索引](../docs/README.md)
 
-# flowbus-core
+# FlowBus Core
 
 `flowbus-core` 是 FlowBus 不依赖 Android 的 Kotlin/JVM 核心模块，目前不包含 Kotlin Multiplatform 产物。
 
@@ -15,6 +15,14 @@
 
 如果你不是 Android 项目，或者你需要自己管理 bus 实例、scope 生命周期、多实例隔离，这个模块就是主入口。
 
+## 阅读导航
+
+- [安装](#安装) · [快速开始](#快速开始)
+- [scope](#scope-与所有权) · [API 选择](#api-选择矩阵)
+- [通道配置](#channel-configuration) · [挂起订阅](#suspend-collection)
+- [诊断](#诊断) · [行为边界](#行为边界)
+- [兼容性](../docs/compatibility.md) · [排障](../TROUBLESHOOTING.md)
+
 ## 适合场景
 
 如果你符合下面任意一种情况，就可以直接从 `flowbus-core` 开始：
@@ -26,9 +34,11 @@
 
 如果你是 Android 项目，通常先看 Android 适配模块会更快：
 
-1. Android 模块文档：[library-android README](https://github.com/logan0817/FlowBus/blob/main/library-android/README.md)
+1. Android 模块文档：[library-android README](../library-android/README.md)
 
-## 先看这 9 句
+<a id="先看这-9-句"></a>
+
+## 使用约定
 
 1. 想开箱即用，就先用 `DefaultFlowBus`。
 2. 需要依赖注入、多实例隔离或明确生命周期，就自己创建 `FlowBus()`。
@@ -52,7 +62,9 @@
 implementation("io.github.logan0817:flowbus-core:1.1.0")
 ```
 
-## 先看最短路径
+<a id="先看最短路径"></a>
+
+## 快速开始
 
 第一次使用时，只记 4 件事就够了：
 
@@ -95,7 +107,9 @@ DefaultFlowBus.post(SyncFinishedEvent(taskId = "task-1"))
 | `DROP_OLDEST` / `DROP_LATEST` | 缓冲满时丢旧值或丢新值的策略 | 适合轻量通知，不适合关键链路可靠投递 |
 | `DefaultFlowBus` | 默认单例入口 | 适合开箱即用；需要隔离或依赖注入时改用 `FlowBus()` |
 
-## 什么时候该从 `DefaultFlowBus` 切到 `FlowBus()`
+<a id="什么时候该从-defaultflowbus-切到-flowbus"></a>
+
+## 实例与依赖注入
 
 以下情况建议自己创建实例：
 
@@ -180,7 +194,9 @@ bus.flow<String>(eventName = "ui.toast")
 
 但如果这是公开 API 或长期维护代码，`eventChannel` 的可读性通常更好。
 
-## 作用域怎么理解：root、scoped、openScope
+<a id="作用域怎么理解rootscopedopenscope"></a>
+
+## scope 与所有权
 
 ### root bus
 
@@ -256,7 +272,9 @@ sessionScope.close()
 2. 已经开始的发送 / 取流操作会继续使用原 store，等这些操作结束后再清理 store
 3. 已经拿到手的旧 `Flow` 引用不会被主动 cancel；之后再通过同名 scope 访问时，会按需创建新的通道
 
-## 如果你还想使用更底层的 typed key
+<a id="如果你还想使用更底层的-typed-key"></a>
+
+## EventKey 与类型约束
 
 大多数时候你可以直接用 `bus.post(value)` / `bus.flow<T>()`。
 
@@ -301,7 +319,9 @@ val key = channel.asEventKey()
 | 清理 sticky 缓存或通道 | `clearSticky(...)` / `removeSticky(...)` | 清 replay，或连当前 sticky 条目一起移除 | 页面退出、会话切换、最近值过期 |
 | 读取并清空 sticky 最新值 | `consumeStickyLatest(...)` | 读取当前最新 replay 后清空 | 一次性消费最近结果 |
 
-## 发送 API 怎么选
+<a id="发送-api-怎么选"></a>
+
+## 发送 API
 
 ### 想最短、最顺手
 
@@ -358,16 +378,12 @@ if (!result.accepted) {
 它不表示订阅者已经处理事件。`DROP_OLDEST` / `DROP_LATEST` 也不是可靠队列策略。
 
 
-## 1.2.0 候选：按通道配置
+<a id="120-候选按通道配置"></a>
+<a id="channel-configuration"></a>
 
-1.2.0 当前为本地候选，尚未发布到 Maven Central。上面的 1.1.0 安装示例仍用于正式版本。体验本节 API 时，先从仓库根目录将候选发布到隔离目录：
+## 按通道配置
 
-```bash
-./gradlew publishToMavenLocal "-Dmaven.repo.local=$PWD/build/candidate-maven"
-```
-
-消费者将该目录作为 `maven { url = uri("/absolute/path/to/FlowBus/build/candidate-maven") }` 仓库，并选择 `io.github.logan0817:flowbus-core:1.2.0`（Android 使用 `io.github.logan0817:flowbus:1.2.0`）。不要把本地候选的成功构建当作正式发布或设备验收通过。实施状态见[1.2.0 发布说明](../docs/release-notes-1.2.0.md)。
-
+从 1.2.0 起提供。当前分支为未发布候选，正式 1.1.0 不包含这些 API。[本地体验候选版本](../CONTRIBUTING.md#candidate-builds)可使用 `io.github.logan0817:flowbus-core:1.2.0` 或 `io.github.logan0817:flowbus:1.2.0`；变化与验收记录见[发布说明](../docs/release-notes-1.2.0.md)。
 
 ### core、scope 与实例用法
 
@@ -427,7 +443,10 @@ check(bus.inspect().scopes.none { it.scopeName == "sync-task" })
 
 首选入口：简单全局通知使用默认 bus；owner 内通知使用稳定 channel + 明确 owner；注入与测试使用显式 FlowBus + EventKey；任务使用 openScope(closeWhen = job)；已有 Flow 组合使用通用 Flow 收集；可恢复状态使用 StateFlow。没有零订阅自动清理。
 
-## 1.1.0 挂起订阅
+<a id="110-挂起订阅"></a>
+<a id="suspend-collection"></a>
+
+## 挂起订阅
 
 1.1.0 增加独立命名的挂起回调入口，旧 `collect` / `collectSticky` 与公开入口保留。下面 API 从 1.1.0 开始提供，不要求新增依赖或升级现有基础工具链。
 
@@ -460,7 +479,9 @@ bus.post(refreshKey, SyncFinishedEvent(taskId = "task-1"))
 
 `FlowBusScope` 关闭后不会主动取消已持有 Flow 的订阅；但重新用已关闭句柄建立订阅会失败。总线或 scope 的生命周期由持有者管理，订阅不会取得关闭权。
 
-## 订阅 API 怎么选
+<a id="订阅-api-怎么选"></a>
+
+## 订阅 API
 
 如果你只想收事件并沿用 `FlowBusConfig` 里的日志和错误处理策略，优先用 `collect(...)` / `collectSticky(...)`：
 
@@ -493,7 +514,9 @@ scope.launch {
 
 如果 `EventChannel` 要显式指定目标，使用 `collectOn(target) { ... }` / `collectStickyOn(target) { ... }`。
 
-## 诊断 API 怎么用
+<a id="诊断-api-怎么用"></a>
+
+## 诊断
 
 `inspect()` 适合调试、单测断言和日志排查。不要把它放进正式业务分支控制。
 
@@ -548,7 +571,9 @@ val session = bus.inspectScope("session")
 5. `events` 表示当前已登记的事件元数据，不等于一定有活跃订阅者。
 6. `metrics` 只统计 `tryEmit` 层面的接受或拒绝，不代表业务处理成功。
 
-## `EventChannel`、对象式发送扩展、`eventName` 怎么选
+<a id="eventchannel对象式发送扩展eventname-怎么选"></a>
+
+## 事件标识与发送扩展
 
 如果你在这 3 种写法里犹豫，可以直接按下面的规则选：
 
@@ -584,7 +609,9 @@ val session = bus.inspectScope("session")
 3. 自定义 `eventName` 仍然不能为空白字符串。
 4. 发到 `FlowBus`、`ScopedFlowBus`、`FlowBusScope` 时，行为边界和对应的 `post*` / `emit*` 完全一致。
 
-## `post`、`emit`、`send`、`awaitSend` 怎么理解
+<a id="postemitsendawaitsend-怎么理解"></a>
+
+## 发送语义
 
 ### `post(...)` / `send()`
 
@@ -611,7 +638,9 @@ val session = bus.inspectScope("session")
 
 适合需要按既定策略等待缓冲可用的活跃广播。必须在进程死亡后恢复或确认业务成功的操作，使用业务状态、数据库或持久化任务机制。
 
-## sticky event 什么时候该用
+<a id="sticky-event-什么时候该用"></a>
+
+## sticky 与 replay
 
 sticky event 会保存最近一次值，后来订阅的人也能立刻读到。
 
@@ -663,7 +692,9 @@ toastChannel.removeEventOn(bus)
 
 `removeEvent(...)` 不会影响同名 sticky 通道，也不会清掉同名 `EventKey` 的类型保护。
 
-## 订阅异常怎么处理
+<a id="订阅异常怎么处理"></a>
+
+## 异常与取消
 
 `flowbus-core` 默认不会帮你把订阅错误“悄悄吃掉再当没事发生”。它区分 3 类情况：
 
@@ -682,7 +713,9 @@ toastChannel.removeEventOn(bus)
 1. 默认策略：用 `FlowBusErrorHandler.Rethrow`，一旦订阅失败就直接暴露问题。
 2. 兜底策略：自定义 `errorHandler`，把错误上报或打点，再决定是否继续。
 
-## 事件类型怎么设计更清楚
+<a id="事件类型怎么设计更清楚"></a>
+
+## 事件建模
 
 推荐顺序：
 
@@ -724,7 +757,9 @@ DefaultFlowBus.post<SyncEvent>(SyncEvent.Start)
 DefaultFlowBus.post<SyncEvent>(SyncEvent.Progress(percent = 50))
 ```
 
-## 默认单例如何配置
+<a id="默认单例如何配置"></a>
+
+## 默认单例配置
 
 如果你想在首次使用前替换默认配置：
 
@@ -758,7 +793,9 @@ DefaultFlowBus.install(
 
 如果这些入口已经调用过，再执行 `configure(...)` 或 `install(...)` 会抛 `IllegalStateException`。
 
-## 常见边界说明
+<a id="常见边界说明"></a>
+
+## 行为边界
 
 ### 名称校验
 
@@ -859,5 +896,5 @@ DefaultFlowBus.install(
 
 1. 当前仓库主页：[FlowBus](https://github.com/logan0817/FlowBus)
 2. Core 模块目录：[flowbus-core](https://github.com/logan0817/FlowBus/tree/main/flowbus-core)
-3. Android 模块文档：[library-android README](https://github.com/logan0817/FlowBus/blob/main/library-android/README.md)
+3. Android 模块文档：[library-android README](../library-android/README.md)
 4. 示例应用模块：[app](https://github.com/logan0817/FlowBus/tree/main/app)

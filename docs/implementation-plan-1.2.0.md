@@ -1,8 +1,6 @@
-# FlowBus 下一版本实现方案（建议 1.2.0）
+# FlowBus 1.2.0 实现方案
 
-> 状态：1.2.0 候选实现与远端门禁已完成，最终验收对应 head `6e075750eb5b7fced05fc7c06ab13a628645f39c`。创建日期：2026-10-14。基线：已发布 1.1.0。
->
-> 通道配置核心与 Android 入口已在本地 1.2.0 候选落地；不能直接用于已发布 1.1.0。版本配置已更新，正式安装示例保留 1.1.0 并另列本地候选用法。完整 JVM 性能报告已保存；API 21/API 35 与完整 CI 已由 [CI run 25](https://github.com/logan0817/FlowBus/actions/runs/38597961848) 验收，报告 artifact 为 `flowbus-verification-9e98bec939050b57c7f52d761d1f68d65fc36954`。
+> 设计记录，创建于 2026-10-14，规划基线为已发布 1.1.0。本文保留规划时的需求、取舍与验收标准，不作为当前实现进度或发布状态的来源。候选实现已落地，当前行为见 [core](../flowbus-core/README.md) 和 [Android](../library-android/README.md) 使用指南，受测快照见 [1.2.0 发布说明](release-notes-1.2.0.md)，发布流程见[清单](release-checklist.md)。
 
 ## 1. 版本目标与取舍
 
@@ -277,7 +275,7 @@ A 阶段的文档整理与基准准备可独立进行；同一个 FlowBusStore �
 
 ## 10. 文档、兼容与发布安排
 
-- 本文作为下一版方案入口；[1.1.0 范围与兼容性评估](next-version-plan.md)继续保存历史事实。
+- 本文保存 1.2.0 设计记录；[兼容性说明](compatibility.md)维护当前矩阵，[1.1.0 发布说明](release-notes-1.1.0.md)保留历史范围。
 - 功能落地时同步中英文 Android/core README、根 README 与 TROUBLESHOOTING；发布阶段新增实际版本发布说明并更新 CHANGELOG、发布清单和消费者说明。
 - 更新公开 API 快照前检查新增符号及旧描述符差异，不能以 apiDump 覆盖删除项来消除兼容失败。
 - 1.1.0 基线从正式制品建立，固定来源和摘要；保留 1.0.7 已有回归。源码重编译成功不能代替未重编译消费者运行。
@@ -313,14 +311,6 @@ A 阶段的文档整理与基准准备可独立进行；同一个 FlowBusStore �
 
 满足上述条件代表本地实现及候选验收完成；正式发布状态以获授权后实际上传、发布和消费验证结果为准。
 
-## 13. 实施进度（2026-10-14）
+## 13. 实施结果入口
 
-- B/C 核心能力：已实现 nullable 覆盖配置、原子类型/策略绑定、来源隔离、生命周期及在途关闭保护、有效策略诊断；新增 core 19 项和 Android 6 项回归初次通过。
-- A/D 契约和用法：已更新中英文模块/root README、TROUBLESHOOTING、owner channel 示例、Job-bound scope 清理示例，正式安装仍指向已发布 1.1.0。
-- 二进制/产物：Java 8 新配置 Maven core 消费者、候选 Android R8、元数据通过；1.0.7/1.1.0 原版 core Kotlin/Java 未重编译运行通过，旧 Android 挂起/显式实例 class 在候选 JVM runtime 运行通过，两个旧版 AAR 静态公开符号通过。Kotlin 编译器矩阵、compileSdk 33、可选 Compose/Navigation/NavHost R8、发布任务图 dry-run 通过；主线 231 项 JVM 测试、API、release lint、debug/release 构建通过。
-- 性能：benchmarks/jvm 为独立工程；固定正式 1.1.0、候选和 SharedFlow 三组完整 JMH 共 58 组测量通过，旧配置不一致数据排除。普通无人订阅/ sticky 发布吞吐与基线接近，未确认默认稳定发送回退；首次注册约慢 14.5%、多 112 B/op，GC/JFR 与源码分析已披露，见[实测分析](../benchmarks/jvm/results/current/analysis.md)。
-- E 候选验收：版本设为 1.2.0/code 9，新增中英文发布说明。候选分支 `codex/flowbus-1.2.0` 已提交并推送，已创建草稿 [PR #7](https://github.com/logan0817/FlowBus/pull/7/checks)。最终 API 21/API 35、UI 与完整 CI 已按当前 head `6e075750eb5b7fced05fc7c06ab13a628645f39c` 验收：[CI run 25](https://github.com/logan0817/FlowBus/actions/runs/38597961848) 的 27 个步骤全部成功；API 21 日志确认 `emulator-5554 / Android 5.0.2`，同批原始报告 artifact 为 `flowbus-verification-9e98bec939050b57c7f52d761d1f68d65fc36954`。本机无对应设备。合并、上传与正式发布未授权、未执行。
-
-设备门禁的覆盖复核补充了 channel 页 Activity 重建后的配置幂等、普通事件不重放及新事件收集用例；API 35 脚本在任何测试前保存并断言实际设备版本与启动状态。驱动三项 mocked-ADB 回归与 Shell 语法检查通过；app release instrumentation R8 编译、库 debug instrumentation APK、相关 release lint、231 项 JVM 测试及 API 检查通过。最终设备执行已由上述当前 head 的 CI 报告确认，编译不能替代运行。
-
-详细状态与最终证据入口见 [1.2.0 发布说明](release-notes-1.2.0.md)及[发布清单](release-checklist.md)。本节是实施状态，前文保留完整验收范围；不能因当前环境缺少门禁而缩减完成条件。
+通道配置、契约说明、兼容性消费者与 JVM 性能基线已在 1.2.0 候选落地。实施范围、已知注册成本、受测提交及门禁结果统一见[发布说明](release-notes-1.2.0.md)；复现方式见[发布清单](release-checklist.md)和[性能工程](../benchmarks/jvm/README.md)。文档整理后的本地工作区须执行对应验证，不能继承旧快照的 CI 结论。正式发布另行验收。

@@ -1,4 +1,6 @@
-# Troubleshooting
+# 排障指南
+
+[项目首页](README.md) · [文档索引](docs/README.md)
 
 ## 1. `gradlew` 无法执行
 
@@ -22,7 +24,7 @@ chmod +x ./gradlew
 
 ## 2. JDK 版本不对
 
-FlowBus 当前使用 Java 17 编译。如果本地 JDK 版本不匹配，Gradle 同步或编译可能失败。
+构建 FlowBus 仓库需要 JDK 17，发布字节码仍为 Java 8。如果本地 JDK 版本不匹配，Gradle 同步或编译可能失败。
 
 可以先检查本地版本：
 
@@ -101,7 +103,7 @@ ls flowbus-core
 
 1.0.7 的 core 产物包含 Android API 24 才提供的 `compute`、`computeIfPresent`、`computeIfAbsent` 调用。`minSdk=21` 声明本身不会补齐这些平台方法；普通 D8 转换也不能替代 core library desugaring。
 
-1.1.0 已将这些调用替换为低 API 可用的并发操作与内部同步，不提高 minSdk 或基础依赖要求。最终 main CI 已通过 API 21 库层和未启用 core library desugaring 的 minified Maven 消费者设备验收；使用旧版本遇到该问题时可升级到 1.1.0。已测组合及支持边界见[兼容性评估](docs/next-version-plan.md)。
+1.1.0 已将这些调用替换为低 API 可用的并发操作与内部同步，不提高 minSdk 或基础依赖要求。最终 main CI 已通过 API 21 库层和未启用 core library desugaring 的 minified Maven 消费者设备验收；使用旧版本遇到该问题时可升级到 1.1.0。已测组合及支持边界见[兼容性评估](docs/compatibility.md)。
 
 ## 9. 挂起订阅未收到事件或处理被取消
 

@@ -2,15 +2,16 @@
 
 [中文](../release-checklist.md)
 
-Current local candidate: VERSION_NAME=1.2.0, APP_VERSION_NAME=1.2.0, APP_VERSION_CODE=9. It is not published. Final head is `6e075750eb5b7fced05fc7c06ab13a628645f39c`; [CI run 25](https://github.com/logan0817/FlowBus/actions/runs/38597961848) passed all 27 steps. Its report artifact is `flowbus-verification-9e98bec939050b57c7f52d761d1f68d65fc36954`.
+Target configuration: VERSION_NAME=1.2.0, APP_VERSION_NAME=1.2.0, APP_VERSION_CODE=9. 1.2.0 is an unpublished candidate. This checklist defines the procedure; tested commits and reports belong in the [1.2.0 notes](release-notes-1.2.0.md). Historical publication evidence belongs in the [1.1.0 notes](release-notes-1.1.0.md).
 
-Remote acceptance for `codex/flowbus-1.2.0` is tracked in [PR #7 current-head checks](https://github.com/logan0817/FlowBus/pull/7/checks). The final run confirms API 21 `emulator-5554 / Android 5.0.2`; API 35 identity and instrumentation/UI reports are in the same artifact. Draft status does not establish publication.
+## Release sequence
 
-## Historical 1.1.0 publication evidence
+1. Finish implementation and review; verify versions, APIs, documentation, and candidate artifacts.
+2. Confirm all current-head PR checks, including API 21/API 35 devices. After merge, verify CI on the resulting main commit.
+3. Upload only after publication authorization, then verify coordinates, signatures, checksums, and the returned deployment ID.
+4. Release the verified deployment separately. Resolve from public Maven Central in independent consumers; update stable installation examples, changelog/date, and release status only after success.
 
-1.1.0 was published on 2026-10-12, with VERSION_NAME=1.1.0, APP_VERSION_NAME=1.1.0, APP_VERSION_CODE=8, and catalog version 1.1.0. This checklist records the release gates and maintenance procedure for future versions. Always verify final artifacts rather than relying only on earlier reports.
-
-The published batch is `io.github.logan0817-FlowBus-1.1.0`, ID `24a88a3e-fc49-479e-8605-140989c944f2`, with Portal status `PUBLISHED`. All 10 public Central artifacts and 10 signatures match the accepted candidate checksums, with valid signatures. The independent core consumer resolved from Central passed normal/sticky, scope, and suspending collection checks on Java 8; the independent Android consumer passed release R8. Local evidence is in `build/release-1.1.0/pr-followup/published-artifacts-verification.json` and `central-consumers/{core,android}/build/reports/central-artifacts.json`; these generated reports are not committed. The Portal status API also returned a missing-components message. Public artifacts and signatures were verified independently rather than relying on that API message.
+Record fixed tested snapshots in release notes and use the candidate PR's Checks tab or [CI runs](https://github.com/logan0817/FlowBus/actions) to verify the current head SHA of later commits. A PR workflow artifact name contains the synthetic merge SHA (`github.sha`); map it through the run's head SHA and report digest. Reports expire after 14 days; preserve required evidence securely before expiration, excluding keys and private environment files.
 
 ## Local quality and artifact gates
 
@@ -56,7 +57,7 @@ ANDROID_SERIAL=device-serial ./gradlew :library-android:connectedDebugAndroidTes
 4. Mocks verify protocol only. Missing devices, timeouts, missing stages, and stale results are not passes.
 5. CI configures API 21 and API 35 gates; remote success must match the final commit.
 
-The API 21 step records and asserts the selected emulator's actual API and boot state before testing. Whether the workflow succeeds or fails, it uploads `flowbus-verification-<commit SHA>` reports for 14 days: unit tests, lint, instrumentation, JVM symbols, and current consumer logs/UI. Download reports matching the commit when diagnosing failures. Missing files can indicate an earlier step never ran and do not establish a pass.
+The API 21 step records and asserts the selected emulator's actual API and boot state before testing. Whether the workflow succeeds or fails, it uploads `flowbus-verification-<workflow SHA>` reports for 14 days: unit tests, lint, instrumentation, JVM symbols, and current consumer logs/UI. Download reports matching the commit when diagnosing failures. Missing files can indicate an earlier step never ran and do not establish a pass.
 
 emulator-runner executes each `script` line in a separate shell, so multiline heredocs and continued commands must live in a standalone script. API 21 uses one `bash compatibility/run-api21.sh` command for device identity checks, test signing, and consumer verification, stopping at the first failure. Keep compound commands in that script. Mocked-ADB script regression checks identity rejection and failure propagation; it does not replace device verification. JDK keytool generates consumer test signing material in `build/api21-signing/`, without depending on a user-home debug keystore. Keys are neither uploaded nor committed and are not used for publication.
 
@@ -70,11 +71,11 @@ The shared consumer device protocol writes UI hierarchy files under `/data/local
 
 CI SDK setup explicitly selects `platform-tools`; the setup-android Action prepares command-line tools separately. Do not restore its default package list containing the removed `tools` package. The next installation step selects platform and Build Tools versions.
 
-The [final main CI](https://github.com/logan0817/FlowBus/actions/runs/38207876160) for the historical 1.1.0 release targets `efff42874b6c28a6074f72716b31acfcf6fa66b7` and remains the historical publication record. For 1.2.0, use [CI run 25](https://github.com/logan0817/FlowBus/actions/runs/38597961848), head `6e075750eb5b7fced05fc7c06ab13a628645f39c`, and artifact `flowbus-verification-9e98bec939050b57c7f52d761d1f68d65fc36954`. No API 21 image is available locally; the minimum-system evidence comes from the remote API 21 device. See the [compatibility assessment](next-version-plan.md#compatibility-assessment) for tested combinations and uncertified toolchains.
-
 ## Compatibility, sources, and documentation
 
 Keep Kotlin 1.9.25, Coroutines 1.8.1, Lifecycle 2.6.2, AGP 8.6.1, Gradle 8.7, build JDK 17, Java 8 bytecode, and minSdk 21 / compileSdk 35 / targetSdk 35. Consumer compiler/compileSdk matrices do not certify every older toolchain.
+
+After public resolution succeeds, update stable coordinates in root/module READMEs, candidate status in the documentation indexes, candidate-build instructions, and the changelog release date. Retain historical version notes and baseline fixtures.
 
 Check bilingual root/module READMEs, CHANGELOG, 1.2.0 notes, API comments, versions, and CI paths. Preserve 1.0.7 only for baseline/history/semantics. Delivery, sticky replay, closure, error policy, and cooperative cancellation documentation must match implementation.
 
@@ -113,4 +114,4 @@ Publication is in gradle/release-publishing.gradle.kts and validation in gradle/
 
 After authorized publication and Central availability, resolve 1.2.0 from the remote repository in an independent consumer and run a normal/sticky delivery smoke check. Verify the resolved version so local candidates or old caches cannot stand in for the published artifacts.
 
-Rollback consumers to published 1.0.7 and revert new API calls when necessary. Drop unpublished deployments; never overwrite a released version.
+Rollback consumers to published 1.1.0 and revert new API calls when necessary. Drop unpublished deployments; never overwrite a released version.

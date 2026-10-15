@@ -68,4 +68,4 @@ NavHostController 绑定真实 Activity 的 LifecycleOwner、ViewModelStore 与 
 
 不使用依赖 force。关闭可选参数后默认消费者无导航源码、manifest 入口或依赖残留，Lifecycle 保持 2.6.2；基础发布产物不含 fixture。每次验收应保存当前 runId 的日志/UI、实际依赖图和 APK 签名记录，不复用旧 PASS。
 
-API 21 与远端 CI 结果按最终提交核对，入口见[发布清单](../../docs/release-checklist.md)。进程死亡恢复、深链接、任意动画配置和异常后的完整 NavHost UI 不在已验证范围。已测 Activity 配置重建依赖同一进程 retained ViewModel，不证明事件持久化。错误与受控非协作取消见[Compose 自检](../compose-consumer/README.md#错误策略与非协作回调自检)，总体范围见[兼容性评估](../../docs/next-version-plan.md#兼容性评估)。
+API 21 与远端 CI 结果按最终提交核对，入口见[发布清单](../../docs/release-checklist.md)。进程死亡恢复、深链接、任意动画配置和异常后的完整 NavHost UI 不在已验证范围。已测 Activity 配置重建依赖同一进程 retained ViewModel，不证明事件持久化。错误与受控非协作取消见[Compose 自检](../compose-consumer/README.md#错误策略与非协作回调自检)，总体范围见[兼容性评估](../../docs/compatibility.md)。

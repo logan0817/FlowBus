@@ -83,7 +83,7 @@ CI 已新增该驱动回归步骤，并在既有 API 21 库层 instrumentation �
 
 各组通过 finally 清理自己持有的 owner、订阅、source 或 channel；显式 lifecycle 组先取消订阅并同步关闭 source/channel，再 join，避免已取消协程在挂起等待时跳过资源关闭。Activity onDestroy 取消验证 scope。正常销毁导致的取消既不生成 PASS，也不误报 FAIL；验证中途关闭 Activity 应重新冷启动完成验证。
 
-历史 1.1.0 的默认/Kotlin 1.8.22/compileSdk 33 与 API 24 结果见历史兼容性评估；它们不证明当前新增六阶段候选已通过设备验证。API 21 必须核对最终提交的设备报告，APK 名称、签名或静态检查不代表最低系统通过。完整已测组合与未认证范围见[兼容性评估](../../docs/next-version-plan.md#兼容性评估)。
+历史 1.1.0 的默认/Kotlin 1.8.22/compileSdk 33 与 API 24 结果见历史兼容性评估；它们不证明当前新增六阶段候选已通过设备验证。API 21 必须核对最终提交的设备报告，APK 名称、签名或静态检查不代表最低系统通过。完整已测组合与未认证范围见[兼容性评估](../../docs/compatibility.md)。
 
 ## 已发布 1.0.7 AAR 的 JVM 符号核对
 

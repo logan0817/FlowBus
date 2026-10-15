@@ -1,6 +1,6 @@
-Chinese document [中文文档](./README.md)
+[中文](README.md) · [Documentation](../docs/en/README.md)
 
-# flowbus-core
+# FlowBus Core
 
 `flowbus-core` is the Android-independent Kotlin/JVM core of FlowBus. It does not currently publish Kotlin Multiplatform artifacts.
 
@@ -15,6 +15,14 @@ Built on Kotlin Coroutines and Flow, it provides:
 
 If you are not building an Android app, or if you want to manage bus instances, scope lifecycle, or multi-instance isolation yourself, this is the main entry point.
 
+## Guide map
+
+- [Install](#install) · [Quick start](#quick-start)
+- [Scopes](#scopes-and-ownership) · [API selection](#api-selection-matrix)
+- [Channel configuration](#channel-configuration) · [Suspend collection](#suspend-collection)
+- [Diagnostics](#diagnostics) · [Behavior boundaries](#behavior-boundaries)
+- [Compatibility](../docs/en/compatibility.md) · [Troubleshooting](../TROUBLESHOOTING.md) (Chinese)
+
 ## Good fit
 
 Start from `flowbus-core` directly if any of these is true:
@@ -26,9 +34,11 @@ Start from `flowbus-core` directly if any of these is true:
 
 If you are building an Android app, the Android adapter is usually the faster starting point:
 
-1. Android adapter docs: [library-android README](https://github.com/logan0817/FlowBus/blob/main/library-android/README_EN.md)
+1. Android adapter docs: [library-android README](../library-android/README_EN.md)
 
-## Read These 9 Rules First
+<a id="read-these-9-rules-first"></a>
+
+## Usage conventions
 
 1. If you want zero setup, start with `DefaultFlowBus`.
 2. If you need DI, multi-instance isolation, or explicit lifecycle ownership, create `FlowBus()` yourself.
@@ -52,7 +62,9 @@ Cleanup APIs have 2 extra rules:
 implementation("io.github.logan0817:flowbus-core:1.1.0")
 ```
 
-## Start with the shortest path
+<a id="start-with-the-shortest-path"></a>
+
+## Quick start
 
 For a first pass, only remember these 4 patterns:
 
@@ -95,7 +107,9 @@ Quick terminology:
 | `DROP_OLDEST` / `DROP_LATEST` | overflow policies that drop old or new values when buffers are full | use them for lightweight notifications, not reliable delivery |
 | `DefaultFlowBus` | the default singleton entry point | good for quick setup; use `FlowBus()` when you need isolation or dependency injection |
 
-## When to switch from `DefaultFlowBus` to `FlowBus()`
+<a id="when-to-switch-from-defaultflowbus-to-flowbus"></a>
+
+## Instances and dependency injection
 
 Create your own instance when:
 
@@ -183,7 +197,9 @@ bus.flow<String>(eventName = "ui.toast")
 
 But for public APIs or long-lived code, `eventChannel` is usually easier to read and harder to mistype.
 
-## How to think about scopes: root, scoped, openScope
+<a id="how-to-think-about-scopes-root-scoped-openscope"></a>
+
+## Scopes and ownership
 
 ### root bus
 
@@ -259,7 +275,9 @@ One more detail:
 2. sends or flow lookups that already started keep using the original store, and that store is cleaned after those operations finish
 3. old `Flow` references you already hold are still not actively cancelled
 
-## Lower-level typed keys
+<a id="lower-level-typed-keys"></a>
+
+## EventKey and type constraints
 
 Most of the time, `bus.post(value)` / `bus.flow<T>()` is enough.
 
@@ -304,7 +322,9 @@ val key = channel.asEventKey()
 | Clear sticky replay or sticky channel | `clearSticky(...)` / `removeSticky(...)` | clears replay, or removes the current sticky entry too | page exit, session switch, expired latest value |
 | Read and clear latest sticky value | `consumeStickyLatest(...)` | reads current replay latest value and clears it | one-time consumption of the latest result |
 
-## How to choose sending APIs
+<a id="how-to-choose-sending-apis"></a>
+
+## Sending APIs
 
 ### Shortest and most convenient
 
@@ -361,16 +381,12 @@ if (!result.accepted) {
 It does not mean subscribers already handled the event. `DROP_OLDEST` / `DROP_LATEST` are not reliable-queue policies.
 
 
-## 1.2.0 candidate: channel configuration
+<a id="120-candidate-channel-configuration"></a>
+<a id="channel-configuration"></a>
 
-1.2.0 is a local candidate and is not published to Maven Central. The 1.1.0 installation above remains the released version. To try the new APIs, publish from the repository root to an isolated repository:
+## Channel configuration
 
-```bash
-./gradlew publishToMavenLocal "-Dmaven.repo.local=$PWD/build/candidate-maven"
-```
-
-Add `maven { url = uri("/absolute/path/to/FlowBus/build/candidate-maven") }` to the consumer repositories and use `io.github.logan0817:flowbus-core:1.2.0` (Android: `io.github.logan0817:flowbus:1.2.0`). Local compilation does not establish publication or device acceptance. See the [1.2.0 notes](../docs/en/release-notes-1.2.0.md).
-
+Available since 1.2.0. This branch contains an unpublished candidate; released 1.1.0 does not provide these APIs. See [candidate builds](../docs/en/contributing.md#candidate-builds) to try `io.github.logan0817:flowbus-core:1.2.0` or `io.github.logan0817:flowbus:1.2.0`, and [release notes](../docs/en/release-notes-1.2.0.md) for changes and evidence.
 
 ### Core, scopes, and explicit instances
 
@@ -428,7 +444,10 @@ check(bus.inspect().scopes.none { it.scopeName == "sync-task" })
 
 Prefer the default bus for simple global notifications, stable channels with explicit owners for owner-local events, FlowBus + EventKey for injected instances, openScope(closeWhen = job) for tasks, generic Flow collectors for composed flows, and StateFlow for recoverable state. There is no automatic zero-subscriber cleanup.
 
-## 1.1.0 suspend collection
+<a id="110-suspend-collection"></a>
+<a id="suspend-collection"></a>
+
+## Suspend collection
 
 1.1.0 adds separately named suspend-callback APIs and retains existing `collect` / `collectSticky` APIs. These APIs are available starting with 1.1.0 without adding dependencies or raising base toolchain requirements.
 
@@ -461,7 +480,9 @@ Type validation, logger, and errorHandler are shared with existing APIs. Ordinar
 
 Closing a `FlowBusScope` does not actively cancel subscriptions holding old Flow references, but starting collection through a closed handle fails. Bus/scope lifecycle remains with its owner; subscriptions do not acquire close ownership.
 
-## How to choose subscription APIs
+<a id="how-to-choose-subscription-apis"></a>
+
+## Subscription APIs
 
 If you only need to receive events and want to reuse the logger and error handler from `FlowBusConfig`, prefer `collect(...)` / `collectSticky(...)`:
 
@@ -494,7 +515,9 @@ Direct subscription APIs cover `DefaultFlowBus`, `FlowBus`, `ScopedFlowBus`, `Fl
 
 For an `EventChannel` with an explicit target, use `collectOn(target) { ... }` / `collectStickyOn(target) { ... }`.
 
-## How to use diagnostics APIs
+<a id="how-to-use-diagnostics-apis"></a>
+
+## Diagnostics
 
 `inspect()` is meant for debugging, unit-test assertions, and log-based investigation. Avoid using it as normal business-branch control.
 
@@ -549,7 +572,9 @@ Diagnostics snapshots only expose metadata. Keep these 6 boundaries in mind:
 5. `events` means registered event metadata, not necessarily active subscribers.
 6. `metrics` only describes bus-layer `tryEmit` acceptance or rejection, not business handling success.
 
-## `EventChannel`, event extension helpers, or plain `eventName`?
+<a id="eventchannel-event-extension-helpers-or-plain-eventname"></a>
+
+## Event identity and sending extensions
 
 If you are deciding between the 3 styles, use this rule of thumb:
 
@@ -585,7 +610,9 @@ In short:
 3. Custom `eventName` still must not be blank.
 4. Sending to `FlowBus`, `ScopedFlowBus`, or `FlowBusScope` keeps the same behavior as the matching `post*` / `emit*` API.
 
-## How to understand `post`, `emit`, `send`, and `awaitSend`
+<a id="how-to-understand-post-emit-send-and-awaitsend"></a>
+
+## Sending semantics
 
 ### `post(...)` / `send()`
 
@@ -643,7 +670,9 @@ toastChannel.removeEventOn(bus)
 
 `removeEvent(...)` does not affect the sticky channel with the same name, and it does not clear the type guard bound to the same `EventKey` name.
 
-## How subscriber failures are handled
+<a id="how-subscriber-failures-are-handled"></a>
+
+## Errors and cancellation
 
 `flowbus-core` does not silently swallow subscriber failures by default. It separates 3 cases:
 
@@ -662,7 +691,9 @@ The two most common strategies are:
 1. Default strategy: keep `FlowBusErrorHandler.Rethrow` so subscriber failures surface immediately.
 2. Fallback strategy: provide a custom `errorHandler` to report, trace, or downgrade failures before deciding what to do next.
 
-## How to design event types clearly
+<a id="how-to-design-event-types-clearly"></a>
+
+## Event modeling
 
 Use a single event type for a single action:
 
@@ -724,7 +755,9 @@ DefaultFlowBus.install(
 
 If any of those have already run, later `configure(...)` or `install(...)` calls throw `IllegalStateException`.
 
-## Common behavior boundaries
+<a id="common-behavior-boundaries"></a>
+
+## Behavior boundaries
 
 ### Name validation
 

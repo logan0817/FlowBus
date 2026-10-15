@@ -19,7 +19,7 @@
 python3 benchmarks/jvm/summarize.py
 ```
 
-所有 Gradle 调用串行，不能同时运行多个正式基准或构建。Android Studio 环境下通过既有环境 Skill 的 launcher 执行以上参数。baseline 单独运行已发布 1.1.0 JAR；candidate 使用 `build/candidate-maven/.../flowbus-core/1.2.0/flowbus-core-1.2.0.jar`，shared 同一依赖版本但收发直接使用 MutableSharedFlow。baseline 的新配置场景不执行。构建检查已发布 JAR 摘要，不允许用当前源码重建旧基线。
+所有 Gradle 调用串行，不能同时运行多个正式基准或构建。使用 Android Studio 时，与 IDE 复用相同的 Gradle JDK、Android SDK 和 Gradle user home。baseline 单独运行已发布 1.1.0 JAR；candidate 使用 `build/candidate-maven/.../flowbus-core/1.2.0/flowbus-core-1.2.0.jar`，shared 同一依赖版本但收发直接使用 MutableSharedFlow。baseline 的新配置场景不执行。构建检查已发布 JAR 摘要，不允许用当前源码重建旧基线。
 
 ## 场景与读数
 

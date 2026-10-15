@@ -2,15 +2,16 @@
 
 [English](en/release-checklist.md)
 
-当前本地候选：VERSION_NAME=1.2.0、APP_VERSION_NAME=1.2.0、APP_VERSION_CODE=9，尚未发布。最终候选 head 为 `6e075750eb5b7fced05fc7c06ab13a628645f39c`；[CI run 25](https://github.com/logan0817/FlowBus/actions/runs/38597961848) 的 27 个步骤全部成功，报告 artifact 为 `flowbus-verification-9e98bec939050b57c7f52d761d1f68d65fc36954`。正式 Maven Central 仍未上传或发布。
+目标配置：VERSION_NAME=1.2.0、APP_VERSION_NAME=1.2.0、APP_VERSION_CODE=9。1.2.0 为未发布候选。本清单维护操作流程，受测提交与报告统一记录在 [1.2.0 发布说明](release-notes-1.2.0.md)；1.1.0 历史发布证据见[对应发布说明](release-notes-1.1.0.md)。
 
-候选分支 `codex/flowbus-1.2.0` 的远端验收入口为 [PR #7 当前提交检查](https://github.com/logan0817/FlowBus/pull/7/checks)。当前 head 已由 [CI run 25](https://github.com/logan0817/FlowBus/actions/runs/38597961848) 验收：API 21 日志确认 `emulator-5554 / Android 5.0.2 (API 21)`，API 35 身份与 instrumentation/UI 报告保存在同批 artifact。草稿状态不等于通过或正式发布。
+## 发布顺序
 
-## 1.1.0 历史发布证据
+1. 完成实现与审查，核对版本、API、文档和候选制品。
+2. 确认 PR 当前 head 的全部门禁，包含 API 21/API 35 设备；合并后核对 main 对应提交的 CI。
+3. 获得发布授权后上传，核验坐标、签名、校验和与本次返回的 deployment ID。
+4. 单独 release 已验收批次；从公开 Maven Central 用独立消费者验证成功后，再同步正式安装示例、更新日志日期与发布状态。
 
-1.1.0 已于 2026-10-12 发布：VERSION_NAME=1.1.0、APP_VERSION_NAME=1.1.0、APP_VERSION_CODE=8，版本目录同步为 1.1.0。以下清单保留本次门禁与后续版本的维护方式；每次发布必须检查最终候选产物，不能只依据旧批次报告。
-
-本次正式批次为 `io.github.logan0817-FlowBus-1.1.0`，ID 为 `24a88a3e-fc49-479e-8605-140989c944f2`，Portal 状态为 `PUBLISHED`。公开 Maven Central 的 10 个制品及 10 个签名摘要与验收候选一致，签名全部有效；独立 core 消费者从正式仓库解析后在 Java 8 通过普通/sticky、scope 和挂起订阅检查，独立 Android 消费者通过 release R8 构建。本地证据位于 `build/release-1.1.0/pr-followup/published-artifacts-verification.json` 和 `central-consumers/{core,android}/build/reports/central-artifacts.json`，属于不提交的验证产物。Portal 状态接口同时返回组件信息缺失提示；公开仓库文件与签名已独立核验，该接口提示未作为制品校验依据。
+发布说明记录固定受测快照，后续提交通过候选 PR 的 Checks 页或 [CI 运行记录](https://github.com/logan0817/FlowBus/actions)核对当前 head SHA。PR 工作流 artifact 名含合成合并提交 SHA（`github.sha`），需结合 run 的 head SHA 和 digest 对应。报告保留 14 天，到期前妥善保留所需证据，排除密钥及个人环境文件。
 
 ## 本地质量与产物门禁
 
@@ -56,7 +57,7 @@ ANDROID_SERIAL=device-serial ./gradlew :library-android:connectedDebugAndroidTes
 4. mock 只验证驱动协议；设备不可用、超时、缺阶段或旧结果均不能写为通过。
 5. CI 已配置 API 21 与 API 35 设备门禁，远端成功记录需对应本次提交。
 
-API 21 步骤会先记录并断言指定模拟器的实际 API 与启动状态，再执行测试。工作流无论成功或失败都会上传 `flowbus-verification-<commit SHA>` 报告，保留 14 天，包含单测、lint、instrumentation、JVM 符号及消费者当前运行日志/UI。排查时先下载对应提交的报告；缺少文件可能表示前置步骤尚未执行，不能视为通过。
+API 21 步骤会先记录并断言指定模拟器的实际 API 与启动状态，再执行测试。工作流无论成功或失败都会上传 `flowbus-verification-<workflow SHA>` 报告，保留 14 天，包含单测、lint、instrumentation、JVM 符号及消费者当前运行日志/UI。排查时先下载对应提交的报告；缺少文件可能表示前置步骤尚未执行，不能视为通过。
 
 emulator-runner 的 `script` 会按行分别启动 Shell，不支持跨行 heredoc 或续行命令。API 21 流程通过单条 `bash compatibility/run-api21.sh` 调用，设备身份检查、测试签名与消费者验收在同一脚本内执行；脚本遇到任何失败立即停止。维护时不要将复合命令重新内嵌到 Action 的 `script` 中。脚本回归以模拟 ADB 验证身份拒绝及失败停止，不代替设备验收。消费者测试签名由 JDK keytool 在 `build/api21-signing/` 生成，不依赖用户目录的 debug keystore；密钥不上传、不提交，也不用于正式发布。
 
@@ -70,11 +71,11 @@ Google 模拟器的 Launcher ANR 系统窗口可能抢占示例焦点。测试�
 
 CI 的 SDK 初始化显式选择 `platform-tools`，命令行工具由 setup-android Action 准备；不要恢复其包含已下架 `tools` 包的默认安装列表。平台和 Build Tools 版本由后续安装步骤指定。
 
-历史 1.1.0 发布的[最终 main CI](https://github.com/logan0817/FlowBus/actions/runs/38207876160) 对应 `efff42874b6c28a6074f72716b31acfcf6fa66b7`，其历史报告仍用于 1.1.0 记录。1.2.0 候选的最终设备证据改用 [CI run 25](https://github.com/logan0817/FlowBus/actions/runs/38597961848)，对应 head `6e075750eb5b7fced05fc7c06ab13a628645f39c` 和 artifact `flowbus-verification-9e98bec939050b57c7f52d761d1f68d65fc36954`；本机无 API 21 image，最低系统证据来自该远端设备。其余已测组合及未认证工具链见[兼容性评估](next-version-plan.md#兼容性评估)。
-
 ## 兼容性、源码与文档检查
 
 基础版本保持 Kotlin 1.9.25、Coroutines 1.8.1、Lifecycle 2.6.2、AGP 8.6.1、Gradle 8.7、构建 JDK 17、Java 8 字节码、minSdk 21 / compileSdk 35 / targetSdk 35。Kotlin/compileSdk 消费者矩阵不能推导为所有旧工具链通过。
+
+正式仓库解析成功后，同步根/模块 README 正式坐标、文档索引候选状态、本地候选说明及更新日志发布日期。保留历史版本说明和固定旧版 fixture，不全仓替换旧版本号。
 
 核对根与模块 README 中英文、CHANGELOG、1.2.0 发布说明、API 注释、版本配置及 CI 路径。1.0.7 仅保留为已发布基准、历史或语义说明。普通无人订阅、sticky replay、关闭等待、错误策略和协作取消说明必须与实现一致。
 

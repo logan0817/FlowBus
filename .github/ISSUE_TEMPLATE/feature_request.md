@@ -23,7 +23,7 @@ assignees: ""
 ## 可能影响
 
 1. 是否会影响现有行为。
-2. 是否涉及公开 API、README、KDoc 或测试合同。
+2. 是否涉及公开 API、README、KDoc 或行为契约测试。
 
 ## 补充信息
 

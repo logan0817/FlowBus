@@ -1,6 +1,6 @@
-Chinese document [中文文档](./README.md)
+[中文](README.md) · [Documentation](../docs/en/README.md)
 
-# library-android
+# FlowBus Android
 
 `library-android` is the Android adapter module of FlowBus.
 
@@ -13,6 +13,13 @@ implementation("io.github.logan0817:flowbus:1.1.0")
 ```
 
 If you are integrating FlowBus into an Android app, this is usually the place to start.
+
+## Guide map
+
+- [Quick start](#3-minute-quick-start) · [API selection](#api-selection-matrix)
+- [Owner configuration](#android-owner-configuration) · [Suspend callbacks and explicit instances](#suspend-callbacks)
+- [Sticky](#sticky-events) · [Global defaults](#optional-configuration)
+- [Compatibility](../docs/en/compatibility.md) · [Troubleshooting](../TROUBLESHOOTING.md) (Chinese)
 
 ## Features
 
@@ -73,7 +80,9 @@ Registering `onEvent(...)` / `collectEvent(...)` does not make the underlying su
 
 At this point, you already know the main path: 1. send with `postEvent(...)`. 2. receive with `onEvent<T> { ... }`. 3. move to owner-based APIs only when the event should stay inside one Activity / Fragment / NavBackStackEntry scope.
 
-## Remember these 7 rules first
+<a id="remember-these-7-rules-first"></a>
+
+## Usage conventions
 
 1. `postEvent(...)` / `emitEvent(...)` send global events, so the whole app can subscribe.
 2. `postEventTo(owner, ...)` / `owner.postScopedEvent(...)` send local events that only flow inside the bus attached to that `owner`.
@@ -83,7 +92,9 @@ At this point, you already know the main path: 1. send with `postEvent(...)`. 2.
 6. `emit*` follows the configured overflow policy. `SUSPEND` can apply backpressure with active subscribers; it does not guarantee normal-event retention, business completion, or process-death recovery.
 7. `onEvent(...)` is the recommended shortest UI API; `collectEvent(flow)` is better when you already have a `Flow`.
 
-## Why do the docs often use `onEvent(...)`, while the sample app sometimes uses `collectEvent(eventFlow(...))`
+<a id="why-do-the-docs-often-use-onevent-while-the-sample-app-sometimes-uses-collecteventeventflow"></a>
+
+## Subscription entry points and Flow composition
 
 These are not competing APIs. They are the same capability shown at different levels:
 
@@ -125,7 +136,9 @@ Recommended rule of thumb:
 2. if you want to `map`, `filter`, `debounce`, or `combine`, get the `Flow` first and use `collectEvent(...)`
 3. the sample app shows both styles on purpose, so readers can understand both the shortest path and the “get Flow first” style
 
-## The 4 most common scenarios
+<a id="the-4-most-common-scenarios"></a>
+
+## Common scenarios
 
 ### Scenario 1: global broadcast
 
@@ -252,7 +265,9 @@ viewLifecycleOwner.onEvent<UploadFinishedEvent>(from = requireActivity()) { even
 | Suspending send under configured policy | `emitEvent(...)` / `emitStickyEvent(...)` | Yes | global or owner | normal / sticky | backpressure with `SUSPEND` and active subscribers; dropping policies still apply |
 | One-time latest sticky consumption | `consumeStickyLatestEvent(...)` / `channel.consumeStickyLatest()` | No | global or owner | cleared after read | returns the latest value; returns `null` when replay is empty |
 
-## How to choose sending APIs
+<a id="how-to-choose-sending-apis"></a>
+
+## Sending APIs
 
 | API | Suspends | Supports delay | Return value | Recommended use | Boundary |
 | --- | --- | --- | --- | --- | --- |
@@ -292,7 +307,9 @@ toastChannel.post("Saved")
 toastChannel.postTo(requireActivity(), "Saved")
 ```
 
-## How to choose receiving APIs
+<a id="how-to-choose-receiving-apis"></a>
+
+## Receiving APIs
 
 | Scenario | Recommended API | Lifecycle owner | Gets `Flow` directly | Sticky support | Why |
 | --- | --- | --- | --- | --- | --- |
@@ -342,7 +359,9 @@ viewLifecycleOwner.collectEvent(toastChannel.flow()) { message ->
 }
 ```
 
-## What is the difference between `postEvent` and `emitEvent`
+<a id="what-is-the-difference-between-postevent-and-emitevent"></a>
+
+## Sending semantics
 
 | Dimension | `postEvent(...)` | `tryPostEvent(...)` | `tryPostEventResult(...)` | `emitEvent(...)` |
 | --- | --- | --- | --- | --- |
@@ -386,7 +405,9 @@ val channelEvent = sessionReadyChannel.consumeStickyLatest()
 
 These APIs only read the latest value currently in sticky replay and then clear that replay cache. They do not consume normal events, do not prevent another thread from writing a new sticky value later, and should not replace `StateFlow` for long-lived state.
 
-## Event modeling advice
+<a id="event-modeling-advice"></a>
+
+## Event modeling
 
 Recommended order:
 
@@ -408,41 +429,16 @@ postEvent<MainEvent>(MainEvent.OpenDetail(id = 42L))
 postEvent<MainEvent>(MainEvent.ShowToast(message = "success"))
 ```
 
-## If You Only Remember The Shortest Usage
+<a id="if-you-only-remember-the-shortest-usage"></a>
 
-### Global event
+<a id="120-candidate-channel-configuration"></a>
+<a id="channel-configuration"></a>
 
-```kotlin
-postEvent(RefreshHomeEvent(source = "login"))
-viewLifecycleOwner.onEvent<RefreshHomeEvent> { render(it) }
-```
+## Channel configuration
 
-### Activity-scoped event
+Available since 1.2.0. This branch contains an unpublished candidate; released 1.1.0 does not provide these APIs. See [candidate builds](../docs/en/contributing.md#candidate-builds) to try `io.github.logan0817:flowbus-core:1.2.0` or `io.github.logan0817:flowbus:1.2.0`, and [release notes](../docs/en/release-notes-1.2.0.md) for changes and evidence.
 
-```kotlin
-requireActivity().postScopedEvent(ReloadToolbarEvent)
-viewLifecycleOwner.onEvent<ReloadToolbarEvent>(from = requireActivity()) { renderToolbar() }
-```
-
-### Named channel
-
-```kotlin
-val toastChannel = eventChannel<String>("ui.toast")
-toastChannel.post("saved")
-viewLifecycleOwner.onEvent(toastChannel) { showToast(it) }
-```
-
-
-## 1.2.0 candidate: channel configuration
-
-1.2.0 is a local candidate and is not published to Maven Central. The 1.1.0 installation above remains the released version. To try the new APIs, publish from the repository root to an isolated repository:
-
-```bash
-./gradlew publishToMavenLocal "-Dmaven.repo.local=$PWD/build/candidate-maven"
-```
-
-Add `maven { url = uri("/absolute/path/to/FlowBus/build/candidate-maven") }` to the consumer repositories and use `io.github.logan0817:flowbus-core:1.2.0` (Android: `io.github.logan0817:flowbus:1.2.0`). Local compilation does not establish publication or device acceptance. See the [1.2.0 notes](../docs/en/release-notes-1.2.0.md).
-
+<a id="android-owner-configuration"></a>
 
 ### Android owner configuration
 
@@ -473,7 +469,10 @@ An explicit FlowEventBus exposes configureChannel(key, config). Injected core Fl
 
 When migrating from EventBus/LiveEventBus, normal and sticky are independent streams; choose isSticky explicitly. Registration Jobs do not prove readiness. Parent events require the same EventKey<Parent> or stable parent channel. Prefer postEvent/onEvent for global notifications, a stable channel + explicit owner for owner-local events, collectEventFrom for injected sources, generic collectors for composed Flow, and StateFlow for recoverable state. Default Rethrow applies to bus collectors; generic Flow collection propagates errors directly.
 
-## 1.1.0 suspend callbacks and instance integration
+<a id="110-suspend-callbacks-and-instance-integration"></a>
+<a id="suspend-callbacks"></a>
+
+## Suspend callbacks and instance integration
 
 These APIs are available starting with 1.1.0. Existing APIs remain. Kotlin, Coroutines, Lifecycle, and minSdk requirements stay unchanged; no Compose, Hilt, or Koin dependency is added.
 
@@ -570,7 +569,9 @@ When you need lower-level event metadata in custom `FlowEventBus` / core `FlowBu
 
 Before logging snapshots, make sure `eventName` and `scopeName` do not contain phone numbers, tokens, order IDs, or other sensitive values.
 
-## What lives in flowbus-core
+<a id="what-lives-in-flowbus-core"></a>
+
+## Core module boundary
 
 `library-android` is built on top of `flowbus-core`, which provides:
 
@@ -581,7 +582,7 @@ Before logging snapshots, make sure `eventName` and `scopeName` do not contain p
 5. logger / error handler / buffer configuration
 
 If you need those lower-level APIs directly, see:
-1. GitHub URL: [flowbus-core README](https://github.com/logan0817/FlowBus/blob/main/flowbus-core/README_EN.md)
+1. GitHub URL: [flowbus-core README](../flowbus-core/README_EN.md)
 
 ## Repository links
 

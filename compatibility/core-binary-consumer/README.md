@@ -2,7 +2,7 @@
 
 [English](README_EN.md)
 
-此 fixture 只调用已发布 1.0.7 的入口。它先用 Maven Central 的原始 core JAR 编译 Kotlin 与 Java 消费者，再将同一批消费者 class 文件分别放到原版和候选 JAR 上运行。它补充“针对候选重新编译”的消费者验证，检查旧 inline、默认参数和直接 Java JVM 调用的链接路径。
+此 fixture 按所选基线调用已发布 1.0.7 或 1.1.0 的入口，默认基线为 1.0.7。它先用 Maven Central 的原始 core JAR 编译 Kotlin 与 Java 消费者，再将同一批消费者 class 文件分别放到原版和候选 JAR 上运行。它补充“针对候选重新编译”的消费者验证，检查旧 inline、默认参数和直接 Java JVM 调用的链接路径。
 
 ## 运行
 

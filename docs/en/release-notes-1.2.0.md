@@ -2,7 +2,7 @@
 
 [中文](../release-notes-1.2.0.md)
 
-This is a committed and pushed implementation candidate, not uploaded or published to Maven Central. 1.1.0 remains the released installation. Configuration: VERSION_NAME=1.2.0, APP_VERSION_NAME=1.2.0, APP_VERSION_CODE=9. The final candidate head `6e075750eb5b7fced05fc7c06ab13a628645f39c` passed the complete remote gate; it remains a draft and is not published.
+1.2.0 is an unpublished candidate. 1.1.0 remains the stable installation. Target configuration: VERSION_NAME=1.2.0, APP_VERSION_NAME=1.2.0, APP_VERSION_CODE=9. Verification below identifies tested snapshots and does not establish acceptance of later working-tree changes.
 
 ## Changes
 
@@ -12,28 +12,40 @@ This is a committed and pushed implementation candidate, not uploaded or publish
 - Removing individual flows retains bindings. Complete scope cleanup releases overrides; a same-name new store starts from defaults. Owned-scope configuration participates in in-flight closure protection.
 - PostResult.overflowPolicy reports the actual stream policy; inspect().config still describes bus defaults.
 - The channel sample uses one Activity owner with different Toast/Navigation policies and suspending Navigation sends.
+- Documentation now has Chinese/English indexes, a dedicated compatibility guide, shared candidate-build instructions, functional module navigation, and aligned contribution/security/support policies. Legacy document links remain available.
 
 Default capacity 64, DROP_OLDEST, sticky replay 1, Rethrow, independent normal/sticky delivery, old Flow references, scope closure, and existing public data-class JVM descriptors remain. minSdk 21, Java 8 bytecode, and base dependency/toolchain versions do not change.
 
-See [core usage and migration](../../flowbus-core/README_EN.md#120-candidate-channel-configuration), [Android owners](../../library-android/README_EN.md#android-owner-configuration), and [JVM benchmarks](../../benchmarks/jvm/README.md). JVM measurements do not establish ART performance.
+See [core usage and migration](../../flowbus-core/README_EN.md#channel-configuration), [Android owners](../../library-android/README_EN.md#android-owner-configuration), and [JVM benchmarks](../../benchmarks/jvm/README.md). JVM measurements do not establish ART performance.
 
-## Verification status
+## Verification evidence
 
-[CI run 25](https://github.com/logan0817/FlowBus/actions/runs/38597961848) for final head `6e075750eb5b7fced05fc7c06ab13a628645f39c` completed all 27 steps successfully. The candidate remains a draft and is not published. Its report artifact is `flowbus-verification-9e98bec939050b57c7f52d761d1f68d65fc36954` with digest `sha256:288d1ff527a0bf658def6297125a7dca80d7974176a13d499f775349a25edc50`.
+The tested candidate snapshot is recorded below:
 
-The core/Android/app JVM suites passed 164/65/2 tests, including configuration, contract, concurrency, and lifecycle coverage. Required documentation inputs are covered by the final checks. API dumps contain additions only; apiCheck, library/app release lint, and sample debug/release builds passed. The actual 1.2.0 Maven core consumer passed on Java 8, and artifact metadata plus the minified Android consumer compiled successfully including the new APIs.
+| Snapshot | Evidence |
+| --- | --- |
+| `56812f8c7f24520480e03a44b6816fdc950c9e59` | [CI run 26](https://github.com/logan0817/FlowBus/actions/runs/38601076450), all steps successful; includes API 21/API 35 devices, artifact consumers, binary compatibility, and publication task graph |
+| Artifact for run 26 | `flowbus-verification-d6c7bae559732e3810a6303a8b58cc20373e58a2`, digest `sha256:8a4fcbb1d835432b5a9fe5d67c2d1aaed0c1457c8ee15e514be309dcc635e366` |
 
-Original 1.0.7/1.1.0 Kotlin/Java core consumers ran unchanged against the candidate on Java 8; 631/681 JVM descriptors were retained. Published 1.1.0 Android AAR symbols matched its fixed public snapshot. Original 1.1.0 Android suspend/explicit-instance class files also ran against verified candidate core/Android class bytes on the JVM and compiled into the minified APK. The API 21 minified Maven/R8 consumer passed on `emulator-5554 / Android 5.0.2 (API 21)` in the final run; API 35 instrumentation/UI and identity reports are in the same artifact.
+The artifact name uses the PR synthetic merge SHA; the run's head SHA identifies the branch snapshot. Reports expire after 14 days. Later documentation cleanup requires relevant local verification and current-head CI; run 26 does not cover later changes.
 
-Kotlin 1.8.22/1.9.22/2.0.21/2.1.0 and compileSdk 33 consumer gates passed, plus default and newer optional Compose/Navigation/NavHost R8 builds. Deployment-name and remote task-graph dry-run checks passed without remote operations. All three formal benchmark groups completed with matching sticky extra=0: 58 scenario/mode measurements, 3 forks, 5 × 1s warmup and measurement, GC profiler. Earlier mismatched measurements are excluded.
+| Area | Snapshot result |
+| --- | --- |
+| Core/Android/app JVM tests | 164/65/2 passing, including configuration, delivery, concurrency, lifecycle, and release-readiness checks |
+| API/lint/build | Additive API snapshot; apiCheck, release lint, debug/release sample builds |
+| Maven consumers | Java 8 core; Android/Compose release R8; POM and module metadata |
+| Legacy binaries | Original 1.0.7/1.1.0 core bytecode runs unchanged; 631/681 descriptors retained; original 1.1.0 Android suspend/instance classes run with candidate runtime |
+| Toolchains | Kotlin 1.8.22/1.9.22/2.0.21/2.1.0 and compileSdk 33; optional Navigation/NavHost consumer builds |
+| Devices | API 21 library and minified Maven consumer; API 35 library/sample instrumentation including channel-page recreation |
+| JVM benchmark | Three formal groups, 58 scenario/mode measurements; 3 forks, 5 × 1s warmup/measurement; CI smoke checks runnability |
+
+Published 1.0.7 Android public descriptors remain. Raw comparison retains the pre-existing internal `createFlowBusConfig$library_android_release` removal introduced in 1.1.0. Static symbols and selected consumer runs are not complete ABI certification. See the [compatibility guide](compatibility.md).
+
+## Performance
 
 See the [complete report](../../benchmarks/jvm/results/current/report.md) and [analysis](../../benchmarks/jvm/results/current/analysis.md). Candidate no-subscriber normal-send throughput is 98.7% of 1.1.0, sticky publishing 99.8%, with overlapping uncertainty intervals. This run does not establish an approximately 10% default steady-send regression beyond measurement uncertainty. First registration throughput is 85.5% of baseline and allocates 1000 instead of 888 B/op; this cost is disclosed. JFR sampling locates construction/registration work but does not precisely assign the extra bytes to individual configuration classes. Raw SharedFlow has lower overhead in equivalent workloads. No ART or cross-framework performance advantage is claimed.
 
-Published 1.0.7 Android public descriptors remain. Raw comparison records one pre-existing internal createFlowBusConfig$library_android_release removal from the released 1.1.0 change. Static symbol checks are not complete ABI certification.
-
-The final API 21/API 35, UI, and remote CI gates passed in [CI run 25](https://github.com/logan0817/FlowBus/actions/runs/38597961848). No local API 21/API 35 device is available; the same-run artifact is the evidence source. See the [checklist](release-checklist.md) for all commands. Device tasks are `:library-android:connectedDebugAndroidTest` and minified sample `:app:connectedReleaseAndroidTest`. Build, static-symbol, and mocked-driver success cannot replace device execution.
-
-Device entry points now include channel-page Activity recreation coverage and API 35 actual-device/boot assertions with an identity report. Three mocked-ADB driver regressions and shell syntax checks passed. `:app:assembleReleaseAndroidTest` (including R8) and `:library-android:assembleDebugAndroidTest` passed, together with relevant release lint, 231 JVM tests, and API checks. The final candidate device execution matches the final PR head; compiling test APKs alone would not replace it.
+Reproduce checks through the [release checklist](release-checklist.md). Device tasks are `:library-android:connectedDebugAndroidTest` and minified sample `:app:connectedReleaseAndroidTest`. Compilation, static symbols, and mocked drivers do not replace device execution.
 
 ## Rollback
 

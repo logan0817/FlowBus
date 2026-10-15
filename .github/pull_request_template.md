@@ -17,7 +17,7 @@
 请列出你实际运行过的命令和结果，不要只写“已测试”。
 
 ```bash
-# example
+# 按改动范围选择必要任务
 ./gradlew :flowbus-core:test :library-android:testDebugUnitTest
 ```
 
@@ -27,6 +27,6 @@
 
 ## 自检
 
-1. [ ] 改公开行为时，README / README_EN / KDoc / 测试已同步
-2. [ ] 至少运行了和本次改动匹配的验证命令
-3. [ ] 没有把敏感凭据写进仓库
+- [ ] 改公开行为时，README / README_EN / KDoc / 测试已同步
+- [ ] 至少运行了和本次改动匹配的验证命令
+- [ ] 没有把敏感凭据写进仓库

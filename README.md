@@ -1,4 +1,4 @@
-英文文档 [English Document](./README_EN.md)
+[English](README_EN.md) · [文档索引](docs/README.md)
 
 # FlowBus
 
@@ -169,85 +169,46 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 7. 日志里的 `eventName`、`scopeName` 不要包含手机号、token、订单号、用户 ID 等敏感信息。
 
 
-## 1.2.0 候选：按通道配置
+## 1.2.0 候选版本
 
-1.2.0 当前为本地候选，尚未发布到 Maven Central。上面的 1.1.0 安装示例仍用于正式版本。体验本节 API 时，先从仓库根目录将候选发布到隔离目录：
+最新正式版本为 1.1.0。1.2.0 候选新增按通道覆盖缓冲与溢出策略，实现在当前分支中，尚未发布到 Maven Central。
 
-```bash
-./gradlew publishToMavenLocal "-Dmaven.repo.local=$PWD/build/candidate-maven"
-```
-
-消费者将该目录作为 `maven { url = uri("/absolute/path/to/FlowBus/build/candidate-maven") }` 仓库，并选择 `io.github.logan0817:flowbus-core:1.2.0`（Android 使用 `io.github.logan0817:flowbus:1.2.0`）。不要把本地候选的成功构建当作正式发布或设备验收通过。实施状态见[1.2.0 发布说明](docs/release-notes-1.2.0.md)。
-
-详见 [core 通道配置](flowbus-core/README.md#120-候选按通道配置)、[Android owner 配置](library-android/README.md#android-owner-配置)和 [JVM 性能基准](benchmarks/jvm/README.md)。
-
-## 1.1.0 接入能力
-
-1.1.0 新增挂起回调和显式实例的 Android 收集入口，旧 API 保留。下面入口从 1.1.0 开始提供，基础依赖和 minSdk 目标保持不变。
-
-| 需求 | API 入口 | 行为 |
-| --- | --- | --- |
-| core 直接执行挂起函数 | `collectSuspending` / `collectStickySuspending` | 单条订阅串行处理，复用实例的错误策略和 dispatcher |
-| Android 全局或 owner 挂起订阅 | `onEventSuspending` | 提供 LifecycleOwner / CoroutineScope、reified / channel 入口 |
-| Android 收集注入实例 | `collectEventFrom` / `collectEventFromSuspending` | 显式 `FlowBus` / `ScopedFlowBus` / `FlowBusScope` 与 `EventKey`，不关闭来源 |
-| 通用 Flow 挂起收集 | `collectEventSuspending(flow)` | 生命周期收集，异常直接传播，不自动应用总线错误策略 |
-
-```kotlin
-viewLifecycleOwner.onEventSuspending<RefreshHomeEvent> { event ->
-    viewModel.refreshSuspending(event.source)
-}
-```
-
-这里的 `refreshSuspending` 是业务提供的挂起函数。上一条回调完成后才处理下一条；页面离开收集状态会请求取消当前回调，业务应遵循协作式取消。同一次生命周期收集重启会等待旧回调结束；阻塞或 NonCancellable 工作不能被强制停止，取消也不回滚副作用。慢回调仍受原有缓冲和溢出策略影响，注册也不意味着订阅立即就绪。需要最新值或实例隔离时，分别显式选择 sticky 和实例来源。详见 [Android 挂起回调与实例接入](library-android/README.md#110-挂起回调与实例接入) 和 [core 挂起订阅](flowbus-core/README.md#110-挂起订阅)。
-
-Compose 提供[独立消费者示例](compatibility/compose-consumer/README.md)，并可选择 [Navigation](compatibility/navigation-consumer/README.md) 或[实际 NavHost](compatibility/navhost-consumer/README.md) 验证生命周期行为。它们不进入发布产物，也不增加基础坐标依赖。已测组合及未验证范围统一见[兼容性评估](docs/next-version-plan.md#兼容性评估)。
+- [通道配置](flowbus-core/README.md#channel-configuration)与 [Android owner 配置](library-android/README.md#android-owner-configuration)
+- [本地体验候选版本](CONTRIBUTING.md#candidate-builds)：使用 `io.github.logan0817:flowbus:1.2.0` 或 `io.github.logan0817:flowbus-core:1.2.0`
+- [变化、迁移、验证证据与性能边界](docs/release-notes-1.2.0.md)
 
 ## 兼容与发布状态
 
-`1.1.0` 已于 2026-10-12 发布到 Maven Central，两个坐标均可解析。完整变化见 [1.1.0 发布说明](docs/release-notes-1.1.0.md)，发布验证入口见[发布清单](docs/release-checklist.md)。
+Android 支持 API 21+，发布字节码目标为 Java 8。库使用 Kotlin 1.9.25、Coroutines 1.8.1、Lifecycle 2.6.2、AGP 8.6.1、Gradle 8.7、JDK 17 和 compileSdk/targetSdk 35 构建。消费者的工具链要求与已测组合见[兼容性说明](docs/compatibility.md)。
 
-| 项目 | 版本 |
-| --- | --- |
-| Kotlin | `1.9.25` |
-| Android Gradle Plugin | `8.6.1` |
-| Gradle | `8.7` |
-| Gradle 运行 JDK | `17` |
-| 发布字节码 | Java 8 |
-| Android SDK | `minSdk=21`，`compileSdk=35`，`targetSdk=35` |
-
-发布前门禁：
-
-1. `apiCheck` 保护公开 API。
-2. `:flowbus-core:test`、`:library-android:testDebugUnitTest` 和 `:app:testDebugUnitTest` 覆盖核心、Android 包装和示例单测。
-3. `:library-android:lintRelease`、`:app:lintRelease`、`:app:assembleDebug`、`:app:assembleRelease` 覆盖库和示例应用 release 构建质量。
-4. `:library-android:connectedDebugAndroidTest :app:connectedReleaseAndroidTest` 覆盖设备回归，`app` 走 release R8/minify。
-5. `verifyMavenLocalArtifacts` 校验本地 Maven 产物、POM、module metadata、license 和 developer 元数据。
-6. `verifyMavenLocalCoreConsumer` 编译真实 Kotlin/JVM consumer，验证 `flowbus-core` 坐标可被独立消费。
-7. `verifyMavenLocalConsumer` 构建真实 Android consumer，验证 `flowbus` 坐标和 release shrink。
-8. `verifyCentralDeploymentName` 校验包含项目名的上传批次标识与实际 Maven 坐标；`releaseToMavenCentral --dry-run` 只检查远程发布任务图，两者均不会真实上传。
+在依赖仓库中配置 `mavenCentral()`；Android 坐标已传递依赖 core。Compose 和 Navigation 没有单独发布模块，可参考独立的 [Compose](compatibility/compose-consumer/README.md)、[Navigation](compatibility/navigation-consumer/README.md) 和 [NavHost](compatibility/navhost-consumer/README.md) 消费者示例。
 
 ## 文档导航
 
-1. Android 接入与完整场景：[`library-android/README.md`](./library-android/README.md)
-2. Core 能力、多实例和 scope 生命周期：[`flowbus-core/README.md`](./flowbus-core/README.md)
-3. 发布清单：[`docs/release-checklist.md`](./docs/release-checklist.md)
-4. 发布说明：[`docs/release-notes-1.1.0.md`](./docs/release-notes-1.1.0.md)
-5. 版本记录：[`CHANGELOG.md`](./CHANGELOG.md)
-6. 英文文档：[`README_EN.md`](./README_EN.md)
-7. 1.1.0 范围、兼容性评估与后续扩展条件：[`docs/next-version-plan.md`](./docs/next-version-plan.md)
-8. [1.0.7 core 二进制消费者回归](compatibility/core-binary-consumer/README.md)：相同旧消费者字节码在原版和候选 JAR 上分别通过 Java 8 运行，另核对旧 JVM 成员描述符；范围不等于完整 ABI 认证。
-9. [下一版本实现方案（建议 1.2.0）](docs/implementation-plan-1.2.0.md)：通道级配置、投递契约、性能基线和验收安排；尚未实施。
+| 目标 | 文档 |
+| --- | --- |
+| Android 生命周期、owner 与配置 | [Android 使用指南](library-android/README.md) |
+| JVM、多实例、scope 所有权与诊断 | [Core 使用指南](flowbus-core/README.md) |
+| 挂起回调 | [Android](library-android/README.md#suspend-callbacks) / [core](flowbus-core/README.md#suspend-collection) |
+| 排查收不到事件、sticky 或构建问题 | [排障指南](TROUBLESHOOTING.md) |
+| 查看版本记录与完整文档 | [文档索引](docs/README.md) / [更新日志](CHANGELOG.md) |
+| 参与贡献、报告问题或漏洞 | [贡献指南](CONTRIBUTING.md) / [支持](SUPPORT.md) / [安全策略](SECURITY.md) |
 
 ## 仓库结构
 
+`flowbus-core` 由 FlowBus 主仓库直接维护，与 Android 适配共用构建、CI 和发布流程。
+
 | 目录 | 作用 |
 | --- | --- |
-| `flowbus-core` | 平台无关核心模块，对外坐标 `io.github.logan0817:flowbus-core`；`flowbus-core` 由 FlowBus 主仓库直接维护 |
-| `library-android` | Android 适配模块，对外坐标 `io.github.logan0817:flowbus`；依赖主仓库内的 `flowbus-core` |
-| `app` | 示例应用和集成验证入口 |
-| `docs` | 发布清单和发布说明 |
-| `gradle/release-publishing.gradle.kts` | Maven local 与 Maven Central 发布入口 |
-| `gradle/release-verification.gradle.kts` | Maven 产物、POM、module metadata 和真实 consumer 校验 |
+| `flowbus-core` | Kotlin/JVM 核心，发布坐标 `io.github.logan0817:flowbus-core` |
+| `library-android` | Android 适配，发布坐标 `io.github.logan0817:flowbus` |
+| `app` | 示例应用与 release instrumentation |
+| `compatibility` | 独立消费者 fixture 与设备验证驱动 |
+| `benchmarks/jvm` | JVM 性能基准与实测结果 |
+| `docs` | 兼容性、发布流程、版本说明与设计记录 |
+| `gradle` | 发布与制品验证脚本 |
+
+贡献者可先执行 `./gradlew :flowbus-core:test :library-android:testDebugUnitTest :library-android:lintRelease`。环境要求与完整门禁见[贡献指南](CONTRIBUTING.md)和[发布清单](docs/release-checklist.md)。
 
 ## 示例应用
 
@@ -262,6 +223,4 @@ Compose 提供[独立消费者示例](compatibility/compose-consumer/README.md)�
 
 ## License
 
-```text
-MIT License
-```
+[MIT](LICENSE). Core 模块保留其[版权声明](flowbus-core/LICENSE)。参与项目交流请遵守[行为准则](CODE_OF_CONDUCT.md)。

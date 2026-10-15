@@ -5,7 +5,8 @@ import kotlinx.coroutines.channels.BufferOverflow
 /**
  * `FlowBus` 的基础配置。
  *
- * 普通事件和粘性事件共用这一套缓冲、日志与错误处理策略。
+ * 普通事件和粘性事件从这里继承默认缓冲与溢出策略；可用 [FlowBusChannelConfig] 按通道覆盖。
+ * 日志与错误处理仍由总线统一管理。
  * 如果你第一次接触 FlowBus，可以先只关心两件事：
  * - `normalBufferCapacity` / `stickyReplay` / `stickyExtraBufferCapacity` 会影响 `post` / `send` 这类非挂起发送的表现
  * - `errorHandler` 默认是 [FlowBusErrorHandler.Rethrow]，也就是订阅回调异常不会被静默吞掉
