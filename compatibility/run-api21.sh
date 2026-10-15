@@ -17,7 +17,7 @@ Path("build/api21-environment/device.json").write_text(json.dumps(properties, in
 assert properties["ro.build.version.sdk"] == "21", properties
 assert properties["sys.boot_completed"] == "1", properties
 PY
-ANDROID_SERIAL=emulator-5554 ./gradlew :library-android:connectedDebugAndroidTest --warning-mode=all
+ANDROID_SERIAL=emulator-5554 ./gradlew :library-android:connectedDebugAndroidTest --rerun --warning-mode=all
 # CI 不依赖用户目录中的 debug.keystore；只生成本地、未上传的测试签名。
 FLOWBUS_TEST_KEYSTORE="$PWD/build/api21-signing/debug.keystore"
 mkdir -p "$(dirname "$FLOWBUS_TEST_KEYSTORE")"
@@ -30,35 +30,29 @@ fi
   --ks "$FLOWBUS_TEST_KEYSTORE" --ks-key-alias androiddebugkey \
   --ks-pass pass:android --key-pass pass:android \
   --out "$PWD/build/android-consumer-api21.apk" \
-  "$PWD/build/maven-local-consumer/app/build/outputs/apk/release/app-release-unsigned.apk"
+  "$PWD/build/api21-apks/android.apk"
 python3 -B compatibility/android-consumer/verify-device.py \
   --serial emulator-5554 --expected-api 21 --apk "$PWD/build/android-consumer-api21.apk"
 "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign \
   --ks "$FLOWBUS_TEST_KEYSTORE" --ks-key-alias androiddebugkey \
   --ks-pass pass:android --key-pass pass:android \
   --out "$PWD/build/compose-effects-api21.apk" \
-  "$PWD/build/maven-local-compose-consumer/app/build/outputs/apk/release/app-release-unsigned.apk"
+  "$PWD/build/api21-apks/compose.apk"
 python3 -B compatibility/compose-consumer/verify-effects-device.py \
   --serial emulator-5554 --expected-api 21 --apk "$PWD/build/compose-effects-api21.apk"
 python3 -B compatibility/compose-consumer/verify-policies-device.py \
   --serial emulator-5554 --expected-api 21 --apk "$PWD/build/compose-effects-api21.apk"
-./gradlew verifyMavenLocalComposeConsumer \
-  "-Dmaven.repo.local=$PWD/build/candidate-maven" \
-  -Pflowbus.consumer.navigationVersion=2.4.1 --warning-mode=all
 "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign \
   --ks "$FLOWBUS_TEST_KEYSTORE" --ks-key-alias androiddebugkey \
   --ks-pass pass:android --key-pass pass:android \
   --out "$PWD/build/navigation-api21.apk" \
-  "$PWD/build/maven-local-compose-consumer/app/build/outputs/apk/release/app-release-unsigned.apk"
+  "$PWD/build/api21-apks/navigation.apk"
 python3 -B compatibility/navigation-consumer/verify-navigation-device.py \
   --serial emulator-5554 --expected-api 21 --apk "$PWD/build/navigation-api21.apk"
-./gradlew verifyMavenLocalComposeConsumer \
-  "-Dmaven.repo.local=$PWD/build/candidate-maven" \
-  -Pflowbus.consumer.navigationVersion=2.4.1 -Pflowbus.consumer.navHost=true --warning-mode=all
 "$ANDROID_HOME/build-tools/35.0.0/apksigner" sign \
   --ks "$FLOWBUS_TEST_KEYSTORE" --ks-key-alias androiddebugkey \
   --ks-pass pass:android --key-pass pass:android \
   --out "$PWD/build/navhost-api21.apk" \
-  "$PWD/build/maven-local-compose-consumer/app/build/outputs/apk/release/app-release-unsigned.apk"
+  "$PWD/build/api21-apks/navhost.apk"
 python3 -B compatibility/navhost-consumer/verify-navhost-device.py \
   --serial emulator-5554 --expected-api 21 --apk "$PWD/build/navhost-api21.apk"

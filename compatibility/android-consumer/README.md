@@ -12,7 +12,7 @@
 ./gradlew -Dmaven.repo.local="$PWD/build/candidate-maven" -Pflowbus.consumer.kotlinVersion=1.8.22 -Pflowbus.consumer.compileSdk=33 verifyMavenLocalConsumer
 ```
 
-此任务先发布当前候选到隔离 Maven 目录，再生成 consumer 并执行 `:app:assembleRelease`；FlowBus group 通过 exclusiveContent 仅从该目录解析。单独 `prepareMavenLocalConsumer` 只生成工程，不发布候选、不编译或运行设备。`flowbus.consumer.kotlinVersion` 和 `flowbus.consumer.compileSdk` 只选择普通消费者相应配置，不改变库自身依赖或工具链；compileSdk 默认 35，targetSdk 保持仓库基线 35，minSdk 21，Java 字节码目标 1.8。
+默认先发布当前候选到隔离 Maven 目录；CI 下游传入 `-Pflowbus.verification.reuseCandidate=true`，校验封存候选后直接使用，不重新发布。候选清单和本地复现入口见[发布清单](../../docs/release-checklist.md#ci-任务关系与候选边界)。随后生成 consumer 并执行 `:app:assembleRelease`；FlowBus group 通过 exclusiveContent 仅从该目录解析。单独 `prepareMavenLocalConsumer` 只生成工程，不发布候选、不编译或运行设备。`flowbus.consumer.kotlinVersion` 和 `flowbus.consumer.compileSdk` 只选择普通消费者相应配置，不改变库自身依赖或工具链；compileSdk 默认 35，targetSdk 保持仓库基线 35，minSdk 21，Java 字节码目标 1.8。
 
 release 使用 R8，未配置签名。预期输出为：
 
@@ -60,7 +60,7 @@ python3 -B compatibility/android-consumer/verify_device_test.py
 
 八项驱动回归，覆盖本次 PASS 与 UI 匹配、历史 PASS 超时拒绝、本次 FAIL 拒绝、其他前台包拒绝、错误 API 在安装前拒绝。它们模拟 ADB 输出，只验证驱动判断与报告行为，不是 Android API 21 上实际安装、Main/Lifecycle、自检或 R8 运行的证据。
 
-CI 入口通过 `bash compatibility/run-api21.sh` 执行完整复合命令，并在第一处失败停止。另有四项 Shell 入口回归，实际执行身份记录的 heredoc，覆盖错误 API、未完成启动、库测试失败及测试密钥生成失败后停止；不启动设备。运行全部十二项回归：
+CI 先通过 `bash compatibility/prepare-api21.sh` 在模拟器启动前构建 Kotlin 1.8.22 / compileSdk 33 普通 Android、固定基线 Compose、Navigation、NavHost，并分别保存 `build/api21-apks/{android,compose,navigation,navhost}.apk`；设备入口通过 `bash compatibility/run-api21.sh` 执行复合命令，并在第一处失败停止。另有四项 Shell 入口回归，实际执行身份记录的 heredoc，覆盖错误 API、未完成启动、库测试失败及测试密钥生成失败后停止；不启动设备。运行全部十二项回归：
 
 ```bash
 python3 -B -m unittest discover -s compatibility/android-consumer -p '*_test.py' -v

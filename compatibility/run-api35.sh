@@ -31,4 +31,4 @@ adb -s emulator-5554 shell settings put global animator_duration_scale 0
 adb -s emulator-5554 shell settings get global window_animation_scale
 adb -s emulator-5554 shell settings get global transition_animation_scale
 adb -s emulator-5554 shell settings get global animator_duration_scale
-ANDROID_SERIAL=emulator-5554 ./gradlew :library-android:connectedDebugAndroidTest :app:connectedReleaseAndroidTest --rerun-tasks --warning-mode=all
+ANDROID_SERIAL=emulator-5554 ./gradlew :library-android:connectedDebugAndroidTest --rerun :app:connectedReleaseAndroidTest --rerun --warning-mode=all

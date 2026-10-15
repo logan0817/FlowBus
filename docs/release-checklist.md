@@ -13,6 +13,29 @@
 
 发布说明记录固定受测快照，后续提交通过候选 PR 的 Checks 页或 [CI 运行记录](https://github.com/logan0817/FlowBus/actions)核对当前 head SHA。PR 工作流 artifact 名含合成合并提交 SHA（`github.sha`），需结合 run 的 head SHA 和 digest 对应。报告保留 14 天，到期前妥善保留所需证据，排除密钥及个人环境文件。
 
+## CI 任务关系与候选边界
+
+原流程在一个 `verify` job 内串行执行。现在由 `prepare` 完成 API、三组 JVM 单测、release lint 和候选 Maven 仓库准备，随后并行运行：
+
+- `consumers`：源码 Java 8 smoke、默认 Kotlin 的 Maven core / Android R8 消费者、1.0.7/1.1.0 同字节码替换及 core/Android 符号、较新 Compose 1.7.8 / Navigation 2.8.3 NavHost、三组 JMH smoke、发布名称检查及发布 dry-run。
+- `kotlin`：1.8.22、1.9.22、2.0.21、2.1.0 各自使用独立 runner/workspace；每组执行 Maven core Java 8 运行与 Android release R8/旧 Android JVM fixture。不在同一生成目录后台并发。矩阵 `fail-fast: false` 保留其他版本诊断。
+- `api21`：Kotlin 1.8.22 / compileSdk 33 Android、Compose 1.5.4、Navigation 2.4.1、NavHost 2.4.1 消费者构建及设备验收，包含 library instrumentation。
+- `api35`：示例 debug/release APK、库 debug 和示例 release instrumentation。设备镜像、架构及测试内容保持原值。
+
+最终 `verify` 使用 `always()` 汇总上述五类 job（Kotlin 为完整矩阵结果），仅全部 `success` 才通过；失败、取消、意外跳过或缺少结果均失败。保留原来的 `verify` 检查名称，已有将它设为必需检查的分支保护通常无需改名；维护者仍应在首次云端运行后核对实际 check context / ruleset。若规则枚举其他检查，须自行调整，不由本次本地修改更改远端设置。
+
+`prepare` 只发布一次到 `build/candidate-maven`，封存 `build/candidate-manifest.json`（checkout SHA、完整文件集合和逐文件 SHA-256），将两个坐标的 JAR/AAR、sources/javadoc、POM、Gradle module 和 Maven 元数据一起作为 `flowbus-candidate-<workflow SHA>-<attempt>` 上传。准备 job 还通过独立 job output 传递清单摘要，下游下载到 `build/`，开始和结束时均先核对该摘要，再核对清单与文件；这会明确拒绝不匹配，不依赖 download-artifact 自动校验可能仅警告的行为。消费者 Gradle 任务通过 `-Pflowbus.verification.reuseCandidate=true` 改为校验已有候选，不依赖 `publishToMavenLocal`，不会重新生成候选。缺少仓库、清单、提交不符或内容变化都会失败。不要只重跑部分旧 job 来混合不同 attempt 的候选；请重新运行整个工作流。
+
+源码 Java 8 smoke 与库/示例 instrumentation 仍从同一 checkout 构建，用来验证源码集成；这些源码输出不是 Maven 候选验收证据。设备 job 在模拟器启动前完成 APK 构建，保留 Gradle 正常依赖检查，模拟器内仅对 `connected…AndroidTest` 使用任务级 `--rerun`。两个设备 workspace 各自准备 instrumentation，避免传输整个 Gradle 工程输出或共享可变目录。API 21 的消费者全部从封存 Maven 候选解析；普通 Android 显式保留旧流程最后一次 compileSdk 33 检查的 Kotlin 1.8.22 / compileSdk 33 配置，Compose 编译器和 SDK 仍固定为自身基线。配置切换后立即将四个 APK 分别保存到 `build/api21-apks/`，之后才启动模拟器；不能把最后生成的 NavHost APK 用作 Compose/Navigation 证据。
+
+CI 的根 JVM `Test` 任务禁用历史结果复用（本地可用 `-Pflowbus.verification.freshTests=true`），旧 Android fixture 的测试每次调用都执行；编译、API、lint 与打包按正常输入判断增量状态，不再全图 `--rerun-tasks`。消费者输入仍追踪编译器、SDK、版本、模板、仓库及候选文件；JavaExec/JMH 没有可复用的成功输出，每次真实运行。只由 `prepare` 写入现有 setup-gradle 缓存，其他 job 只读，不叠加额外缓存。测试签名目录不在缓存或 artifact 清单内。
+
+同一 PR 的新提交会取消该 PR 的旧工作流，其他 PR/分支不会互相取消；main/master 推送使用独立分组，保留每次验收。触发范围保持不变，本轮不按路径裁剪；纯文档轻量流程需要先识别仓库测试/生成产物的文档输入，不能忽略所有 Markdown。
+
+基于历史步骤耗时并为依赖冷启动保留余量，prepare/consumers/设备 job 超时为 20 分钟，单个 Kotlin job 为 15 分钟，纯汇总为 5 分钟；首次运行后结合实际分项调整。
+
+下一次获授权的云端运行需比较端到端耗时（含排队）、各 job/关键步骤耗时、Gradle 的 executed / UP-TO-DATE / FROM-CACHE 数量和缓存恢复/保存、候选传输、模拟器启动时间，以及所有 job 时长之和与计费任务分钟数。并行可能缩短等待却增加总任务分钟，须同时评估。历史 run 29/30 的 API 35 步骤为 268/200 秒、Kotlin 矩阵为 218/139 秒、API 21 为 213/167 秒，来自 GitHub jobs API 的步骤时间；完整日志未获读取权限（403），不能据此断言步骤内部哪一段最慢，也不能预先承诺提速比例。
+
 ## 本地质量与产物门禁
 
 从仓库根目录使用已有 JDK 17、Android SDK 和 Gradle wrapper。隔离目录避免覆盖用户 Maven local；根 publishToMavenLocal 会删除所选仓库中两个坐标的当前版本目录再重新生成。
@@ -28,7 +51,20 @@ git diff --check HEAD -- . ':(exclude)flowbus-core/api/*.api' ':(exclude)library
 
 Java 参数只选择消费者运行 JVM，构建仍用 JDK 17。需要本机已有 JDK 8。不修改已审查的 API 快照来绕过 apiCheck；公共 API 变化应审查 apiDump 的差异。生成快照的尾空行由 API 检查处理，普通差异检查排除这两个文件。
 
-仓库文档与发布配置作为 JVM 测试的显式输入；修改这些文件后应重新执行门禁，不能复用修改前的通过结果。
+仓库文档与发布配置作为 JVM 测试的显式输入；修改这些文件后应重新执行门禁，不能复用修改前的通过结果。需要本轮实际执行全部单测时，将 `-Pflowbus.verification.freshTests=true` 加到第一个命令。
+
+复现云端候选复用与 API 21 APK 准备（在根目录，使用已有 JDK/SDK 环境）：
+
+```bash
+./gradlew verifyMavenLocalArtifacts "-Dmaven.repo.local=$PWD/build/candidate-maven" --warning-mode=all
+python3 -B compatibility/candidate_bundle.py seal
+./gradlew verifyMavenLocalCoreConsumer "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.verification.reuseCandidate=true -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8
+bash compatibility/prepare-api21.sh
+# 只有已获授权的专用 API 21 emulator-5554 启动后才执行：
+bash compatibility/run-api21.sh
+```
+
+原有不带 `reuseCandidate` 的本地消费者入口仍自动发布。封存后切勿再用默认入口重发候选；修改候选输入后应重新发布并封存，已有设备结果失效。CI 的干净 checkout SHA 标识源码；本地未提交修改还需结合工作区差异核对，不能仅凭 HEAD SHA 标识受测源码。
 
 - core / Android / app JVM 测试和 release lint 通过，示例 release 必须启用 R8/minify。
 - flowbus-core-1.2.0.jar、flowbus-1.2.0.aar、sources/javadoc、POM 与 module metadata 均存在。
@@ -57,9 +93,9 @@ ANDROID_SERIAL=device-serial ./gradlew :library-android:connectedDebugAndroidTes
 4. mock 只验证驱动协议；设备不可用、超时、缺阶段或旧结果均不能写为通过。
 5. CI 已配置 API 21 与 API 35 设备门禁，远端成功记录需对应本次提交。
 
-API 21 步骤会先记录并断言指定模拟器的实际 API 与启动状态，再执行测试。工作流无论成功或失败都会上传 `flowbus-verification-<workflow SHA>` 报告，保留 14 天，包含单测、lint、instrumentation、JVM 符号及消费者当前运行日志/UI。排查时先下载对应提交的报告；缺少文件可能表示前置步骤尚未执行，不能视为通过。
+API 21 步骤会先记录并断言指定模拟器的实际 API 与启动状态，再执行测试。工作流各 job 无论成功或失败都会上传 `flowbus-verification-<job或kotlin版本>-<workflow SHA>-<attempt>` 独立报告，保留 14 天，包含单测、lint、instrumentation、JVM 符号及消费者当前运行日志/UI。排查时下载本次 run / attempt 的全部 `flowbus-verification-*` 报告，并保留同一 `flowbus-candidate-*` 及 Actions artifact digest；每份下游报告包含同一候选清单，比较其摘要后再整合证据。历史单一 artifact 名仅用于对应历史运行；缺少文件可能表示前置步骤尚未执行，不能视为通过。
 
-emulator-runner 的 `script` 会按行分别启动 Shell，不支持跨行 heredoc 或续行命令。API 21 流程通过单条 `bash compatibility/run-api21.sh` 调用，设备身份检查、测试签名与消费者验收在同一脚本内执行；脚本遇到任何失败立即停止。维护时不要将复合命令重新内嵌到 Action 的 `script` 中。脚本回归以模拟 ADB 验证身份拒绝及失败停止，不代替设备验收。消费者测试签名由 JDK keytool 在 `build/api21-signing/` 生成，不依赖用户目录的 debug keystore；密钥不上传、不提交，也不用于正式发布。
+emulator-runner 的 `script` 会按行分别启动 Shell，不支持跨行 heredoc 或续行命令。API 21 先用 `bash compatibility/prepare-api21.sh` 构建并分开保存 APK；模拟器内通过单条 `bash compatibility/run-api21.sh` 调用，设备身份检查、测试签名与消费者验收在同一脚本内执行；脚本遇到任何失败立即停止。维护时不要将复合命令重新内嵌到 Action 的 `script` 中。脚本回归以模拟 ADB 验证身份拒绝及失败停止，不代替设备验收。消费者测试签名由 JDK keytool 在 `build/api21-signing/` 生成，不依赖用户目录的 debug keystore；密钥不上传、不提交，也不用于正式发布。
 
 API 35 UI 门禁通过 `bash compatibility/run-api35.sh` 显式唤醒模拟器并解除非安全锁屏，再执行库层与示例 release 测试。退出前保存 `build/api35-environment/window.txt` 与 `power.txt`，用于分析 Activity 已恢复但 Espresso 无窗口焦点的失败；诊断不会覆盖原测试退出码。示例测试规则在 Activity 失焦时于 finish 前输出窗口状态，优先检查该现场；整批结束后的 Launcher 焦点不能单独证明失败占用方。
 

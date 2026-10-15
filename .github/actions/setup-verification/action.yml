@@ -1,0 +1,24 @@
+name: Set up verification
+description: Shared JDK, Gradle cache and Android SDK setup
+inputs:
+  cache-read-only:
+    description: Only the prepare job writes the Gradle cache
+    default: 'true'
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-java@v5.2.0
+      with:
+        distribution: temurin
+        java-version: |
+          8
+          17
+    - uses: gradle/actions/setup-gradle@v6.1.0
+      with:
+        cache-read-only: ${{ inputs.cache-read-only }}
+    - uses: android-actions/setup-android@v4.0.1
+      with:
+        # tools 已下架，命令行工具由 Action 单独准备。
+        packages: platform-tools
+    - shell: bash
+      run: sdkmanager "platform-tools" "platforms;android-33" "platforms;android-35" "build-tools;35.0.0"

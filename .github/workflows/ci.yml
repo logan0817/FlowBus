@@ -10,122 +10,123 @@ on:
 permissions:
   contents: read
 
-jobs:
-  verify:
-    runs-on: ubuntu-latest
+# 仅同一 PR 的过时运行互相取消；主分支每次运行保留独立验收证据。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name == 'pull_request' && 'pr' || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      candidate-manifest-sha256: ${{ steps.candidate.outputs.manifest-sha256 }}
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v6.0.2
+      - uses: actions/checkout@v6.0.2
         with:
           fetch-depth: 0
-
-      - name: Set up consumer JDK 8 and build JDK 17
-        uses: actions/setup-java@v5.2.0
-        with:
-          distribution: temurin
-          java-version: |
-            8
-            17
-
-      - name: Set up Gradle cache
-        uses: gradle/actions/setup-gradle@v6.1.0
+      - uses: ./.github/actions/setup-verification
         with:
           cache-read-only: false
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v4.0.1
-        with:
-          # tools 已从 SDK 仓库下架；命令行工具由 Action 单独准备。
-          packages: platform-tools
-
-      - name: Install Android SDK packages
-        run: sdkmanager "platform-tools" "platforms;android-33" "platforms;android-35" "build-tools;35.0.0"
-
       - name: Check submitted diff whitespace
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
         run: |
           API_SNAPSHOT_EXCLUDES=(-- . ':(exclude)flowbus-core/api/*.api' ':(exclude)library-android/api/*.api')
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            git diff --check "origin/${{ github.base_ref }}"...HEAD "${API_SNAPSHOT_EXCLUDES[@]}"
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            git diff --check "origin/$BASE_REF"...HEAD "${API_SNAPSHOT_EXCLUDES[@]}"
           elif git rev-parse HEAD~1 >/dev/null 2>&1; then
             git diff --check HEAD~1..HEAD "${API_SNAPSHOT_EXCLUDES[@]}"
           else
             git diff --check "${API_SNAPSHOT_EXCLUDES[@]}"
           fi
-
-      - name: Run unit tests
-        run: ./gradlew :flowbus-core:test :library-android:testDebugUnitTest :app:testDebugUnitTest --rerun-tasks --warning-mode=all
-
       - name: Check consumer device verification driver
         run: |
-          python3 -B compatibility/verify_api35_test.py
+          python3 -B -m unittest discover -s compatibility -p '*_test.py' -v
           python3 -B -m unittest discover -s compatibility/android-consumer -p '*_test.py' -v
           python3 -B -m unittest discover -s compatibility/compose-consumer -p '*_test.py' -v
           python3 -B -m unittest discover -s compatibility/navigation-consumer -p '*_test.py' -v
           python3 -B -m unittest discover -s compatibility/core-binary-consumer -p '*_test.py' -v
           python3 -B -m unittest discover -s benchmarks/jvm -p '*_test.py' -v
+      - name: Check APIs, run fresh tests, lint and prepare candidate
+        id: candidate
+        run: |
+          ./gradlew apiCheck :flowbus-core:test :library-android:testDebugUnitTest :app:testDebugUnitTest \
+            :library-android:lintRelease :app:lintRelease verifyMavenLocalArtifacts \
+            "-Dmaven.repo.local=$PWD/build/candidate-maven" --warning-mode=all
+          python3 -B compatibility/candidate_bundle.py seal
+          echo "manifest-sha256=$(sha256sum build/candidate-manifest.json | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
+      - name: Archive candidate repository and manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: flowbus-candidate-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            build/candidate-maven/
+            build/candidate-manifest.json
+      - name: Preserve prepare reports even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flowbus-verification-prepare-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            flowbus-core/build/test-results/
+            library-android/build/test-results/
+            app/build/test-results/
+            library-android/build/reports/lint-results-release.*
+            app/build/reports/lint-results-release.*
+            build/candidate-manifest.json
 
-      - name: Check public API compatibility
-        run: ./gradlew apiCheck --rerun-tasks --warning-mode=all
-
+  consumers:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      FLOWBUS_CANDIDATE_MANIFEST_SHA256: ${{ needs.prepare.outputs.candidate-manifest-sha256 }}
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - uses: ./.github/actions/setup-verification
+      - name: Download this run's candidate
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: flowbus-candidate-${{ github.sha }}-${{ github.run_attempt }}
+          path: build
+      - name: Check candidate commit and digests
+        run: python3 -B compatibility/candidate_bundle.py check
       - name: Run core consumer on Java 8
         run: ./gradlew :flowbus-core:verifyCoreRuntime "-Pflowbus.consumer.java=$JAVA_HOME_8_X64/bin/java" -Pflowbus.consumer.expectedJava=1.8 --warning-mode=all
-
-      - name: Run Android release lint
-        run: ./gradlew :library-android:lintRelease :app:lintRelease --rerun-tasks --warning-mode=all
-
-      - name: Assemble sample APKs
-        run: ./gradlew :app:assembleDebug :app:assembleRelease --rerun-tasks --warning-mode=all
-
-      - name: Enable KVM for Android emulator
+      - name: Verify candidate metadata and baseline Kotlin JVM and Android consumers
         run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-
-      - name: Run Android instrumented tests
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          target: google_apis
-          arch: x86_64
-          profile: pixel_5
-          disable-animations: true
-          script: |
-            bash compatibility/run-api35.sh
-
-      - name: Verify isolated candidate artifacts and consumers
-        run: |
-          ./gradlew verifyMavenLocalArtifacts verifyMavenLocalCoreConsumer verifyMavenLocalConsumer verifyMavenLocalComposeConsumer \
-            "-Dmaven.repo.local=$PWD/build/candidate-maven" \
+          ./gradlew verifyMavenLocalArtifacts verifyMavenLocalCoreConsumer verifyMavenLocalConsumer \
+            "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.verification.reuseCandidate=true \
             "-Pflowbus.consumer.java=$JAVA_HOME_8_X64/bin/java" -Pflowbus.consumer.expectedJava=1.8 --warning-mode=all
-
       - name: Check JVM benchmark scenarios and smoke
         run: |
           for benchmark_target in baseline candidate shared; do
             ./gradlew -p benchmarks/jvm selfCheck jmh \
               "-Pbenchmark.target=$benchmark_target" -Pbenchmark.smoke --warning-mode=all
           done
-
       - name: Verify unchanged 1.0.7 core consumer bytecode
         run: |
           ./gradlew verifyMavenLocalBinaryCoreConsumer \
-            "-Dmaven.repo.local=$PWD/build/candidate-maven" \
+            "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.verification.reuseCandidate=true \
             "-Pflowbus.consumer.java=$JAVA_HOME_8_X64/bin/java" -Pflowbus.consumer.expectedJava=1.8 --warning-mode=all
           python3 -B compatibility/core-binary-consumer/verify_symbols.py \
             --runtime-report build/maven-local-binary-core-consumer/build/reports/binary-compatibility.json \
             --output build/core-jvm-symbol-verification.json
-
       - name: Verify unchanged 1.1.0 core consumer bytecode
         run: |
           ./gradlew verifyMavenLocalBinaryCoreConsumer \
-            "-Dmaven.repo.local=$PWD/build/candidate-maven" \
+            "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.verification.reuseCandidate=true \
             -Pflowbus.consumer.baselineVersion=1.1.0 \
             "-Pflowbus.consumer.java=$JAVA_HOME_8_X64/bin/java" -Pflowbus.consumer.expectedJava=1.8 --warning-mode=all
           python3 -B compatibility/core-binary-consumer/verify_symbols.py \
             --runtime-report build/maven-local-binary-core-consumer-1.1.0/build/reports/binary-compatibility.json \
             --output build/core-1.1.0-jvm-symbol-verification.json
-
       - name: Verify published Android JVM symbols
         run: |
           mkdir -p build/published-baseline
@@ -138,7 +139,6 @@ jobs:
             --candidate-artifact build/candidate-maven/io/github/logan0817/flowbus/1.2.0/flowbus-1.2.0.aar \
             --baseline-api-snapshot compatibility/android-consumer/api/flowbus-1.0.7.api \
             --output build/android-jvm-symbol-verification.json
-
       - name: Verify published 1.1.0 Android JVM symbols
         run: |
           curl --fail --location --silent --show-error \
@@ -150,22 +150,101 @@ jobs:
             --candidate-artifact build/candidate-maven/io/github/logan0817/flowbus/1.2.0/flowbus-1.2.0.aar \
             --baseline-api-snapshot compatibility/android-consumer/api/flowbus-1.1.0.api \
             --output build/android-1.1.0-jvm-symbol-verification.json
-
-      - name: Verify Kotlin consumer compiler matrix
+      - name: Verify newer optional Navigation consumer
         run: |
-          for consumer_kotlin in 1.8.22 1.9.22 2.0.21 2.1.0; do
-            ./gradlew verifyMavenLocalCoreConsumer verifyMavenLocalConsumer \
-              "-Dmaven.repo.local=$PWD/build/candidate-maven" \
-              "-Pflowbus.consumer.kotlinVersion=$consumer_kotlin" \
-              "-Pflowbus.consumer.java=$JAVA_HOME_8_X64/bin/java" -Pflowbus.consumer.expectedJava=1.8 --warning-mode=all
-          done
-
-      - name: Verify compileSdk 33 consumer
+          ./gradlew verifyMavenLocalComposeConsumer \
+            "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.verification.reuseCandidate=true \
+            -Pflowbus.consumer.navigationVersion=2.8.3 \
+            -Pflowbus.consumer.composeVersion=1.7.8 -Pflowbus.consumer.navHost=true --warning-mode=all
+      - name: Verify Maven Central release task graph
         run: |
-          ./gradlew verifyMavenLocalConsumer \
-            "-Dmaven.repo.local=$PWD/build/candidate-maven" \
-            -Pflowbus.consumer.kotlinVersion=1.8.22 -Pflowbus.consumer.compileSdk=33 --warning-mode=all
+          ./gradlew verifyCentralDeploymentName --warning-mode=all
+          ./gradlew releaseToMavenCentral --dry-run --warning-mode=all
+      - name: Check candidate remains unchanged
+        if: always()
+        run: python3 -B compatibility/candidate_bundle.py check
+      - name: Preserve consumers reports even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flowbus-verification-consumers-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            build/maven-local-binary-core-consumer*/build/reports/
+            build/*jvm-symbol-verification.json
+            build/maven-local-consumer/legacy/build/reports/
+            build/maven-local-consumer/legacy/build/test-results/
+            benchmarks/jvm/build/reports/
+            build/candidate-manifest.json
 
+  kotlin:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      FLOWBUS_CANDIDATE_MANIFEST_SHA256: ${{ needs.prepare.outputs.candidate-manifest-sha256 }}
+    strategy:
+      # 失败时让其余编译器完成，分别保留诊断。
+      fail-fast: false
+      matrix:
+        version: ['1.8.22', '1.9.22', '2.0.21', '2.1.0']
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - uses: ./.github/actions/setup-verification
+      - name: Download this run's candidate
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: flowbus-candidate-${{ github.sha }}-${{ github.run_attempt }}
+          path: build
+      - name: Check candidate commit and digests
+        run: python3 -B compatibility/candidate_bundle.py check
+      - name: Verify Kotlin compiler consumer
+        env:
+          CONSUMER_KOTLIN: ${{ matrix.version }}
+        run: |
+          ./gradlew verifyMavenLocalCoreConsumer verifyMavenLocalConsumer \
+            "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.verification.reuseCandidate=true \
+            "-Pflowbus.consumer.kotlinVersion=$CONSUMER_KOTLIN" \
+            "-Pflowbus.consumer.java=$JAVA_HOME_8_X64/bin/java" -Pflowbus.consumer.expectedJava=1.8 --warning-mode=all
+      - name: Check candidate remains unchanged
+        if: always()
+        run: python3 -B compatibility/candidate_bundle.py check
+      - name: Preserve kotlin-${{ matrix.version }} reports even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flowbus-verification-kotlin-${{ matrix.version }}-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            build/maven-local-consumer/legacy/build/reports/
+            build/maven-local-consumer/legacy/build/test-results/
+            build/candidate-manifest.json
+
+  api21:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      FLOWBUS_CANDIDATE_MANIFEST_SHA256: ${{ needs.prepare.outputs.candidate-manifest-sha256 }}
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - uses: ./.github/actions/setup-verification
+      - name: Download this run's candidate
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: flowbus-candidate-${{ github.sha }}-${{ github.run_attempt }}
+          path: build
+      - name: Check candidate commit and digests
+        run: python3 -B compatibility/candidate_bundle.py check
+      - name: Prepare minified consumer APKs and library instrumentation before emulator
+        run: bash compatibility/prepare-api21.sh
+      - name: Enable KVM for Android emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
       - name: Run library and minified Maven consumer on API 21
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -175,47 +254,91 @@ jobs:
           disable-animations: true
           script: |
             bash compatibility/run-api21.sh
-
-      - name: Verify newer optional Navigation consumer
-        run: |
-          ./gradlew verifyMavenLocalComposeConsumer \
-            "-Dmaven.repo.local=$PWD/build/candidate-maven" \
-            -Pflowbus.consumer.navigationVersion=2.8.3 \
-            -Pflowbus.consumer.composeVersion=1.7.8 -Pflowbus.consumer.navHost=true --warning-mode=all
-
-      - name: Verify Maven Central release task graph
-        run: |
-          ./gradlew verifyCentralDeploymentName --warning-mode=all
-          ./gradlew releaseToMavenCentral --dry-run --warning-mode=all
-
-      - name: Preserve verification reports even on failure
+      - name: Check candidate remains unchanged
+        if: always()
+        run: python3 -B compatibility/candidate_bundle.py check
+      - name: Preserve api21 reports even on failure
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: flowbus-verification-${{ github.sha }}
+          name: flowbus-verification-api21-${{ github.sha }}-${{ github.run_attempt }}
           if-no-files-found: warn
           retention-days: 14
           path: |
-            flowbus-core/build/test-results/
-            library-android/build/test-results/
-            app/build/test-results/
-            library-android/build/reports/lint-results-release.*
-            app/build/reports/lint-results-release.*
-            library-android/build/outputs/androidTest-results/
-            app/build/outputs/androidTest-results/
-            build/maven-local-binary-core-consumer/build/reports/binary-compatibility.json
-            build/maven-local-binary-core-consumer-1.1.0/build/reports/binary-compatibility.json
-            build/core-1.1.0-jvm-symbol-verification.json
-            build/core-jvm-symbol-verification.json
-            build/android-jvm-symbol-verification.json
-            build/android-1.1.0-jvm-symbol-verification.json
-            build/maven-local-consumer/legacy/build/reports/binary-android-compatibility.txt
+            build/maven-local-consumer/legacy/build/reports/
             build/maven-local-consumer/legacy/build/test-results/
-            build/api21-environment/
-            build/api35-environment/
             build/android-consumer-device/
             build/compose-effects-device/
             build/compose-policies-device/
             build/navigation-device/
             build/navhost-device/
-            benchmarks/jvm/build/reports/
+            library-android/build/outputs/androidTest-results/
+            library-android/build/reports/androidTests/
+            build/api21-environment/
+            build/candidate-manifest.json
+
+  api35:
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      FLOWBUS_CANDIDATE_MANIFEST_SHA256: ${{ needs.prepare.outputs.candidate-manifest-sha256 }}
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - uses: ./.github/actions/setup-verification
+      - name: Download this run's candidate
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: flowbus-candidate-${{ github.sha }}-${{ github.run_attempt }}
+          path: build
+      - name: Check candidate commit and digests
+        run: python3 -B compatibility/candidate_bundle.py check
+      - name: Prepare sample APKs and source instrumentation before emulator
+        run: |
+          ./gradlew :app:assembleDebug :app:assembleRelease :app:assembleReleaseAndroidTest \
+            :library-android:assembleDebug :library-android:assembleDebugAndroidTest --warning-mode=all
+      - name: Enable KVM for Android emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run Android instrumented tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_5
+          disable-animations: true
+          script: |
+            bash compatibility/run-api35.sh
+      - name: Check candidate remains unchanged
+        if: always()
+        run: python3 -B compatibility/candidate_bundle.py check
+      - name: Preserve api35 reports even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flowbus-verification-api35-${{ github.sha }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            app/build/outputs/androidTest-results/
+            app/build/reports/androidTests/
+            library-android/build/outputs/androidTest-results/
+            library-android/build/reports/androidTests/
+            build/api35-environment/
+            build/candidate-manifest.json
+
+  # 保留原有 check 名 verify。跳过、失败、取消均不能成为整体成功。
+  verify:
+    if: always()
+    needs: [prepare, consumers, kotlin, api21, api35]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - name: Require every verification job to succeed
+        env:
+          VERIFICATION_NEEDS: ${{ toJSON(needs) }}
+        run: python3 -B compatibility/ci_result.py
