@@ -26,6 +26,9 @@ preserve_device_state() {
   # 诊断失败不能覆盖原测试退出码。
   adb -s emulator-5554 shell dumpsys window > build/api35-environment/window.txt || true
   adb -s emulator-5554 shell dumpsys power > build/api35-environment/power.txt || true
+  if adb -s emulator-5554 shell test -d /data/local/tmp/flowbus-ui-focus; then
+    adb -s emulator-5554 pull /data/local/tmp/flowbus-ui-focus build/api35-environment/ || true
+  fi
   exit "$test_status"
 }
 trap preserve_device_state EXIT
