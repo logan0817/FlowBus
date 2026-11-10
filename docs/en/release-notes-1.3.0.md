@@ -1,8 +1,8 @@
-# FlowBus 1.3.0 release candidate
+# FlowBus 1.3.0 release notes
 
 [中文](../release-notes-1.3.0.md)
 
-The current release candidate version is **1.3.0**, not a published release. The public installation version remains 1.2.0. These notes describe the local candidate; historical 1.2.0 results do not validate current inputs.
+Version **1.3.0** was published to Maven Central on 2026-11-10 with core, Android and optional Compose coordinates. Current publication evidence is recorded separately from historical development results and their limitations.
 
 ## Changes
 
@@ -12,9 +12,9 @@ The current release candidate version is **1.3.0**, not a published release. The
 - Optional flowbus-compose supplies FlowBusEffect with explicit source, key and owner. Callback updates do not resubscribe; source, key, owner, lifecycle threshold and sticky changes do. Composition exit or inactive lifecycle requests cancellation without closing the source. It adds no Material, Navigation or DI dependency; the base coordinates do not acquire Compose dependencies.
 - inspectChannel(key) returns an independent FlowBusChannelSnapshot with effective normal/sticky configuration, flow presence and separate active counts. Unknown core queries create no store, binding or flow. Android static queries may obtain/create their source using existing rules but do not create an unknown channel. Existing snapshot data classes remain. Owned handles reject queries while closing or closed.
 
-## Candidate usage and limits
+## Usage and limits
 
-Published installation examples remain on 1.2.0. Use the isolated local repository described in [contributing](contributing.md) for new APIs:
+Configure `mavenCentral()` and use the released coordinates below. Use the isolated repository described in [contributing](contributing.md) only for local source changes:
 
 ```kotlin
 implementation("io.github.logan0817:flowbus:1.3.0")
@@ -34,17 +34,44 @@ Existing API, JVM, R8, Maven, Java 8, compiler matrix, API 21/35 and publication
 
 Tests use controlled scheduling and explicit signals for registration, cancellation, stream/source isolation and replay/live boundaries. The Android consumer adds Java/Kotlin interoperability. Compose adds registration counts and callback updates without resubscription, retaining error/cancellation policy checks. Performance comparisons now target public 1.2.0; existing 1.2.0 reports remain historical.
 
-Local results are reported with the implementation delivery. API 36 does not replace API 21/35 evidence; an unrun cloud matrix is not a successful release gate.
+Final API 21/35 and complete cloud CI results are recorded below. Historical API 36 results do not replace minimum-platform evidence.
+
+## Formal publication acceptance (2026-11-10)
+
+Released coordinates are `io.github.logan0817:flowbus-core:1.3.0`, `io.github.logan0817:flowbus:1.3.0` and `io.github.logan0817:flowbus-compose:1.3.0`. Publication uses the tested Maven files from [main CI 42781622177](https://github.com/logan0817/FlowBus/actions/runs/42781622177), attempt 1, commit `299f6a7b9720aca884be3d85f7cf122c803a6e73`. Later installation-documentation commits do not replace published artifacts. All nine checks passed; candidate manifest SHA-256 is `71ae0e1a6def4fa8195be6473ec525280a5c5217a8214000662fc412052a8bee`.
+
+Local GPG keyring/agent and the existing user-level Central token were reused without exporting private keys or configuring GitHub publication secrets. The primary signing fingerprint is `8BB25F160F45FD8919DC985A152B32281C3E9240`. Fifteen payload files, signatures and checksums produced a 150-file bundle, SHA-256 `1469985d5ef9097818ec81e455f7ec7d10d496f4cc2b0d280f45f43f1f0ef7b3`. Batch `io.github.logan0817-FlowBus-1.3.0`, deployment ID `36326b76-36bb-4982-be4e-6b539478cee1`, used `USER_MANAGED`. At `VALIDATED`, all 30 payload/signature files were downloaded and compared before publishing the same deployment; final state is **PUBLISHED**.
+
+| Scope | Final-version evidence |
+| --- | --- |
+| Main CI | 257 JVM tests, three library API checks, Android/Compose/sample Release Lint, metadata, Java 8, three old core bytecode baselines, six symbol reports, consumer R8, JMH smoke and release dry-run passed |
+| Compilers | Kotlin 1.8.22 / 1.9.22 / 2.0.21 / 2.1.0 consumers passed |
+| API 21 / Android 5.0.2 x86 | 3 library instrumentation tests; Android 7, Compose effects 11, policies 8, Navigation 7, NavHost 8 stages; 1 additional legacy Android runtime test passed |
+| API 35 / Android 15 x86_64 | 3 library and 19 sample Release instrumentation tests; Android 7, Compose effects 11 and policies 8 stages; 1 additional legacy Android runtime test passed |
+| Public Maven files | All 150 public files matched the fixed bundle SHA-256; 15 GPG signatures and 120 checksums verified |
+| Public core consumer | Kotlin/Java calls ran on Java 8 after resolving 1.3.0 only from Maven Central; the actually loaded JAR matched the fixed CI digest |
+| Public Android/Compose consumers | FlowBus coordinates resolved only from Maven Central with matching versions and JAR/AAR hashes; Release R8 passed |
+| Public dependency devices | OnePlus IN2020 / API 33 passed Android 7, Compose effects 11 and policies 8 stages, with matching logs, same-package UI and current run IDs |
+
+| Public primary artifact | SHA-256 |
+| --- | --- |
+| flowbus-core-1.3.0.jar | `3e15654a40e3a071d2ca2df51efa1288587d96f407de690c30369092ad2149b4` |
+| flowbus-1.3.0.aar | `729ad9a00caf20d50b659fa355f91288e247a3f2caab989730b69d6e3e56a564` |
+| flowbus-compose-1.3.0.aar | `5a3cc9c7284fa54fb8ed78d543a5b433eff2b9b32016545ca5080993fcf06e2f` |
+
+Local evidence is retained in `build/release-1.3.0/public-acceptance.json`, `signed-manifest.json` and adjacent receipts/device reports. API 33 run IDs: Android `26f92615-a859-473c-84c7-fef15f7da07f`, effects `9a4890df-e12a-4e96-b71c-2f6fda03de9e`, policies `285f4fe0-ab3b-413c-8602-8d63a7ed1d8d`. APKs use local test signing; Maven artifacts use the GPG publication key above.
+
+The first PR attempt had thirteen API 35 window-focus failures; the same commit passed its second attempt, and final main passed on its first attempt. The exact focus cause remains unconfirmed and failure reports are retained. Static symbols do not establish complete ABI certification; JMH smoke does not establish speedup or absence of performance regressions. Historical performance limitations below remain.
 
 ## Final-version candidate preparation (2026-11-10)
 
-Current sources use `1.3.0`, the sample uses `versionName=1.3.0` / `versionCode=11`, and test APKs use version `2 / 1.3.0`. All three coordinates are prepared only in an isolated Maven repository. No release signing, upload or public publication has occurred; public installation examples retain 1.2.0.
+During preparation, sources used `1.3.0`, the sample uses `versionName=1.3.0` / `versionCode=11`, and test APKs use version `2 / 1.3.0`. At that stage, all three coordinates existed only in an isolated Maven repository, without release signing or upload; public installation remained 1.2.0. Final publication is recorded separately below.
 
 The preceding development version merged through [PR #12](https://github.com/logan0817/FlowBus/pull/12) as `311c30f249631371877e25c0cb714a5ccc4917a8`. Its [main CI](https://github.com/logan0817/FlowBus/actions/runs/42771676046) passed all nine checks for `1.3.0-SNAPSHOT`. The local performance and device records below retain their original version identity; they do not establish new `1.3.0` artifact hashes or current device results.
 
 Local validation passed 257 JVM tests, API checks for the three libraries, Release Lint for Android/Compose/the sample app, metadata checks for all three coordinates, core consumer execution on Java 8, and real Maven Release R8 verification for Android and Compose. Compiler and API 21/35 evidence must come from this PR and the post-merge CI.
 
-This release-preparation PR must regenerate the `1.3.0` candidate and pass API, JVM, Lint, metadata, Java 8, real Maven/R8, old bytecode/symbol, compiler matrix and API 21/35 gates. Verify final main CI after merge. Release signing, upload, tags and GitHub Release require separate authorization; public installation examples change only after successful publication.
+Release preparation [PR #13](https://github.com/logan0817/FlowBus/pull/13) merged as `299f6a7b9720aca884be3d85f7cf122c803a6e73`. Its [main CI 42781622177](https://github.com/logan0817/FlowBus/actions/runs/42781622177) passed all nine checks. Publication uses the fixed files from attempt 1 of that run without rebuilding replacements locally.
 
 ## Historical development-candidate verification (2026-10-30)
 

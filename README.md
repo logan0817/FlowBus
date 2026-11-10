@@ -25,7 +25,7 @@ Android 项目优先使用 `flowbus`：
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.2.0")
+implementation("io.github.logan0817:flowbus:1.3.0")
 ```
 
 纯 Kotlin / Coroutines / 非 Android 场景使用 `flowbus-core`：
@@ -33,7 +33,7 @@ implementation("io.github.logan0817:flowbus:1.2.0")
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.2.0")
+implementation("io.github.logan0817:flowbus-core:1.3.0")
 ```
 
 模块选择：
@@ -171,23 +171,19 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 
 <a id="120-候选版本"></a>
 
-## 1.2.0 版本
+## 1.3.0 版本
 
-最新正式版本为 **1.2.0**，已于 2026-10-15 发布到 Maven Central。本版新增按通道覆盖缓冲与溢出策略。
+最新正式版本为 **1.3.0**，已于 2026-11-10 发布到 Maven Central。新增具体订阅建立通知、Java 友好入口、通道实际配置诊断和可选 [Compose 模块](library-compose/README.md)，保留既有 Kotlin API 与投递、所有权语义。
 
-- [通道配置](flowbus-core/README.md#channel-configuration)与 [Android owner 配置](library-android/README.md#android-owner-configuration)
-- Maven Central 坐标：使用 `io.github.logan0817:flowbus:1.2.0` 或 `io.github.logan0817:flowbus-core:1.2.0`
-- [变化、迁移、验证证据与性能边界](docs/release-notes-1.2.0.md)
-
-## 1.3.0 发布候选
-
-当前源码发布候选版本为 **1.3.0**，尚未发布。新增具体订阅建立通知、Java 友好入口、通道实际配置诊断和可选 [Compose 模块](library-compose/README.md)。正式安装仍使用上面的 1.2.0；候选用法与验收边界见 [1.3.0 发布说明](docs/release-notes-1.3.0.md)。
+- Android：`io.github.logan0817:flowbus:1.3.0`；纯 JVM：`io.github.logan0817:flowbus-core:1.3.0`。
+- Compose 按需添加 `implementation("io.github.logan0817:flowbus-compose:1.3.0")`，基础两个坐标不传递 Compose。
+- [1.3.0 变化、接入、验证证据与回退](docs/release-notes-1.3.0.md)；[1.2.0 历史说明](docs/release-notes-1.2.0.md)。
 
 ## 兼容与发布状态
 
 Android 支持 API 21+，发布字节码目标为 Java 8。库使用 Kotlin 1.9.25、Coroutines 1.8.1、Lifecycle 2.6.2、AGP 8.6.1、Gradle 8.7、JDK 17 和 compileSdk/targetSdk 35 构建。消费者的工具链要求与已测组合见[兼容性说明](docs/compatibility.md)。
 
-在依赖仓库中配置 `mavenCentral()`；Android 坐标已传递依赖 core。Compose 和 Navigation 没有单独发布模块，可参考独立的 [Compose](compatibility/compose-consumer/README.md)、[Navigation](compatibility/navigation-consumer/README.md) 和 [NavHost](compatibility/navhost-consumer/README.md) 消费者示例。
+在依赖仓库中配置 `mavenCentral()`；Android 坐标已传递依赖 core。Compose 使用可选发布模块 [flowbus-compose](library-compose/README.md)。Navigation 和 NavHost 不发布独立坐标，可参考 [Compose](compatibility/compose-consumer/README.md)、[Navigation](compatibility/navigation-consumer/README.md) 和 [NavHost](compatibility/navhost-consumer/README.md) 消费者示例。
 
 ## 文档导航
 
@@ -208,6 +204,7 @@ Android 支持 API 21+，发布字节码目标为 Java 8。库使用 Kotlin 1.9.
 | --- | --- |
 | `flowbus-core` | Kotlin/JVM 核心，发布坐标 `io.github.logan0817:flowbus-core` |
 | `library-android` | Android 适配，发布坐标 `io.github.logan0817:flowbus` |
+| `library-compose` | 可选 Compose 适配，发布坐标 `io.github.logan0817:flowbus-compose` |
 | `app` | 示例应用与 release instrumentation |
 | `compatibility` | 独立消费者 fixture 与设备验证驱动 |
 | `benchmarks/jvm` | JVM 性能基准与实测结果 |

@@ -1,6 +1,6 @@
-# 1.3.0 发布准备清单
+# 1.3.0 发布清单
 
-当前源码为 **1.3.0，尚未发布**。正式安装仍为 1.2.0，新增能力与本轮验收边界见 [1.3.0 发布说明](release-notes-1.3.0.md)。下文保留的 1.2.0 发布历史不代表当前候选通过。根本地发布现生成 core、Android、可选 Compose 三个坐标；基础两个坐标不增加 Compose 依赖。API 35 另在模拟器启动前从同一封存候选准备 Android/Compose 独立 APK，随后与原 instrumentation 串行运行七阶段 Java/Android、十一阶段 effect 与八阶段 policy，并保留自身报告。
+当前正式版本为 **1.3.0，已发布到 Maven Central**。新增能力、最终 main CI、公开文件与消费者验收见 [1.3.0 发布说明](release-notes-1.3.0.md)。下文保留的历史证据只对应各自版本。根本地发布现生成 core、Android、可选 Compose 三个坐标；基础两个坐标不增加 Compose 依赖。API 35 另在模拟器启动前从同一封存候选准备 Android/Compose 独立 APK，随后与原 instrumentation 串行运行七阶段 Java/Android、十一阶段 effect 与八阶段 policy，并保留自身报告。
 
 [English](en/release-checklist.md)
 
@@ -129,6 +129,19 @@ CI 的 SDK 初始化显式选择 `platform-tools`，命令行工具由 setup-and
 
 远程操作另行授权后执行。先配置 Maven Central token 与 GPG 签名，确认最终门禁通过；不得将凭据写入仓库。
 
+### 默认本机固定候选发布流程
+
+日常发布使用当前电脑已有的 Central Portal token、本机 GPG keyring 和 GPG agent，不要求配置 GitHub 发布 environment、Actions secrets 或导出私钥。1.3.0 已按此流程完成发布，具体提交、run/attempt、签名指纹、deployment ID 和公开验证见[发布说明](release-notes-1.3.0.md#正式发布验收2026-11-10)。
+
+1. 固定正式版本的成功 main push CI，核对提交、run ID、attempt、九项检查、artifact ZIP digest、候选 manifest 与逐文件 SHA-256。签名上传使用这份受测文件，不重新编译替换。
+2. 当前发布范围为同版本的 core、Android、Compose 三个坐标，每个包含主制品、POM、module metadata、sources 和 javadoc，共 15 个文件；不上传 `maven-metadata-local.xml`。使用已核对完整指纹的本机 GPG 密钥签名，每份制品与签名生成 MD5/SHA-1/SHA-256/SHA-512。核验签名身份、校验和及 ZIP 完整性。
+3. 通过 [Central Publisher API](https://central.sonatype.org/publish/publish-portal-api/) 或 Portal 上传同一个签名包，使用 `USER_MANAGED` 和项目批次名。认证仅发给 Sonatype 官方 HTTPS 接口；不要输出或保存 token 到日志、命令行参数、Git 或制品包。
+4. 立即保存返回的 deployment ID。达到 `VALIDATED` 后，核对该 ID、三坐标，并回下载制品与签名，与固定包逐文件比对。上传响应丢失时先查询原部署，不盲目重复上传。
+5. 已获正式发布授权时，对同一个已验收 deployment 执行 publish，等待 `PUBLISHED`。状态为 `PUBLISHING` 时继续查询原 ID；不要重复上传或重复发布。
+6. 从公开 Maven Central 下载制品、签名和校验和，逐一比对固定包并验签。使用只从公开 Central 解析 FlowBus 坐标的独立 core/Android/Compose 消费者，核对实际版本、加载文件摘要、Java 8、Release R8 和设备自检。完成后同步安装文档及发布记录，再创建对应源码提交的标签和 GitHub Release。
+
+本地恢复材料保存在被忽略的版本发布目录，不能作为可移植的仓库命令依赖；后续版本先核实当前入口与官方 API。其他项目的 `prepareCentralBundle` 不属于本仓库任务。下文保留的 Gradle 上传入口会构建或重新构建制品，不能直接替代上述固定 CI 文件发布。
+
 ### GPG 签名与上传凭据
 
 三个发布模块使用 `signing { useGpgCmd() }`，由本机 GPG 命令行和现有 keyring 完成签名。当前 Gradle 8.7 的该签名实现读取 `signing.gnupg.*`，不会自动使用或转换传统 PGP 签名的 `signing.keyId`、`signing.password`、`signing.secretKeyRingFile`。不指定 `signing.gnupg.keyName` 时，密钥选择遵循 GPG 的配置与默认规则；发布前应核对实际签名密钥，而不是依据未生效的 `signing.keyId` 判断。
@@ -148,7 +161,7 @@ signing.gnupg.keyName=<完整密钥指纹>
 
 ### 上传、验收与回退
 
-上传批次名称采用 `GROUP-根项目名-VERSION_NAME`，当前发布候选为 `io.github.logan0817-FlowBus-1.3.0`；这不代表已经上传或公开发布。版本切换后须重新生成候选并执行门禁和 dry-run。三个坐标分别为 `io.github.logan0817:flowbus-core:1.3.0`、`io.github.logan0817:flowbus:1.3.0`、`io.github.logan0817:flowbus-compose:1.3.0`。名称用于人工识别；查询、release 或 drop 必须使用本次上传返回的唯一 deployment ID 并核对批次内容。
+上传批次名称采用 `GROUP-根项目名-VERSION_NAME`，1.3.0 的批次为 `io.github.logan0817-FlowBus-1.3.0`，实际发布状态见对应版本说明；批次名本身不能证明上传或发布成功。版本切换后须重新生成候选并执行门禁和 dry-run。三个坐标分别为 `io.github.logan0817:flowbus-core:1.3.0`、`io.github.logan0817:flowbus:1.3.0`、`io.github.logan0817:flowbus-compose:1.3.0`。名称用于人工识别；查询、release 或 drop 必须使用本次上传返回的唯一 deployment ID 并核对批次内容。
 
 发布插件 0.33.0 尚无公开的批次名称配置；根发布脚本只将三个 `createStagingRepository` 任务的暂存 artifact 标识统一为根项目名，让插件按同一个暂存标识生成名称，不修改 `MavenPublication` 或发布文件路径。单模块上传也使用同一项目名称，模块内容通过实际坐标区分。`verifyCentralDeploymentName` 在本地与 CI 核对三个暂存标识及实际发布坐标，并作为暂存任务的前置检查；该检查不执行签名或网络上传。升级发布插件后，必须重新核对其命名规则与暂存任务属性，并执行该检查及 remote dry-run。
 

@@ -4,17 +4,17 @@
 
 `flowbus-compose` 是可选的 Jetpack Compose 适配坐标，通过 `FlowBusEffect` 在明确 owner 的活跃生命周期内收集事件。它依赖 core、Compose runtime 和 Lifecycle，不包含 Material、Compose UI 或 Navigation；现有 `flowbus-core` 与 `flowbus` 不会传递依赖它。
 
-## 开发状态与候选安装
+## 安装
 
-当前模块属于 **1.3.0 本地发布候选，尚未发布**。公开正式版本仍为 1.2.0，Maven Central 的 1.2.0 不包含 `flowbus-compose` 坐标，也不包含订阅建立通知 API。
+当前正式版本为 **1.3.0**，已发布到 Maven Central。此坐标自 1.3.0 起提供，1.2.0 不包含该模块。
 
-先按[本地候选安装流程](../CONTRIBUTING.md#candidate-builds)生成并配置隔离 Maven 仓库，再在消费者中声明：
+在消费者仓库配置 `mavenCentral()`，然后声明：
 
 ```kotlin
 implementation("io.github.logan0817:flowbus-compose:1.3.0")
 ```
 
-候选仓库应对 `io.github.logan0817` 使用 `exclusiveContent`，确保三个坐标来自同一批候选，缺失时不会回退到远端旧制品。不要把上述坐标当作已公开发布的安装方式。
+仅在验证本地源码修改时，使用[本地候选安装流程](../CONTRIBUTING.md#candidate-builds)和隔离仓库；候选验收不能代替公开发布。
 
 ## 推荐入口
 
@@ -73,4 +73,4 @@ fun RefreshEvents(
 
 [Compose 消费者](../compatibility/compose-consumer/README.md)通过候选 Maven 坐标和 release R8 调用此模块，复用 effect 生命周期、替换、取消、错误策略与非协作回调验证，并检查订阅建立通知及回调更新。其默认 runtime/ui 1.5.4 与可选 1.7.8 的依赖解析、构建和设备证据必须分开记录。
 
-完整门禁见[发布清单](../docs/release-checklist.md)。编译、R8 和 driver 单测不能替代 API 21/35 设备运行；历史 1.2.0 fixture 的通过结果也不等于本模块候选已通过。
+完整门禁见[发布清单](../docs/release-checklist.md)。编译、R8 和 driver 单测不能替代 API 21/35 设备运行；历史 1.2.0 fixture 的通过结果也不能替代本模块当前版本的验收。

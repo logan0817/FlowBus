@@ -2,7 +2,7 @@
 
 [中文](../README.md) · [Project home](../../README_EN.md)
 
-The latest stable version is **1.2.0**, published to Maven Central on 2026-10-15. APIs marked “since 1.2.0” are available through the released coordinates. Publication and public-artifact verification are recorded in the [release notes](release-notes-1.2.0.md).
+The latest stable version is **1.3.0**, published to Maven Central on 2026-11-10 with core, Android and optional Compose coordinates. Public artifacts, signatures and independent consumers are verified in the [release notes](release-notes-1.3.0.md).
 
 ## User guides
 
@@ -15,16 +15,13 @@ The latest stable version is **1.2.0**, published to Maven Central on 2026-10-15
 | [Troubleshooting](../../TROUBLESHOOTING.md) (Chinese) | Sources, keys, readiness, overflow, builds, and cleanup |
 | [JVM benchmarks](../../benchmarks/jvm/README.md) (Chinese) | Reproduction, results, and measurement limits |
 
-The sample app is in [app](../../app). [Compose](../../compatibility/compose-consumer/README_EN.md), [Navigation](../../compatibility/navigation-consumer/README_EN.md), and [NavHost](../../compatibility/navhost-consumer/README_EN.md) are independent consumers, not published modules.
-
-## Development version
-
-[1.3.0](release-notes-1.3.0.md) is unpublished and adds registration notification, Java APIs, the [optional Compose module](../../library-compose/README_EN.md) and channel diagnostics. Published installation remains 1.2.0; historical results do not validate current sources.
+The sample app is in [app](../../app). [flowbus-compose](../../library-compose/README_EN.md) is an optional published module; [Compose](../../compatibility/compose-consumer/README_EN.md), [Navigation](../../compatibility/navigation-consumer/README_EN.md), and [NavHost](../../compatibility/navhost-consumer/README_EN.md) are independent verification consumers.
 
 ## Releases
 
 | Version | Status | Changes |
 | --- | --- | --- |
+| [1.3.0](release-notes-1.3.0.md) | Published | Subscription notification, Java, optional Compose, channel diagnostics |
 | [1.2.0](release-notes-1.2.0.md) | Published | Channel configuration, delivery contracts, performance baseline |
 | [1.1.0](release-notes-1.1.0.md) | Published | API 21, scope closure, suspend callbacks, instance integration |
 | [1.0.7](release-notes-1.0.7.md) | Historical | Scope close/remove race fix |

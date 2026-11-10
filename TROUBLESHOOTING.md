@@ -123,9 +123,9 @@ configureChannel 必须早于首次 post/emit/flow。IllegalArgumentException �
 
 inspect().config 显示 bus 默认值；tryPostResult/tryPostStickyResult.overflowPolicy 才是本次流策略。accepted 不代表没有丢弃或业务完成。确认来源、就绪、生命周期和实际策略后再排查回调错误，避免以 sticky 或固定延时掩盖时序问题。详细契约见 [core README](flowbus-core/README.md#120-候选按通道配置)。
 
-## 1.3.0 开发版的订阅、Java 与 Compose 排查
+## 1.3.0 的订阅、Java 与 Compose 排查
 
-以下仅适用于尚未发布的 `1.3.0` 本地候选，正式 1.2.0 不提供这些新接口。
+以下适用于已发布的 `1.3.0` 或更新版本；1.2.0 不提供这些新接口。
 
 - 需要确认自己的订阅已登记时，使用 `onSubscribed` 重载；不要用 inspector 总订阅数或 `Flow.onStart` 充当屏障。通知只执行短操作，让独立生产协程继续；它不表示 replay 或业务完成，每次生命周期重新收集都会再次通知，通知后仍可能取消。
 - 查询某条通道的实际配置与普通/sticky 各自订阅数，使用来源的 `inspectChannel(key)`；旧 `inspect().config` 仍是默认值。未知 core 查询不创建通道；Android 静态入口首次获取来源可以初始化 bus。快照不能作为正式业务控制或就绪依据。

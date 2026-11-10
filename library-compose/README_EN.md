@@ -4,17 +4,17 @@
 
 `flowbus-compose` is an optional Jetpack Compose artifact. `FlowBusEffect` collects events while an explicit owner is in its active lifecycle state. The module depends on core, Compose runtime, and Lifecycle, without Material, Compose UI, or Navigation. Neither `flowbus-core` nor `flowbus` transitively adds it.
 
-## Development status and candidate installation
+## Installation
 
-This module is part of the **local 1.3.0 release candidate and has not been published**. The public stable version remains 1.2.0. Maven Central 1.2.0 does not include the `flowbus-compose` artifact or subscription-established notifications.
+The stable version is **1.3.0**, published to Maven Central. This coordinate is available since 1.3.0; 1.2.0 does not contain this module.
 
-First build and configure an isolated Maven repository using the [local candidate workflow](../CONTRIBUTING.md#candidate-builds), then declare:
+Configure `mavenCentral()` in the consumer repositories, then declare:
 
 ```kotlin
 implementation("io.github.logan0817:flowbus-compose:1.3.0")
 ```
 
-Use `exclusiveContent` for `io.github.logan0817` so all three coordinates resolve from the same candidate batch and missing artifacts cannot fall back to older remote releases. This is not a public release installation coordinate.
+Use the isolated [local candidate workflow](../CONTRIBUTING.md#candidate-builds) only when verifying local source changes; candidate verification does not establish public publication.
 
 ## Recommended entry point
 

@@ -4,7 +4,7 @@
 
 This directory holds source fixtures for an independent consumer of the real candidate Maven artifacts after release R8. It is not a standalone Gradle project or a published library. It does not add production dependencies, raise minSdk, or configure production signing.
 
-The current candidate is **1.3.0**, built from local source and not released. The current Maven Central installation remains **1.2.0**. Historical evidence does not establish that this candidate passes.
+The default candidate uses **1.3.0** built from local source. All three 1.3.0 coordinates are now released to Maven Central. Local candidate and public dependency verification remain separate; see the [release notes](../../docs/en/release-notes-1.3.0.md).
 
 ## Generate and build
 

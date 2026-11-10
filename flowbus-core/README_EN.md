@@ -20,7 +20,7 @@ If you are not building an Android app, or if you want to manage bus instances, 
 - [Install](#install) · [Quick start](#quick-start)
 - [Scopes](#scopes-and-ownership) · [API selection](#api-selection-matrix)
 - [Channel configuration](#channel-configuration) · [Suspend collection](#suspend-collection)
-- [1.3 candidate subscription notification](#subscription-notification) · [Candidate channel diagnostics](#channel-diagnostics)
+- [1.3 subscription notification](#subscription-notification) · [Channel diagnostics](#channel-diagnostics)
 - [Diagnostics](#diagnostics) · [Behavior boundaries](#behavior-boundaries)
 - [Compatibility](../docs/en/compatibility.md) · [Troubleshooting](../TROUBLESHOOTING.md) (Chinese)
 
@@ -60,10 +60,10 @@ Cleanup APIs have 2 extra rules:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.2.0")
+implementation("io.github.logan0817:flowbus-core:1.3.0")
 ```
 
-The latest released version remains **1.2.0**. Features marked “1.3 candidate” below are available only in the local **1.3.0** candidate. They have not been published to Maven Central and are unavailable through the released dependency above. See the [release checklist](../docs/en/release-checklist.md) for local candidate preparation and consumer verification.
+The latest released version is **1.3.0**, available from Maven Central. Features marked “since 1.3” below are available through the dependency above. See the [release notes](../docs/en/release-notes-1.3.0.md) for publication evidence and the [release checklist](../docs/en/release-checklist.md) for local candidate verification.
 
 <a id="start-with-the-shortest-path"></a>
 
@@ -389,7 +389,7 @@ It does not mean subscribers already handled the event. `DROP_OLDEST` / `DROP_LA
 
 ## Channel configuration
 
-Available in the published 1.2.0 release; 1.1.0 does not provide these APIs. Use Maven Central with `io.github.logan0817:flowbus-core:1.2.0` or `io.github.logan0817:flowbus:1.2.0`, and [release notes](../docs/en/release-notes-1.2.0.md) for changes and evidence.
+Available in the published 1.2.0 release; 1.1.0 does not provide these APIs. Use Maven Central with `io.github.logan0817:flowbus-core:1.3.0` or `io.github.logan0817:flowbus:1.3.0`, and [release notes](../docs/en/release-notes-1.2.0.md) for changes and evidence.
 
 ### Core, scopes, and explicit instances
 
@@ -485,9 +485,9 @@ Closing a `FlowBusScope` does not actively cancel subscriptions holding old Flow
 
 <a id="subscription-notification"></a>
 
-### 1.3 candidate: notification for a specific subscription
+### Since 1.3: notification for a specific subscription
 
-This section requires the local `1.3.0` candidate. `onSubscribed` runs after **this particular** underlying subscription is registered, before any source event reaches that subscription. Another collector of the same key cannot trigger it early. Merely obtaining a Flow does not invoke it. Collecting the same Flow multiple times invokes the notification once for each actual collection.
+This section requires `1.3.0` or later. `onSubscribed` runs after **this particular** underlying subscription is registered, before any source event reaches that subscription. Another collector of the same key cannot trigger it early. Merely obtaining a Flow does not invoke it. Collecting the same Flow multiple times invokes the notification once for each actual collection.
 
 When a producer must wait for registration, let the non-suspending hook complete a signal and send from a separate coroutine. This complete suspending example uses zero-capacity `SUSPEND` with `emit`, rather than a fixed delay:
 
@@ -631,9 +631,9 @@ Diagnostics snapshots only expose metadata. Keep these 6 boundaries in mind:
 
 <a id="channel-diagnostics"></a>
 
-### 1.3 candidate: effective channel configuration and separate subscriber counts
+### Since 1.3: effective channel configuration and separate subscriber counts
 
-This section requires the local `1.3.0` candidate. `inspect().config` remains the bus-default summary. The new `inspectChannel(key)` returns an independent `FlowBusChannelSnapshot?` with the channel's effective binding:
+This section requires `1.3.0` or later. `inspect().config` remains the bus-default summary. The new `inspectChannel(key)` returns an independent `FlowBusChannelSnapshot?` with the channel's effective binding:
 
 ```kotlin
 val bus = FlowBus()

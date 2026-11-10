@@ -9,7 +9,7 @@ The Gradle module directory is `library-android`, and the published artifact is:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.2.0")
+implementation("io.github.logan0817:flowbus:1.3.0")
 ```
 
 If you are integrating FlowBus into an Android app, this is usually the place to start.
@@ -18,7 +18,7 @@ If you are integrating FlowBus into an Android app, this is usually the place to
 
 - [Quick start](#3-minute-quick-start) · [API selection](#api-selection-matrix)
 - [Owner configuration](#android-owner-configuration) · [Suspend callbacks and explicit instances](#suspend-callbacks)
-- [1.3.0 development: Java, subscription notification, diagnostics](#development-130)
+- [Since 1.3.0: Java, subscription notification, diagnostics](#development-130)
 - [Sticky](#sticky-events) · [Global defaults](#optional-configuration)
 - [Compatibility](../docs/en/compatibility.md) · [Troubleshooting](../TROUBLESHOOTING.md) (Chinese)
 
@@ -42,7 +42,7 @@ FlowBus is a good fit for asynchronous events where one place sends a notificati
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.2.0")
+implementation("io.github.logan0817:flowbus:1.3.0")
 ```
 
 ### 2. Define an event type
@@ -437,7 +437,7 @@ postEvent<MainEvent>(MainEvent.ShowToast(message = "success"))
 
 ## Channel configuration
 
-Available in the published 1.2.0 release; 1.1.0 does not provide these APIs. Use Maven Central with `io.github.logan0817:flowbus-core:1.2.0` or `io.github.logan0817:flowbus:1.2.0`, and [release notes](../docs/en/release-notes-1.2.0.md) for changes and evidence.
+Available in the published 1.2.0 release; 1.1.0 does not provide these APIs. Use Maven Central with `io.github.logan0817:flowbus-core:1.3.0` or `io.github.logan0817:flowbus:1.3.0`, and [release notes](../docs/en/release-notes-1.2.0.md) for changes and evidence.
 
 <a id="android-owner-configuration"></a>
 
@@ -544,9 +544,9 @@ viewLifecycleOwner.collectEventSuspending(eventFlow<RefreshHomeEvent>()) { event
 
 <a id="development-130"></a>
 
-## 1.3.0 development: Java, subscription notification, diagnostics
+## Since 1.3.0: Java, subscription notification, diagnostics
 
-The following APIs exist only in the current source and local **1.3.0** candidate. They are not released. The Maven Central installation above remains **1.2.0**, which cannot compile these new calls. See the [Android consumer](../compatibility/android-consumer/README_EN.md) for candidate preparation and verification. Existing Kotlin APIs remain available.
+The following APIs are released since **1.3.0** and available through the Maven Central dependency above. See the [Android consumer](../compatibility/android-consumer/README_EN.md) for real Maven/R8 verification. Existing Kotlin APIs remain available.
 
 ### A short Java path
 
@@ -654,7 +654,7 @@ Put configuration in `Application.onCreate()`, before these entry points:
 
 The Android module does not add a UI diagnostics panel.
 
-Use core `FlowBus.inspect()` for lower-level event metadata. The 1.3.0 release candidate additionally exposes the `FlowEventBus.inspectChannel(key)` and Java diagnostics described above.
+Use core `FlowBus.inspect()` for lower-level event metadata. Version 1.3.0 additionally exposes the `FlowEventBus.inspectChannel(key)` and Java diagnostics described above.
 
 Before logging snapshots, make sure `eventName` and `scopeName` do not contain phone numbers, tokens, order IDs, or other sensitive values.
 

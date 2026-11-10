@@ -2,15 +2,15 @@
 
 [English](en/compatibility.md) · [文档索引](README.md)
 
-正式 1.2.0 发布 Kotlin/JVM core 和 Android 适配两个坐标；1.3.0 发布候选另增可选 Compose 坐标。Android 和 Compose 坐标传递依赖同版本 core，不提供 Kotlin Multiplatform、跨进程或 Navigation 制品。
+正式 1.3.0 发布 Kotlin/JVM core、Android 适配和可选 Compose 三个坐标。Android 和 Compose 坐标传递依赖同版本 core，不提供 Kotlin Multiplatform、跨进程或 Navigation 制品。
 
-## 1.3.0 发布候选验收
+## 1.3.0 发布验收
 
-当前源码为尚未发布的 1.3.0。基础 minSdk 21、Java 8、Kotlin 1.9.25、Coroutines 1.8.1 与 Lifecycle 2.6.2 保持；可选 Compose 使用 runtime 1.5.4/compiler 1.5.15，不进入既有两个基础坐标。新增正式 1.2.0 core 同字节码和 Android 符号基线。真实 Java/Compose 消费者从候选解析；API 21/35 和最终云端 CI 必须分别取得本轮结果，见[开发说明](release-notes-1.3.0.md)。
+当前正式版本为已发布的 1.3.0。基础 minSdk 21、Java 8、Kotlin 1.9.25、Coroutines 1.8.1 与 Lifecycle 2.6.2 保持；可选 Compose 使用 runtime 1.5.4/compiler 1.5.15，不进入既有两个基础坐标。新增正式 1.2.0 core 同字节码和 Android 符号基线。最终 main CI 九项检查全部通过，包含 Kotlin 1.8.22 / 1.9.22 / 2.0.21 / 2.1.0、Java 8、真实 Maven/R8 及 API 21/35 设备验证。公开文件与消费者验收见[发布说明](release-notes-1.3.0.md)。
 
 ## 接入要求与默认依赖
 
-Android minSdk 为 21，两个坐标均输出 Java 8 字节码。构建本仓库需要 JDK 17 与 Gradle Wrapper；库自身构建版本不等于所有消费者工具链的最低版本。依赖解析可能提升传递依赖版本，排查时应核对消费者实际依赖图。
+Android minSdk 为 21，三个坐标均输出 Java 8 字节码。构建本仓库需要 JDK 17 与 Gradle Wrapper；库自身构建版本不等于所有消费者工具链的最低版本。依赖解析可能提升传递依赖版本，排查时应核对消费者实际依赖图。
 
 ## 1.1.0 历史矩阵
 
