@@ -10,7 +10,8 @@ import unittest
 
 class VerifyApi35Test(unittest.TestCase):
     def run_script(self, *, api="35", boot="1", prepare=False, connected_exit="42",
-                   prepare_exit="0", failed_driver="", signing_exit="0", candidate_exit="0"):
+                   prepare_exit="0", failed_driver="", signing_exit="0", candidate_exit="0",
+                   diagnostic_exit="0"):
         script = Path(__file__).with_name("run-api35.sh").resolve()
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -24,6 +25,7 @@ case "$*" in
   *"getprop sys.boot_completed") echo "$FLOWBUS_TEST_BOOT" ;;
   *"getprop ro.build.version.release") echo 15 ;;
   *"getprop ro.product.cpu.abi") echo x86_64 ;;
+  *"pull /data/local/tmp/flowbus-ui-focus"*) exit "$FLOWBUS_TEST_DIAGNOSTIC_EXIT" ;;
   *) echo diagnostic ;;
 esac
 ''')
@@ -119,6 +121,7 @@ if os.environ["FLOWBUS_TEST_FAILED_DRIVER"] == role:
                          FLOWBUS_TEST_PREPARE_EXIT=prepare_exit,
                          FLOWBUS_TEST_FAILED_DRIVER=failed_driver,
                          FLOWBUS_TEST_SIGNING_EXIT=signing_exit,
+                         FLOWBUS_TEST_DIAGNOSTIC_EXIT=diagnostic_exit,
                          FLOWBUS_TEST_CANDIDATE_EXIT=candidate_exit),
                 capture_output=True, text=True, timeout=10,
             )
@@ -141,6 +144,7 @@ if os.environ["FLOWBUS_TEST_FAILED_DRIVER"] == role:
         self.assertLess(commands.index("wm dismiss-keyguard"), commands.index(":app:connectedReleaseAndroidTest"))
         self.assertNotIn("apksigner", commands)
         self.assertNotIn("driver ", commands)
+        self.assertIn("pull /data/local/tmp/flowbus-ui-focus build/api35-environment/", commands)
 
     def test_wrong_api_is_recorded_and_rejected_before_preparation_or_gradle(self):
         result, commands, _ = self.run_script(api="24")
@@ -148,6 +152,13 @@ if os.environ["FLOWBUS_TEST_FAILED_DRIVER"] == role:
         self.assertNotIn("keyevent", commands)
         self.assertNotIn("connected", commands)
         self.assertNotIn("driver ", commands)
+
+    def test_diagnostic_pull_failure_preserves_original_test_status(self):
+        for connected_exit in ("0", "42"):
+            with self.subTest(connected_exit=connected_exit):
+                result, commands, _ = self.run_script(connected_exit=connected_exit, diagnostic_exit="47")
+                self.assertEqual(result.returncode, int(connected_exit), result.stderr)
+                self.assertIn("pull /data/local/tmp/flowbus-ui-focus", commands)
 
     def test_incomplete_boot_is_recorded_and_rejected_before_preparation_or_gradle(self):
         result, commands, _ = self.run_script(boot="0")
