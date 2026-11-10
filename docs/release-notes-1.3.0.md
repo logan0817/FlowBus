@@ -45,7 +45,7 @@ implementation("io.github.logan0817:flowbus-compose:1.3.0")
 
 前一开发版已随 [PR #12](https://github.com/logan0817/FlowBus/pull/12) 合并为 `311c30f249631371877e25c0cb714a5ccc4917a8`，[main CI](https://github.com/logan0817/FlowBus/actions/runs/42771676046) 九项检查全部通过。它验证的是 `1.3.0-SNAPSHOT`；以下本地性能和设备记录也保留原始版本含义，不能作为 `1.3.0` 新制品摘要或本轮设备结果。
 
-本地已通过 257 项 JVM 测试、三个模块的 API 检查与 Release Lint、三个坐标的 metadata 与 Java 8 消费者，以及 Android／Compose 的真实 Maven Release R8 验证。云端编译器与 API 21/35 结果以本轮 PR 及合并后的 CI 为准。
+本地已通过 257 项 JVM 测试、三个库模块的 API 检查、Android／Compose／示例应用的 Release Lint、三个坐标的 metadata、core 消费者的 Java 8 运行，以及 Android／Compose 的真实 Maven Release R8 验证。云端编译器与 API 21/35 结果以本轮 PR 及合并后的 CI 为准。
 
 本轮发布准备 PR 须重新生成 `1.3.0` 候选，完成 API、JVM、Lint、metadata、Java 8、真实 Maven/R8、旧二进制与符号、编译器矩阵及 API 21/35 门禁；合并后继续核对最终 main CI。正式发布还须单独授权签名、上传、标签和 Release，发布成功后再同步公开安装示例。
 

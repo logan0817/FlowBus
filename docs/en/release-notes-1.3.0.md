@@ -42,7 +42,7 @@ Current sources use `1.3.0`, the sample uses `versionName=1.3.0` / `versionCode=
 
 The preceding development version merged through [PR #12](https://github.com/logan0817/FlowBus/pull/12) as `311c30f249631371877e25c0cb714a5ccc4917a8`. Its [main CI](https://github.com/logan0817/FlowBus/actions/runs/42771676046) passed all nine checks for `1.3.0-SNAPSHOT`. The local performance and device records below retain their original version identity; they do not establish new `1.3.0` artifact hashes or current device results.
 
-Local validation passed 257 JVM tests, API checks and Release Lint for all three modules, metadata and Java 8 consumers for all three coordinates, and real Maven Release R8 verification for Android and Compose. Compiler and API 21/35 evidence must come from this PR and the post-merge CI.
+Local validation passed 257 JVM tests, API checks for the three libraries, Release Lint for Android/Compose/the sample app, metadata checks for all three coordinates, core consumer execution on Java 8, and real Maven Release R8 verification for Android and Compose. Compiler and API 21/35 evidence must come from this PR and the post-merge CI.
 
 This release-preparation PR must regenerate the `1.3.0` candidate and pass API, JVM, Lint, metadata, Java 8, real Maven/R8, old bytecode/symbol, compiler matrix and API 21/35 gates. Verify final main CI after merge. Release signing, upload, tags and GitHub Release require separate authorization; public installation examples change only after successful publication.
 
