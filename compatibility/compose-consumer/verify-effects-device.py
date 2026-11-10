@@ -8,7 +8,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import device_verification as verification
 
 PHASES = (
-    "initial-replay", "source-replaced", "key-replaced", "owner-replaced",
+    "initial-replay", "subscription-established", "callback-updated-without-resubscribe",
+    "source-replaced", "key-replaced", "owner-replaced",
     "min-state-replaced", "composition-disposed-restored",
     "lifecycle-stopped-restarted", "callback-error-continued", "destroyed-source-retained",
 )

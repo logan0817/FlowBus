@@ -2,7 +2,6 @@ package com.logan.flowbus.composeconsumer
 
 import android.os.Build
 import android.util.Log
-import android.widget.TextView
 import androidx.compose.runtime.AbstractApplier
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Composition
@@ -13,7 +12,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -329,6 +327,5 @@ internal fun ComposePolicyVerification(runId: String) {
             withContext(NonCancellable) { sessions.forEach { it.close() } }
         }
     }
-    AndroidView(factory = { TextView(it) },
-        update = { it.text = status + System.lineSeparator() + phases.joinToString(",") })
+    VerificationResult(status + System.lineSeparator() + phases.joinToString(","))
 }

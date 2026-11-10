@@ -17,6 +17,10 @@ The latest stable version is **1.2.0**, published to Maven Central on 2026-10-15
 
 The sample app is in [app](../../app). [Compose](../../compatibility/compose-consumer/README_EN.md), [Navigation](../../compatibility/navigation-consumer/README_EN.md), and [NavHost](../../compatibility/navhost-consumer/README_EN.md) are independent consumers, not published modules.
 
+## Development version
+
+[1.3.0-SNAPSHOT](release-notes-1.3.0.md) is unpublished and adds registration notification, Java APIs, the [optional Compose module](../../library-compose/README_EN.md) and channel diagnostics. Published installation remains 1.2.0; historical results do not validate current sources.
+
 ## Releases
 
 | Version | Status | Changes |

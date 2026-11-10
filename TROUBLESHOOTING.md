@@ -122,3 +122,14 @@ LifecycleOwner 订阅离开指定活跃状态会向当前回调发出取消请�
 configureChannel 必须早于首次 post/emit/flow。IllegalArgumentException 表示非法容量或同名不同运行时类型；IllegalStateException 表示当前 store 已绑定不同有效配置。清理单条流不会解除绑定；完整 scope 清理后的同名新 store 需要重新配置。相同有效配置可重复调用，不要在业务发送后动态调整策略。
 
 inspect().config 显示 bus 默认值；tryPostResult/tryPostStickyResult.overflowPolicy 才是本次流策略。accepted 不代表没有丢弃或业务完成。确认来源、就绪、生命周期和实际策略后再排查回调错误，避免以 sticky 或固定延时掩盖时序问题。详细契约见 [core README](flowbus-core/README.md#120-候选按通道配置)。
+
+## 1.3.0 开发版的订阅、Java 与 Compose 排查
+
+以下仅适用于尚未发布的 `1.3.0-SNAPSHOT` 本地候选，正式 1.2.0 不提供这些新接口。
+
+- 需要确认自己的订阅已登记时，使用 `onSubscribed` 重载；不要用 inspector 总订阅数或 `Flow.onStart` 充当屏障。通知只执行短操作，让独立生产协程继续；它不表示 replay 或业务完成，每次生命周期重新收集都会再次通知，通知后仍可能取消。
+- 查询某条通道的实际配置与普通/sticky 各自订阅数，使用来源的 `inspectChannel(key)`；旧 `inspect().config` 仍是默认值。未知 core 查询不创建通道；Android 静态入口首次获取来源可以初始化 bus。快照不能作为正式业务控制或就绪依据。
+- Java 优先使用 `FlowBusJava` 的 Class/typed channel 与生命周期订阅；owner 决定来源，receiver 决定活跃阶段。`cancel()` 请求取消，`isCompleted()` 才确认在途处理结束。普通与 sticky 不交叉投递。
+- Compose 新坐标为可选 `flowbus-compose`，不包含在正式 1.2.0 中。只更新回调不重订阅；来源、key、owner、阈值或 sticky 变化才重建。离开组合/停止取消收集，不关闭注入来源；需要当前交互页面才能执行的副作用应选择合适 owner 和 RESUMED 阈值。
+
+完整候选用法见 [core](flowbus-core/README.md#subscription-notification)、[Android](library-android/README.md#development-130) 和 [Compose](library-compose/README.md)。

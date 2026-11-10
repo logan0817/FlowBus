@@ -162,8 +162,9 @@ class FlowBusReleaseReadinessTest {
     }
 
     @Test
-    fun `release documentation and versions target 1_2_0`() {
+    fun `development versions and published installation examples remain distinct`() {
         val releaseVersion = "1.2.0"
+        val developmentVersion = "1.3.0-SNAPSHOT"
         val gradleProperties = File("../gradle.properties").readText()
         val versionCatalog = File("../gradle/libs.versions.toml").readText()
         val rootReadme = File("../README.md").readText()
@@ -179,10 +180,10 @@ class FlowBusReleaseReadinessTest {
         val changelog = File("../CHANGELOG.md").readText()
 
         listOf(
-            gradleProperties to "VERSION_NAME=$releaseVersion",
-            gradleProperties to "APP_VERSION_NAME=$releaseVersion",
-            gradleProperties to "APP_VERSION_CODE=9",
-            versionCatalog to "flowbus_version = \"$releaseVersion\"",
+            gradleProperties to "VERSION_NAME=$developmentVersion",
+            gradleProperties to "APP_VERSION_NAME=$developmentVersion",
+            gradleProperties to "APP_VERSION_CODE=10",
+            versionCatalog to "flowbus_version = \"$developmentVersion\"",
             rootReadme to "flowbus:$releaseVersion",
             rootReadme to "flowbus-core:$releaseVersion",
             rootEnglishReadme to "flowbus:$releaseVersion",
@@ -191,8 +192,8 @@ class FlowBusReleaseReadinessTest {
             coreEnglishReadme to "flowbus-core:$releaseVersion",
             androidReadme to "flowbus:$releaseVersion",
             androidEnglishReadme to "flowbus:$releaseVersion",
-            checklist to "VERSION_NAME=$releaseVersion",
-            englishChecklist to "VERSION_NAME=$releaseVersion",
+            checklist to "VERSION_NAME=$developmentVersion",
+            englishChecklist to "VERSION_NAME=$developmentVersion",
             releaseNotes to "FlowBus 1.2.0",
             englishReleaseNotes to "FlowBus 1.2.0",
             changelog to "## 1.2.0"

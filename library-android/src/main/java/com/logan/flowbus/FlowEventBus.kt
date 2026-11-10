@@ -10,12 +10,14 @@ import androidx.lifecycle.viewModelScope
 import com.logan.flowbus.core.EventKey
 import com.logan.flowbus.core.FlowBus
 import com.logan.flowbus.core.FlowBusChannelConfig
+import com.logan.flowbus.core.FlowBusChannelSnapshot
 import com.logan.flowbus.core.FlowBusPostResult
 import com.logan.flowbus.core.collectFlowBusSequentially
 import com.logan.flowbus.core.collectFlowBusSuspendingSequentially
 import com.logan.flowbus.core.eventKey
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -38,6 +40,36 @@ class FlowEventBus : ViewModel() {
     /** 在当前来源首次使用通道前绑定缓冲策略；重复相同有效配置为幂等。 */
     fun <T : Any> configureChannel(key: EventKey<T>, config: FlowBusChannelConfig) {
         bus.configureChannel(key, config)
+    }
+
+    /** 只读查询已绑定通道的实际策略及普通/sticky 活跃订阅数；未知通道不创建登记。 */
+    fun <T : Any> inspectChannel(key: EventKey<T>): FlowBusChannelSnapshot? {
+        return bus.inspectChannel(key)
+    }
+
+    /**
+     * 使用显式 key 订阅，在每次活跃阶段的底层订阅建立后通知 [onSubscribed]。
+     * 通知异常直接传播；事件回调仍使用当前来源的日志与错误策略。
+     */
+    @MainThread
+    fun <T : Any> subscribeEventSuspending(
+        lifecycleOwner: LifecycleOwner,
+        key: EventKey<T>,
+        onSubscribed: () -> Unit,
+        startState: Lifecycle.State = Lifecycle.State.STARTED,
+        dispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
+        isSticky: Boolean = false,
+        onReceived: suspend (T) -> Unit
+    ): Job {
+        return lifecycleOwner.collectEventFromSuspending(
+            from = bus,
+            key = key,
+            onSubscribed = onSubscribed,
+            dispatcher = dispatcher,
+            minLifecycleState = startState,
+            isSticky = isSticky,
+            onReceived = onReceived
+        )
     }
 
     /**

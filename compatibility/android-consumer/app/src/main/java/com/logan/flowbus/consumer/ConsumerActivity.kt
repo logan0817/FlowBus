@@ -10,6 +10,9 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
+import androidx.lifecycle.ViewModelProvider
+import com.logan.flowbus.FlowBusJava
+import com.logan.flowbus.FlowEventBus
 import com.logan.flowbus.collectEvent
 import com.logan.flowbus.collectEventFromSuspending
 import com.logan.flowbus.core.FlowBus
@@ -72,6 +75,8 @@ class ConsumerActivity : Activity() {
                     passed += "channel-config"
                     LegacyAndroidCalls.verify()
                     passed += "binary-1.1.0-android"
+                    verifyJavaInterop()
+                    passed += "java-interop"
                 }
                 val result = "PASS API=${Build.VERSION.SDK_INT} checks=${passed.size} runId=$runId"
                 Log.i(TAG, result)
@@ -259,6 +264,147 @@ class ConsumerActivity : Activity() {
             check(independent.inspect().config.overflowPolicy == BufferOverflow.DROP_OLDEST)
         } finally {
             owner.destroy()
+        }
+    }
+
+    private suspend fun verifyJavaInterop() = withTimeout(5_000) {
+        val receiver = VerificationOwner()
+        val source = VerificationOwner()
+        val other = VerificationOwner()
+        listOf(receiver, source, other).forEach { it.registry.currentState = Lifecycle.State.CREATED }
+        val channel = JavaApiCalls.channel("consumer.runtime.java")
+        val labels = setOf("global", "global-sticky", "owner", "owner-sticky", "kotlin")
+        val events = labels.associateWith { Channel<String>(Channel.UNLIMITED) }
+        val subscribed = Channel<String>(Channel.UNLIMITED)
+        val subscriptions = mutableListOf<FlowBusJava.Subscription>()
+        fun ready(label: String) = Runnable { check(subscribed.trySend(label).isSuccess) }
+        fun listener(label: String) = FlowBusJava.EventListener<String> { value ->
+            check(events.getValue(label).trySend(value).isSuccess)
+        }
+        suspend fun received(label: String, value: String) {
+            check(events.getValue(label).receive() == value) { "Java interop mismatch: $label / $value" }
+        }
+        suspend fun awaitSubscriptions() {
+            check(List(labels.size) { subscribed.receive() }.toSet() == labels)
+        }
+        suspend fun awaitCompletion(subscription: FlowBusJava.Subscription) {
+            while (!subscription.isCompleted) yield()
+        }
+        fun checkCounts(owner: ViewModelStoreOwner?, normal: Int, sticky: Int) {
+            val snapshot = requireNotNull(JavaApiCalls.inspect(owner, channel))
+            check(snapshot.normalSubscriptionCount == normal)
+            check(snapshot.stickySubscriptionCount == sticky)
+        }
+        val sourceBus = ViewModelProvider(source)[FlowEventBus::class.java]
+        val kotlinSubscription = sourceBus.subscribeEventSuspending(
+            lifecycleOwner = receiver,
+            key = channel.asEventKey(),
+            onSubscribed = { check(subscribed.trySend("kotlin").isSuccess) },
+            onReceived = { check(events.getValue("kotlin").trySend(it).isSuccess) }
+        )
+        try {
+            check(JavaApiCalls.inspect(source, channel) == null)
+            subscriptions += JavaApiCalls.subscribe(receiver, null, channel, false, ready("global"), listener("global"))
+            subscriptions += JavaApiCalls.subscribe(receiver, null, channel, true, ready("global-sticky"), listener("global-sticky"))
+            subscriptions += JavaApiCalls.subscribe(receiver, source, channel, false, ready("owner"), listener("owner"))
+            subscriptions += JavaApiCalls.subscribe(receiver, source, channel, true, ready("owner-sticky"), listener("owner-sticky"))
+            JavaApiCalls.verifyNullRejection(channel)
+            check(subscribed.tryReceive().isFailure)
+            receiver.registry.currentState = Lifecycle.State.STARTED
+            awaitSubscriptions()
+            checkCounts(source, normal = 2, sticky = 1)
+            checkCounts(null, normal = 1, sticky = 1)
+
+            JavaApiCalls.post(source, channel, false, "java-to-kotlin")
+            received("owner", "java-to-kotlin")
+            received("kotlin", "java-to-kotlin")
+            check(channel.tryPostTo(source, "kotlin-to-java"))
+            received("owner", "kotlin-to-java")
+            received("kotlin", "kotlin-to-java")
+            JavaApiCalls.postResult(source, channel, false, "java-owner-result")
+            received("owner", "java-owner-result")
+            received("kotlin", "java-owner-result")
+            JavaApiCalls.post(source, channel, true, "java-owner-sticky")
+            received("owner-sticky", "java-owner-sticky")
+            JavaApiCalls.postResult(source, channel, true, "java-owner-sticky-result")
+            received("owner-sticky", "java-owner-sticky-result")
+
+            JavaApiCalls.post(null, channel, false, "java-global")
+            received("global", "java-global")
+            JavaApiCalls.postResult(null, channel, false, "java-global-result")
+            received("global", "java-global-result")
+            JavaApiCalls.post(null, channel, true, "java-global-sticky")
+            received("global-sticky", "java-global-sticky")
+            JavaApiCalls.postResult(null, channel, true, "java-global-sticky-result")
+            received("global-sticky", "java-global-sticky-result")
+            postStickyEvent("kotlin-global-sticky", eventName = channel.name)
+            received("global-sticky", "kotlin-global-sticky")
+            postStickyEventTo(source, "kotlin-owner-sticky", eventName = channel.name)
+            received("owner-sticky", "kotlin-owner-sticky")
+            JavaApiCalls.post(other, channel, false, "other-owner")
+            JavaApiCalls.post(other, channel, true, "other-owner-sticky")
+            check(events.values.all { it.tryReceive().isFailure })
+
+            receiver.registry.currentState = Lifecycle.State.CREATED
+            // Main.immediate 上处理生命周期取消；诊断仅核验已停止，不作为就绪屏障。
+            yield()
+            checkCounts(source, normal = 0, sticky = 0)
+            checkCounts(null, normal = 0, sticky = 0)
+            check(subscriptions.none { it.isCancelled || it.isCompleted })
+            JavaApiCalls.post(source, channel, false, "owner-offline")
+            JavaApiCalls.post(null, channel, false, "global-offline")
+            JavaApiCalls.post(source, channel, true, "owner-latest")
+            JavaApiCalls.post(null, channel, true, "global-latest")
+            receiver.registry.currentState = Lifecycle.State.STARTED
+            awaitSubscriptions()
+            received("owner-sticky", "owner-latest")
+            received("global-sticky", "global-latest")
+            JavaApiCalls.post(source, channel, false, "owner-resumed")
+            received("owner", "owner-resumed")
+            received("kotlin", "owner-resumed")
+            JavaApiCalls.post(null, channel, false, "global-resumed")
+            received("global", "global-resumed")
+            check(events.values.all { it.tryReceive().isFailure })
+
+            val ownerSubscription = subscriptions[2]
+            JavaApiCalls.cancel(ownerSubscription)
+            awaitCompletion(ownerSubscription)
+            checkCounts(source, normal = 1, sticky = 1)
+            JavaApiCalls.post(source, channel, false, "after-cancel")
+            received("kotlin", "after-cancel")
+            check(events.getValue("owner").tryReceive().isFailure)
+
+            val cancellingReady = CompletableDeferred<Unit>()
+            val cancelled = CompletableDeferred<Unit>()
+            val selfCancelling = JavaApiCalls.subscribeCancellingOnNext(
+                receiver, source, channel,
+                Runnable { cancellingReady.complete(Unit) },
+                Runnable { cancelled.complete(Unit) }
+            )
+            subscriptions += selfCancelling
+            cancellingReady.await()
+            JavaApiCalls.post(source, channel, false, "cancel-in-flight")
+            cancelled.await()
+            received("kotlin", "cancel-in-flight")
+            awaitCompletion(selfCancelling)
+
+            receiver.destroy()
+            kotlinSubscription.join()
+            subscriptions.forEach { awaitCompletion(it) }
+            checkCounts(source, normal = 0, sticky = 0)
+            checkCounts(null, normal = 0, sticky = 0)
+            JavaApiCalls.post(source, channel, false, "after-destroy")
+            JavaApiCalls.post(null, channel, true, "after-destroy-sticky")
+            check(events.values.all { it.tryReceive().isFailure })
+            check(subscribed.tryReceive().isFailure)
+        } finally {
+            receiver.destroy()
+            subscriptions.forEach { it.cancel() }
+            kotlinSubscription.cancel()
+            source.destroy()
+            other.destroy()
+            events.values.forEach { it.close() }
+            subscribed.close()
         }
     }
 

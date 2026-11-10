@@ -36,10 +36,10 @@ class VerifyDeviceTest(unittest.TestCase):
             if args[0] == "logcat":
                 self.assertFalse(any(value.startswith("--pid") for value in args))
                 if scenario == "stale":
-                    return "PASS API=21 checks=6 runId=previous-run"
+                    return "PASS API=21 checks=7 runId=previous-run"
                 if scenario == "failed":
                     return f"FAIL runId={run_id} completed=legacy-android"
-                return f"PASS API=21 checks=6 runId={run_id}"
+                return f"PASS API=21 checks=7 runId={run_id}"
             if args[:3] == ["shell", "uiautomator", "dump"]:
                 self.assertEqual(args[-1], f"/data/local/tmp/flowbus-flowbusconsumer-{run_id}.xml")
                 if scenario == "dump-command-failed":
@@ -52,10 +52,13 @@ class VerifyDeviceTest(unittest.TestCase):
                 if scenario == "missing-ui":
                     return "cat: No such file or directory"
                 root = ET.Element("hierarchy")
-                text = chr(10).join([
-                    f"PASS API=21 checks=6 runId={run_id}", "normal-sticky-scope",
-                    "legacy-android", "owner-suspending", "explicit-lifecycle", "channel-config", "binary-1.1.0-android",
-                ])
+                phases = [
+                    f"PASS API=21 checks=7 runId={run_id}", "normal-sticky-scope",
+                    "legacy-android", "owner-suspending", "explicit-lifecycle", "channel-config", "binary-1.1.0-android", "java-interop",
+                ]
+                if scenario == "missing-java-phase":
+                    phases.remove("java-interop")
+                text = chr(10).join(phases)
                 package = "another.application" if scenario == "wrong-ui" else "com.logan.flowbus.consumer"
                 ET.SubElement(root, "node", package=package, text=text)
                 return ET.tostring(root, encoding="unicode")
@@ -96,6 +99,9 @@ class VerifyDeviceTest(unittest.TestCase):
 
     def test_other_foreground_app_cannot_satisfy_ui_check(self):
         self.run_driver("wrong-ui")
+
+    def test_pass_without_java_interop_phase_is_rejected(self):
+        self.run_driver("missing-java-phase")
 
     def test_wrong_api_is_rejected_before_install(self):
         self.run_driver("wrong-api")

@@ -1,0 +1,756 @@
+{
+  "generatedUtc": "2026-10-30T10:54:25.817529+00:00",
+  "head": "26df17a3272b528d0722134179158c3803af83c2",
+  "uncommitted": true,
+  "os": "macOS-26.5.2-arm64-arm-64bit",
+  "cpu": "Apple M1",
+  "runRecords": {
+    "os": "macOS-26.5.2-arm64-arm-64bit",
+    "loadUncontrolled": true,
+    "runs": [
+      {
+        "name": "baseline-stable-1.2.0",
+        "command": [
+          "/Users/logan/.codex/skills/android-studio-build-env/scripts/check-android-env.sh",
+          "--project-root",
+          ".",
+          "--run-gradle",
+          "-p",
+          "benchmarks/jvm",
+          "selfCheck",
+          "jmh",
+          "-Pbenchmark.target=baseline",
+          "-Pbenchmark.filter=.*BusBenchmark.*",
+          "-Pbenchmark.scenarios=noSubscribers,stickySend",
+          "-Pbenchmark.report=baseline-stable-1.2.0",
+          "--warning-mode=all"
+        ],
+        "startUtc": "2026-10-30T10:36:13Z",
+        "loadBefore": [
+          13.5166015625,
+          15.97802734375,
+          21.5009765625
+        ],
+        "exitCode": 0,
+        "endUtc": "2026-10-30T10:39:18Z",
+        "loadAfter": [
+          8.66552734375,
+          13.875,
+          19.6640625
+        ],
+        "log": "/tmp/flowbus-130-benchmark-baseline-stable-1.2.0.log"
+      },
+      {
+        "name": "candidate-stable-1.3.0",
+        "command": [
+          "/Users/logan/.codex/skills/android-studio-build-env/scripts/check-android-env.sh",
+          "--project-root",
+          ".",
+          "--run-gradle",
+          "-p",
+          "benchmarks/jvm",
+          "selfCheck",
+          "jmh",
+          "-Pbenchmark.target=candidate",
+          "-Pbenchmark.filter=.*BusBenchmark.*",
+          "-Pbenchmark.scenarios=noSubscribers,stickySend",
+          "-Pbenchmark.report=candidate-stable-1.3.0",
+          "--warning-mode=all"
+        ],
+        "startUtc": "2026-10-30T10:39:18Z",
+        "loadBefore": [
+          8.66552734375,
+          13.875,
+          19.6640625
+        ],
+        "exitCode": 0,
+        "endUtc": "2026-10-30T10:41:23Z",
+        "loadAfter": [
+          8.67822265625,
+          11.66845703125,
+          17.96728515625
+        ],
+        "log": "/tmp/flowbus-130-benchmark-candidate-stable-1.3.0.log"
+      },
+      {
+        "name": "baseline-registration-1.2.0",
+        "command": [
+          "/Users/logan/.codex/skills/android-studio-build-env/scripts/check-android-env.sh",
+          "--project-root",
+          ".",
+          "--run-gradle",
+          "-p",
+          "benchmarks/jvm",
+          "jmh",
+          "-Pbenchmark.target=baseline",
+          "-Pbenchmark.filter=.*BusLifecycleBenchmark.*",
+          "-Pbenchmark.scenarios=registration",
+          "-Pbenchmark.report=baseline-registration-1.2.0",
+          "--warning-mode=all"
+        ],
+        "startUtc": "2026-10-30T10:41:23Z",
+        "loadBefore": [
+          8.67822265625,
+          11.66845703125,
+          17.96728515625
+        ],
+        "exitCode": 0,
+        "endUtc": "2026-10-30T10:42:26Z",
+        "loadAfter": [
+          8.2685546875,
+          10.87841796875,
+          17.23291015625
+        ],
+        "log": "/tmp/flowbus-130-benchmark-baseline-registration-1.2.0.log"
+      },
+      {
+        "name": "candidate-registration-1.3.0",
+        "command": [
+          "/Users/logan/.codex/skills/android-studio-build-env/scripts/check-android-env.sh",
+          "--project-root",
+          ".",
+          "--run-gradle",
+          "-p",
+          "benchmarks/jvm",
+          "jmh",
+          "-Pbenchmark.target=candidate",
+          "-Pbenchmark.filter=.*BusLifecycleBenchmark.*",
+          "-Pbenchmark.scenarios=registration",
+          "-Pbenchmark.report=candidate-registration-1.3.0",
+          "--warning-mode=all"
+        ],
+        "startUtc": "2026-10-30T10:42:26Z",
+        "loadBefore": [
+          8.2685546875,
+          10.87841796875,
+          17.23291015625
+        ],
+        "exitCode": 0,
+        "endUtc": "2026-10-30T10:43:31Z",
+        "loadAfter": [
+          12.2109375,
+          11.95654296875,
+          17.197265625
+        ],
+        "log": "/tmp/flowbus-130-benchmark-candidate-registration-1.3.0.log"
+      },
+      {
+        "name": "candidate-subscription-1.3.0",
+        "command": [
+          "/Users/logan/.codex/skills/android-studio-build-env/scripts/check-android-env.sh",
+          "--project-root",
+          ".",
+          "--run-gradle",
+          "-p",
+          "benchmarks/jvm",
+          "jmh",
+          "-Pbenchmark.target=candidate",
+          "-Pbenchmark.filter=.*SubscriptionBenchmark.*",
+          "-Pbenchmark.scenarios=plain,hook",
+          "-Pbenchmark.report=candidate-subscription-1.3.0",
+          "--warning-mode=all"
+        ],
+        "startUtc": "2026-10-30T10:43:31Z",
+        "loadBefore": [
+          12.2109375,
+          11.95654296875,
+          17.197265625
+        ],
+        "exitCode": 0,
+        "endUtc": "2026-10-30T10:45:36Z",
+        "loadAfter": [
+          5.169921875,
+          9.625,
+          15.5703125
+        ],
+        "log": "/tmp/flowbus-130-benchmark-candidate-subscription-1.3.0.log"
+      }
+    ]
+  },
+  "reverseRunRecords": [
+    {
+      "name": "candidate-stable-1.3.0-reverse",
+      "command": [
+        "/Users/logan/.codex/skills/android-studio-build-env/scripts/check-android-env.sh",
+        "--project-root",
+        ".",
+        "--run-gradle",
+        "-p",
+        "benchmarks/jvm",
+        "jmh",
+        "-Pbenchmark.target=candidate",
+        "-Pbenchmark.filter=.*BusBenchmark.*",
+        "-Pbenchmark.scenarios=noSubscribers,stickySend",
+        "-Pbenchmark.report=candidate-stable-1.3.0-reverse",
+        "--warning-mode=all"
+      ],
+      "loadBefore": [
+        5.013671875,
+        8.98486328125,
+        15.02783203125
+      ],
+      "startUtc": "2026-10-30T10:46:21Z",
+      "exitCode": 0,
+      "loadAfter": [
+        4.17529296875,
+        7.3798828125,
+        13.56591796875
+      ],
+      "endUtc": "2026-10-30T10:48:26Z"
+    },
+    {
+      "name": "baseline-stable-1.2.0-reverse",
+      "command": [
+        "/Users/logan/.codex/skills/android-studio-build-env/scripts/check-android-env.sh",
+        "--project-root",
+        ".",
+        "--run-gradle",
+        "-p",
+        "benchmarks/jvm",
+        "jmh",
+        "-Pbenchmark.target=baseline",
+        "-Pbenchmark.filter=.*BusBenchmark.*",
+        "-Pbenchmark.scenarios=noSubscribers,stickySend",
+        "-Pbenchmark.report=baseline-stable-1.2.0-reverse",
+        "--warning-mode=all"
+      ],
+      "loadBefore": [
+        4.17529296875,
+        7.3798828125,
+        13.56591796875
+      ],
+      "startUtc": "2026-10-30T10:48:26Z",
+      "exitCode": 0,
+      "loadAfter": [
+        12.28515625,
+        8.71240234375,
+        13.1669921875
+      ],
+      "endUtc": "2026-10-30T10:50:34Z"
+    }
+  ],
+  "registrationReverseRunRecords": [
+    {
+      "name": "candidate-registration-1.3.0-reverse",
+      "command": [
+        "/Users/logan/.codex/skills/android-studio-build-env/scripts/check-android-env.sh",
+        "--project-root",
+        ".",
+        "--run-gradle",
+        "-p",
+        "benchmarks/jvm",
+        "jmh",
+        "-Pbenchmark.target=candidate",
+        "-Pbenchmark.filter=.*BusLifecycleBenchmark.*",
+        "-Pbenchmark.scenarios=registration",
+        "-Pbenchmark.report=candidate-registration-1.3.0-reverse",
+        "--warning-mode=all"
+      ],
+      "loadBefore": [
+        12.19384765625,
+        9.197265625,
+        13.08740234375
+      ],
+      "startUtc": "2026-10-30T10:51:24Z",
+      "exitCode": 0,
+      "loadAfter": [
+        14.412109375,
+        10.63427734375,
+        13.35302734375
+      ],
+      "endUtc": "2026-10-30T10:52:31Z"
+    },
+    {
+      "name": "baseline-registration-1.2.0-reverse",
+      "command": [
+        "/Users/logan/.codex/skills/android-studio-build-env/scripts/check-android-env.sh",
+        "--project-root",
+        ".",
+        "--run-gradle",
+        "-p",
+        "benchmarks/jvm",
+        "jmh",
+        "-Pbenchmark.target=baseline",
+        "-Pbenchmark.filter=.*BusLifecycleBenchmark.*",
+        "-Pbenchmark.scenarios=registration",
+        "-Pbenchmark.report=baseline-registration-1.2.0-reverse",
+        "--warning-mode=all"
+      ],
+      "loadBefore": [
+        14.412109375,
+        10.63427734375,
+        13.35302734375
+      ],
+      "startUtc": "2026-10-30T10:52:31Z",
+      "exitCode": 0,
+      "loadAfter": [
+        18.8291015625,
+        13.08984375,
+        14.08056640625
+      ],
+      "endUtc": "2026-10-30T10:53:40Z"
+    }
+  ],
+  "identities": {
+    "baseline-stable-1.2.0": {
+      "schemaVersion": 1,
+      "target": "baseline",
+      "coreJar": {
+        "path": "/Users/logan/.gradle/caches/modules-2/files-2.1/io.github.logan0817/flowbus-core/1.2.0/10dc99e9df12db93fa9e12c06a80a23f3f15eb7f/flowbus-core-1.2.0.jar",
+        "sha256": "525c10846d00e7a41f932ac0ce45dba47b7b8b1da58bc68266e33df4a4b974f2",
+        "version": "1.2.0"
+      },
+      "baselineVersion": "1.2.0",
+      "baselineSha256": "525c10846d00e7a41f932ac0ce45dba47b7b8b1da58bc68266e33df4a4b974f2",
+      "candidateVersion": "1.3.0-SNAPSHOT",
+      "candidateSha256": "1d7b645de2c41bd2e79c716d161373dd262abb1d079f78aecbbf57b793bf32e9",
+      "sourceSha256": {
+        "flowbus-core/src/main/java/com/logan/flowbus/core/DefaultFlowBus.kt": "dcc4f7f3f0e85fadae598815e05980f2766f1d677f9b35f482abd43a0a8fb338",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventChannel.kt": "3d4fedb67edc1a3e556b14ee2b7ee1d59c9e3ddf03c159cca1734a07557f4a0d",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventChannelExtensions.kt": "f3ba4e5ecebc0bfbabd17d958fa69c8dfbccc0b85f4f8f8a8a8040de4d651800",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventKey.kt": "643ba0ca3b4060e05b0c4a83bf13187573caacda96937f04701d3b6b2fcbdff8",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/ExperimentalFlowBusApi.kt": "9c30748371de23953fab012d8e07be32313a74eb1d8359e98c91226ff7949bed",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBus.kt": "5cb89bd544499fa7932fc2e2cf783e2bb72486e43c0b63e866a4f3929414ae61",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusChannelConfig.kt": "7f36a6412e00af83fd6b7c02f472b1dca55aeba1876bc42d5af6188c783b0738",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusChannelSnapshot.kt": "2f45f35731defbbee3cfc1fa3b68759035a3bcdf2dd99a0974c6ad4c227e81e2",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusCloseResult.kt": "b325e215db92fecae6fbf1abf4a4a3ac2ca7b0931d55b71abe71a4ce80c35c17",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusCollector.kt": "838c005e1701a1964637463551b6e2344a73f0ca0052fcc73dea9e8f719715d7",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusConfig.kt": "d9716aaaa7e5eb086eb34d730572d54a5ab3f1e276a498f321fe784a8a193046",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusDefaultExtensions.kt": "32c56a76a20359bc504213f218494348a5269e04e988c218834dda8e9e9ab9ed",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusErrorContext.kt": "db484a8501f4517cb539f1803b130de26410ccd5336d510105e09f0b105d135e",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusErrorHandler.kt": "6ec06a872379fa3f7dea9ef64ff420648b9f71771c1e7ac68e2b2b43aac9a482",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusInspector.kt": "debf6f3548db30284ff59c9acafcad94e8fc649ff9381148352722a8280020a5",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusLogger.kt": "e4f5dddf7b6ff7ff012218afaddf9258adf7779cc728e6c77e4b806cea828ddf",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusMetrics.kt": "a4a6c4d9cb2d73514e2e1d21ce7c9325a3cbe796b9e9e9cd2e9137c583ac1a49",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusOwner.kt": "455c2ee633eb81faf896272b1e0b546887f3bd2596712a53d2b8383427b04d3f",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusPostResult.kt": "578fab74036b0412ebe9d6444f7bbc6b16a241782132c08d66502f416bacd7ab",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusScope.kt": "b4768c1a69d4110e298f0a0f2739abce0a39d4719989f231091eca92fc674c4a",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusStore.kt": "5337783f9ceaceb35b68f51f41346bf0134989cc7d6b987b64ade72e1abb9906",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusValueExtensions.kt": "dd60369ec5b7c16b05374e064df5a3cd73501e9d85349e24797b5a07ec058f6a",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/ScopedFlowBus.kt": "660a2342e50180e52f8527813e0a0894e5b409d47125a54c100d8cb82b8651a4"
+      },
+      "benchmarkSourceSha256": {
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/BusBenchmark.java": "a6dec43fe09906d9cda35e1352811ebf98f6c784dc7e55520e0c6ed3e35d977f",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/BusLifecycleBenchmark.java": "8e9531d4fc8cc57da372c17bd1dbb4362bc2c7ac1f4051ac576262c1d2000398",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/CandidateConfigBenchmark.java": "c86b7adacd57614c55a22eb5c3d7c00cba045786b8233f7f87863f2be8d5a27e",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/SubscriptionBenchmark.java": "02607939ebb78f359aa9c44e53293834493b429f0a952f1c9ea5110c745a30be",
+        "benchmarks/jvm/src/main/kotlin/com/logan/flowbus/benchmark/SubscriptionWorkload.kt": "8316a0dc825a267d956a5c42c224dca3d7762b36901d10b431958df58b2faa3d",
+        "benchmarks/jvm/src/main/kotlin/com/logan/flowbus/benchmark/Workload.kt": "66e59390f5856c9a506e18e600c7d7154f2a34674039b5fb12d0dda9a94cb80d"
+      },
+      "benchmarkBuildSha256": {
+        "build.gradle.kts": "79e42547c3b62b6f8aaae6058623234f6016269a33be198cee40c1d5440a92cc",
+        "settings.gradle.kts": "c17b8e3f6dfb135382c74c6abb2c50b8bb7f369dd8c8d50eec14b4cffafd2c0f"
+      },
+      "reportSha256": "81df0caed317baa68c30c2a5cde1482e4cdf1f9d1768aa4e9b982ba19babef81"
+    },
+    "candidate-stable-1.3.0": {
+      "schemaVersion": 1,
+      "target": "candidate",
+      "coreJar": {
+        "path": "/Volumes/LoganSSD/Projects/Android/AndroidStudio/FlowBus/build/candidate-maven/io/github/logan0817/flowbus-core/1.3.0-SNAPSHOT/flowbus-core-1.3.0-SNAPSHOT.jar",
+        "sha256": "1d7b645de2c41bd2e79c716d161373dd262abb1d079f78aecbbf57b793bf32e9",
+        "version": "1.3.0-SNAPSHOT"
+      },
+      "baselineVersion": "1.2.0",
+      "baselineSha256": "525c10846d00e7a41f932ac0ce45dba47b7b8b1da58bc68266e33df4a4b974f2",
+      "candidateVersion": "1.3.0-SNAPSHOT",
+      "candidateSha256": "1d7b645de2c41bd2e79c716d161373dd262abb1d079f78aecbbf57b793bf32e9",
+      "sourceSha256": {
+        "flowbus-core/src/main/java/com/logan/flowbus/core/DefaultFlowBus.kt": "dcc4f7f3f0e85fadae598815e05980f2766f1d677f9b35f482abd43a0a8fb338",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventChannel.kt": "3d4fedb67edc1a3e556b14ee2b7ee1d59c9e3ddf03c159cca1734a07557f4a0d",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventChannelExtensions.kt": "f3ba4e5ecebc0bfbabd17d958fa69c8dfbccc0b85f4f8f8a8a8040de4d651800",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventKey.kt": "643ba0ca3b4060e05b0c4a83bf13187573caacda96937f04701d3b6b2fcbdff8",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/ExperimentalFlowBusApi.kt": "9c30748371de23953fab012d8e07be32313a74eb1d8359e98c91226ff7949bed",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBus.kt": "5cb89bd544499fa7932fc2e2cf783e2bb72486e43c0b63e866a4f3929414ae61",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusChannelConfig.kt": "7f36a6412e00af83fd6b7c02f472b1dca55aeba1876bc42d5af6188c783b0738",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusChannelSnapshot.kt": "2f45f35731defbbee3cfc1fa3b68759035a3bcdf2dd99a0974c6ad4c227e81e2",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusCloseResult.kt": "b325e215db92fecae6fbf1abf4a4a3ac2ca7b0931d55b71abe71a4ce80c35c17",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusCollector.kt": "838c005e1701a1964637463551b6e2344a73f0ca0052fcc73dea9e8f719715d7",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusConfig.kt": "d9716aaaa7e5eb086eb34d730572d54a5ab3f1e276a498f321fe784a8a193046",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusDefaultExtensions.kt": "32c56a76a20359bc504213f218494348a5269e04e988c218834dda8e9e9ab9ed",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusErrorContext.kt": "db484a8501f4517cb539f1803b130de26410ccd5336d510105e09f0b105d135e",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusErrorHandler.kt": "6ec06a872379fa3f7dea9ef64ff420648b9f71771c1e7ac68e2b2b43aac9a482",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusInspector.kt": "debf6f3548db30284ff59c9acafcad94e8fc649ff9381148352722a8280020a5",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusLogger.kt": "e4f5dddf7b6ff7ff012218afaddf9258adf7779cc728e6c77e4b806cea828ddf",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusMetrics.kt": "a4a6c4d9cb2d73514e2e1d21ce7c9325a3cbe796b9e9e9cd2e9137c583ac1a49",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusOwner.kt": "455c2ee633eb81faf896272b1e0b546887f3bd2596712a53d2b8383427b04d3f",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusPostResult.kt": "578fab74036b0412ebe9d6444f7bbc6b16a241782132c08d66502f416bacd7ab",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusScope.kt": "b4768c1a69d4110e298f0a0f2739abce0a39d4719989f231091eca92fc674c4a",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusStore.kt": "5337783f9ceaceb35b68f51f41346bf0134989cc7d6b987b64ade72e1abb9906",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusValueExtensions.kt": "dd60369ec5b7c16b05374e064df5a3cd73501e9d85349e24797b5a07ec058f6a",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/ScopedFlowBus.kt": "660a2342e50180e52f8527813e0a0894e5b409d47125a54c100d8cb82b8651a4"
+      },
+      "benchmarkSourceSha256": {
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/BusBenchmark.java": "a6dec43fe09906d9cda35e1352811ebf98f6c784dc7e55520e0c6ed3e35d977f",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/BusLifecycleBenchmark.java": "8e9531d4fc8cc57da372c17bd1dbb4362bc2c7ac1f4051ac576262c1d2000398",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/CandidateConfigBenchmark.java": "c86b7adacd57614c55a22eb5c3d7c00cba045786b8233f7f87863f2be8d5a27e",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/SubscriptionBenchmark.java": "02607939ebb78f359aa9c44e53293834493b429f0a952f1c9ea5110c745a30be",
+        "benchmarks/jvm/src/main/kotlin/com/logan/flowbus/benchmark/SubscriptionWorkload.kt": "8316a0dc825a267d956a5c42c224dca3d7762b36901d10b431958df58b2faa3d",
+        "benchmarks/jvm/src/main/kotlin/com/logan/flowbus/benchmark/Workload.kt": "66e59390f5856c9a506e18e600c7d7154f2a34674039b5fb12d0dda9a94cb80d"
+      },
+      "benchmarkBuildSha256": {
+        "build.gradle.kts": "79e42547c3b62b6f8aaae6058623234f6016269a33be198cee40c1d5440a92cc",
+        "settings.gradle.kts": "c17b8e3f6dfb135382c74c6abb2c50b8bb7f369dd8c8d50eec14b4cffafd2c0f"
+      },
+      "reportSha256": "314fd7fb1cb509021c22ca76eab9aa4e31e7630a6c065165ce319e012f51519a"
+    },
+    "baseline-registration-1.2.0": {
+      "schemaVersion": 1,
+      "target": "baseline",
+      "coreJar": {
+        "path": "/Users/logan/.gradle/caches/modules-2/files-2.1/io.github.logan0817/flowbus-core/1.2.0/10dc99e9df12db93fa9e12c06a80a23f3f15eb7f/flowbus-core-1.2.0.jar",
+        "sha256": "525c10846d00e7a41f932ac0ce45dba47b7b8b1da58bc68266e33df4a4b974f2",
+        "version": "1.2.0"
+      },
+      "baselineVersion": "1.2.0",
+      "baselineSha256": "525c10846d00e7a41f932ac0ce45dba47b7b8b1da58bc68266e33df4a4b974f2",
+      "candidateVersion": "1.3.0-SNAPSHOT",
+      "candidateSha256": "1d7b645de2c41bd2e79c716d161373dd262abb1d079f78aecbbf57b793bf32e9",
+      "sourceSha256": {
+        "flowbus-core/src/main/java/com/logan/flowbus/core/DefaultFlowBus.kt": "dcc4f7f3f0e85fadae598815e05980f2766f1d677f9b35f482abd43a0a8fb338",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventChannel.kt": "3d4fedb67edc1a3e556b14ee2b7ee1d59c9e3ddf03c159cca1734a07557f4a0d",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventChannelExtensions.kt": "f3ba4e5ecebc0bfbabd17d958fa69c8dfbccc0b85f4f8f8a8a8040de4d651800",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventKey.kt": "643ba0ca3b4060e05b0c4a83bf13187573caacda96937f04701d3b6b2fcbdff8",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/ExperimentalFlowBusApi.kt": "9c30748371de23953fab012d8e07be32313a74eb1d8359e98c91226ff7949bed",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBus.kt": "5cb89bd544499fa7932fc2e2cf783e2bb72486e43c0b63e866a4f3929414ae61",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusChannelConfig.kt": "7f36a6412e00af83fd6b7c02f472b1dca55aeba1876bc42d5af6188c783b0738",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusChannelSnapshot.kt": "2f45f35731defbbee3cfc1fa3b68759035a3bcdf2dd99a0974c6ad4c227e81e2",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusCloseResult.kt": "b325e215db92fecae6fbf1abf4a4a3ac2ca7b0931d55b71abe71a4ce80c35c17",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusCollector.kt": "838c005e1701a1964637463551b6e2344a73f0ca0052fcc73dea9e8f719715d7",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusConfig.kt": "d9716aaaa7e5eb086eb34d730572d54a5ab3f1e276a498f321fe784a8a193046",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusDefaultExtensions.kt": "32c56a76a20359bc504213f218494348a5269e04e988c218834dda8e9e9ab9ed",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusErrorContext.kt": "db484a8501f4517cb539f1803b130de26410ccd5336d510105e09f0b105d135e",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusErrorHandler.kt": "6ec06a872379fa3f7dea9ef64ff420648b9f71771c1e7ac68e2b2b43aac9a482",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusInspector.kt": "debf6f3548db30284ff59c9acafcad94e8fc649ff9381148352722a8280020a5",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusLogger.kt": "e4f5dddf7b6ff7ff012218afaddf9258adf7779cc728e6c77e4b806cea828ddf",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusMetrics.kt": "a4a6c4d9cb2d73514e2e1d21ce7c9325a3cbe796b9e9e9cd2e9137c583ac1a49",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusOwner.kt": "455c2ee633eb81faf896272b1e0b546887f3bd2596712a53d2b8383427b04d3f",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusPostResult.kt": "578fab74036b0412ebe9d6444f7bbc6b16a241782132c08d66502f416bacd7ab",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusScope.kt": "b4768c1a69d4110e298f0a0f2739abce0a39d4719989f231091eca92fc674c4a",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusStore.kt": "5337783f9ceaceb35b68f51f41346bf0134989cc7d6b987b64ade72e1abb9906",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusValueExtensions.kt": "dd60369ec5b7c16b05374e064df5a3cd73501e9d85349e24797b5a07ec058f6a",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/ScopedFlowBus.kt": "660a2342e50180e52f8527813e0a0894e5b409d47125a54c100d8cb82b8651a4"
+      },
+      "benchmarkSourceSha256": {
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/BusBenchmark.java": "a6dec43fe09906d9cda35e1352811ebf98f6c784dc7e55520e0c6ed3e35d977f",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/BusLifecycleBenchmark.java": "8e9531d4fc8cc57da372c17bd1dbb4362bc2c7ac1f4051ac576262c1d2000398",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/CandidateConfigBenchmark.java": "c86b7adacd57614c55a22eb5c3d7c00cba045786b8233f7f87863f2be8d5a27e",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/SubscriptionBenchmark.java": "02607939ebb78f359aa9c44e53293834493b429f0a952f1c9ea5110c745a30be",
+        "benchmarks/jvm/src/main/kotlin/com/logan/flowbus/benchmark/SubscriptionWorkload.kt": "8316a0dc825a267d956a5c42c224dca3d7762b36901d10b431958df58b2faa3d",
+        "benchmarks/jvm/src/main/kotlin/com/logan/flowbus/benchmark/Workload.kt": "66e59390f5856c9a506e18e600c7d7154f2a34674039b5fb12d0dda9a94cb80d"
+      },
+      "benchmarkBuildSha256": {
+        "build.gradle.kts": "79e42547c3b62b6f8aaae6058623234f6016269a33be198cee40c1d5440a92cc",
+        "settings.gradle.kts": "c17b8e3f6dfb135382c74c6abb2c50b8bb7f369dd8c8d50eec14b4cffafd2c0f"
+      },
+      "reportSha256": "bd3b34b45433af015e24e1eb4eab53a84c497b86c5fd0a2f781529f1727cb630"
+    },
+    "candidate-registration-1.3.0": {
+      "schemaVersion": 1,
+      "target": "candidate",
+      "coreJar": {
+        "path": "/Volumes/LoganSSD/Projects/Android/AndroidStudio/FlowBus/build/candidate-maven/io/github/logan0817/flowbus-core/1.3.0-SNAPSHOT/flowbus-core-1.3.0-SNAPSHOT.jar",
+        "sha256": "1d7b645de2c41bd2e79c716d161373dd262abb1d079f78aecbbf57b793bf32e9",
+        "version": "1.3.0-SNAPSHOT"
+      },
+      "baselineVersion": "1.2.0",
+      "baselineSha256": "525c10846d00e7a41f932ac0ce45dba47b7b8b1da58bc68266e33df4a4b974f2",
+      "candidateVersion": "1.3.0-SNAPSHOT",
+      "candidateSha256": "1d7b645de2c41bd2e79c716d161373dd262abb1d079f78aecbbf57b793bf32e9",
+      "sourceSha256": {
+        "flowbus-core/src/main/java/com/logan/flowbus/core/DefaultFlowBus.kt": "dcc4f7f3f0e85fadae598815e05980f2766f1d677f9b35f482abd43a0a8fb338",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventChannel.kt": "3d4fedb67edc1a3e556b14ee2b7ee1d59c9e3ddf03c159cca1734a07557f4a0d",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventChannelExtensions.kt": "f3ba4e5ecebc0bfbabd17d958fa69c8dfbccc0b85f4f8f8a8a8040de4d651800",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventKey.kt": "643ba0ca3b4060e05b0c4a83bf13187573caacda96937f04701d3b6b2fcbdff8",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/ExperimentalFlowBusApi.kt": "9c30748371de23953fab012d8e07be32313a74eb1d8359e98c91226ff7949bed",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBus.kt": "5cb89bd544499fa7932fc2e2cf783e2bb72486e43c0b63e866a4f3929414ae61",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusChannelConfig.kt": "7f36a6412e00af83fd6b7c02f472b1dca55aeba1876bc42d5af6188c783b0738",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusChannelSnapshot.kt": "2f45f35731defbbee3cfc1fa3b68759035a3bcdf2dd99a0974c6ad4c227e81e2",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusCloseResult.kt": "b325e215db92fecae6fbf1abf4a4a3ac2ca7b0931d55b71abe71a4ce80c35c17",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusCollector.kt": "838c005e1701a1964637463551b6e2344a73f0ca0052fcc73dea9e8f719715d7",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusConfig.kt": "d9716aaaa7e5eb086eb34d730572d54a5ab3f1e276a498f321fe784a8a193046",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusDefaultExtensions.kt": "32c56a76a20359bc504213f218494348a5269e04e988c218834dda8e9e9ab9ed",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusErrorContext.kt": "db484a8501f4517cb539f1803b130de26410ccd5336d510105e09f0b105d135e",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusErrorHandler.kt": "6ec06a872379fa3f7dea9ef64ff420648b9f71771c1e7ac68e2b2b43aac9a482",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusInspector.kt": "debf6f3548db30284ff59c9acafcad94e8fc649ff9381148352722a8280020a5",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusLogger.kt": "e4f5dddf7b6ff7ff012218afaddf9258adf7779cc728e6c77e4b806cea828ddf",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusMetrics.kt": "a4a6c4d9cb2d73514e2e1d21ce7c9325a3cbe796b9e9e9cd2e9137c583ac1a49",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusOwner.kt": "455c2ee633eb81faf896272b1e0b546887f3bd2596712a53d2b8383427b04d3f",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusPostResult.kt": "578fab74036b0412ebe9d6444f7bbc6b16a241782132c08d66502f416bacd7ab",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusScope.kt": "b4768c1a69d4110e298f0a0f2739abce0a39d4719989f231091eca92fc674c4a",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusStore.kt": "5337783f9ceaceb35b68f51f41346bf0134989cc7d6b987b64ade72e1abb9906",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusValueExtensions.kt": "dd60369ec5b7c16b05374e064df5a3cd73501e9d85349e24797b5a07ec058f6a",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/ScopedFlowBus.kt": "660a2342e50180e52f8527813e0a0894e5b409d47125a54c100d8cb82b8651a4"
+      },
+      "benchmarkSourceSha256": {
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/BusBenchmark.java": "a6dec43fe09906d9cda35e1352811ebf98f6c784dc7e55520e0c6ed3e35d977f",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/BusLifecycleBenchmark.java": "8e9531d4fc8cc57da372c17bd1dbb4362bc2c7ac1f4051ac576262c1d2000398",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/CandidateConfigBenchmark.java": "c86b7adacd57614c55a22eb5c3d7c00cba045786b8233f7f87863f2be8d5a27e",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/SubscriptionBenchmark.java": "02607939ebb78f359aa9c44e53293834493b429f0a952f1c9ea5110c745a30be",
+        "benchmarks/jvm/src/main/kotlin/com/logan/flowbus/benchmark/SubscriptionWorkload.kt": "8316a0dc825a267d956a5c42c224dca3d7762b36901d10b431958df58b2faa3d",
+        "benchmarks/jvm/src/main/kotlin/com/logan/flowbus/benchmark/Workload.kt": "66e59390f5856c9a506e18e600c7d7154f2a34674039b5fb12d0dda9a94cb80d"
+      },
+      "benchmarkBuildSha256": {
+        "build.gradle.kts": "79e42547c3b62b6f8aaae6058623234f6016269a33be198cee40c1d5440a92cc",
+        "settings.gradle.kts": "c17b8e3f6dfb135382c74c6abb2c50b8bb7f369dd8c8d50eec14b4cffafd2c0f"
+      },
+      "reportSha256": "cf355442a42615a435c3c6b47158b3f657fb2c800d20b6aa0df62935b146268a"
+    },
+    "candidate-subscription-1.3.0": {
+      "schemaVersion": 1,
+      "target": "candidate",
+      "coreJar": {
+        "path": "/Volumes/LoganSSD/Projects/Android/AndroidStudio/FlowBus/build/candidate-maven/io/github/logan0817/flowbus-core/1.3.0-SNAPSHOT/flowbus-core-1.3.0-SNAPSHOT.jar",
+        "sha256": "1d7b645de2c41bd2e79c716d161373dd262abb1d079f78aecbbf57b793bf32e9",
+        "version": "1.3.0-SNAPSHOT"
+      },
+      "baselineVersion": "1.2.0",
+      "baselineSha256": "525c10846d00e7a41f932ac0ce45dba47b7b8b1da58bc68266e33df4a4b974f2",
+      "candidateVersion": "1.3.0-SNAPSHOT",
+      "candidateSha256": "1d7b645de2c41bd2e79c716d161373dd262abb1d079f78aecbbf57b793bf32e9",
+      "sourceSha256": {
+        "flowbus-core/src/main/java/com/logan/flowbus/core/DefaultFlowBus.kt": "dcc4f7f3f0e85fadae598815e05980f2766f1d677f9b35f482abd43a0a8fb338",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventChannel.kt": "3d4fedb67edc1a3e556b14ee2b7ee1d59c9e3ddf03c159cca1734a07557f4a0d",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventChannelExtensions.kt": "f3ba4e5ecebc0bfbabd17d958fa69c8dfbccc0b85f4f8f8a8a8040de4d651800",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventKey.kt": "643ba0ca3b4060e05b0c4a83bf13187573caacda96937f04701d3b6b2fcbdff8",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/ExperimentalFlowBusApi.kt": "9c30748371de23953fab012d8e07be32313a74eb1d8359e98c91226ff7949bed",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBus.kt": "5cb89bd544499fa7932fc2e2cf783e2bb72486e43c0b63e866a4f3929414ae61",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusChannelConfig.kt": "7f36a6412e00af83fd6b7c02f472b1dca55aeba1876bc42d5af6188c783b0738",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusChannelSnapshot.kt": "2f45f35731defbbee3cfc1fa3b68759035a3bcdf2dd99a0974c6ad4c227e81e2",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusCloseResult.kt": "b325e215db92fecae6fbf1abf4a4a3ac2ca7b0931d55b71abe71a4ce80c35c17",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusCollector.kt": "838c005e1701a1964637463551b6e2344a73f0ca0052fcc73dea9e8f719715d7",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusConfig.kt": "d9716aaaa7e5eb086eb34d730572d54a5ab3f1e276a498f321fe784a8a193046",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusDefaultExtensions.kt": "32c56a76a20359bc504213f218494348a5269e04e988c218834dda8e9e9ab9ed",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusErrorContext.kt": "db484a8501f4517cb539f1803b130de26410ccd5336d510105e09f0b105d135e",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusErrorHandler.kt": "6ec06a872379fa3f7dea9ef64ff420648b9f71771c1e7ac68e2b2b43aac9a482",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusInspector.kt": "debf6f3548db30284ff59c9acafcad94e8fc649ff9381148352722a8280020a5",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusLogger.kt": "e4f5dddf7b6ff7ff012218afaddf9258adf7779cc728e6c77e4b806cea828ddf",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusMetrics.kt": "a4a6c4d9cb2d73514e2e1d21ce7c9325a3cbe796b9e9e9cd2e9137c583ac1a49",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusOwner.kt": "455c2ee633eb81faf896272b1e0b546887f3bd2596712a53d2b8383427b04d3f",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusPostResult.kt": "578fab74036b0412ebe9d6444f7bbc6b16a241782132c08d66502f416bacd7ab",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusScope.kt": "b4768c1a69d4110e298f0a0f2739abce0a39d4719989f231091eca92fc674c4a",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusStore.kt": "5337783f9ceaceb35b68f51f41346bf0134989cc7d6b987b64ade72e1abb9906",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusValueExtensions.kt": "dd60369ec5b7c16b05374e064df5a3cd73501e9d85349e24797b5a07ec058f6a",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/ScopedFlowBus.kt": "660a2342e50180e52f8527813e0a0894e5b409d47125a54c100d8cb82b8651a4"
+      },
+      "benchmarkSourceSha256": {
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/BusBenchmark.java": "a6dec43fe09906d9cda35e1352811ebf98f6c784dc7e55520e0c6ed3e35d977f",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/BusLifecycleBenchmark.java": "8e9531d4fc8cc57da372c17bd1dbb4362bc2c7ac1f4051ac576262c1d2000398",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/CandidateConfigBenchmark.java": "c86b7adacd57614c55a22eb5c3d7c00cba045786b8233f7f87863f2be8d5a27e",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/SubscriptionBenchmark.java": "02607939ebb78f359aa9c44e53293834493b429f0a952f1c9ea5110c745a30be",
+        "benchmarks/jvm/src/main/kotlin/com/logan/flowbus/benchmark/SubscriptionWorkload.kt": "8316a0dc825a267d956a5c42c224dca3d7762b36901d10b431958df58b2faa3d",
+        "benchmarks/jvm/src/main/kotlin/com/logan/flowbus/benchmark/Workload.kt": "66e59390f5856c9a506e18e600c7d7154f2a34674039b5fb12d0dda9a94cb80d"
+      },
+      "benchmarkBuildSha256": {
+        "build.gradle.kts": "79e42547c3b62b6f8aaae6058623234f6016269a33be198cee40c1d5440a92cc",
+        "settings.gradle.kts": "c17b8e3f6dfb135382c74c6abb2c50b8bb7f369dd8c8d50eec14b4cffafd2c0f"
+      },
+      "reportSha256": "363c41194ec209311f2c42e1a1fbba411acd81c632d873bc67e0f4e75800da37"
+    },
+    "candidate-stable-1.3.0-reverse": {
+      "schemaVersion": 1,
+      "target": "candidate",
+      "coreJar": {
+        "path": "/Volumes/LoganSSD/Projects/Android/AndroidStudio/FlowBus/build/candidate-maven/io/github/logan0817/flowbus-core/1.3.0-SNAPSHOT/flowbus-core-1.3.0-SNAPSHOT.jar",
+        "sha256": "1d7b645de2c41bd2e79c716d161373dd262abb1d079f78aecbbf57b793bf32e9",
+        "version": "1.3.0-SNAPSHOT"
+      },
+      "baselineVersion": "1.2.0",
+      "baselineSha256": "525c10846d00e7a41f932ac0ce45dba47b7b8b1da58bc68266e33df4a4b974f2",
+      "candidateVersion": "1.3.0-SNAPSHOT",
+      "candidateSha256": "1d7b645de2c41bd2e79c716d161373dd262abb1d079f78aecbbf57b793bf32e9",
+      "sourceSha256": {
+        "flowbus-core/src/main/java/com/logan/flowbus/core/DefaultFlowBus.kt": "dcc4f7f3f0e85fadae598815e05980f2766f1d677f9b35f482abd43a0a8fb338",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventChannel.kt": "3d4fedb67edc1a3e556b14ee2b7ee1d59c9e3ddf03c159cca1734a07557f4a0d",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventChannelExtensions.kt": "f3ba4e5ecebc0bfbabd17d958fa69c8dfbccc0b85f4f8f8a8a8040de4d651800",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventKey.kt": "643ba0ca3b4060e05b0c4a83bf13187573caacda96937f04701d3b6b2fcbdff8",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/ExperimentalFlowBusApi.kt": "9c30748371de23953fab012d8e07be32313a74eb1d8359e98c91226ff7949bed",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBus.kt": "5cb89bd544499fa7932fc2e2cf783e2bb72486e43c0b63e866a4f3929414ae61",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusChannelConfig.kt": "7f36a6412e00af83fd6b7c02f472b1dca55aeba1876bc42d5af6188c783b0738",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusChannelSnapshot.kt": "2f45f35731defbbee3cfc1fa3b68759035a3bcdf2dd99a0974c6ad4c227e81e2",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusCloseResult.kt": "b325e215db92fecae6fbf1abf4a4a3ac2ca7b0931d55b71abe71a4ce80c35c17",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusCollector.kt": "838c005e1701a1964637463551b6e2344a73f0ca0052fcc73dea9e8f719715d7",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusConfig.kt": "d9716aaaa7e5eb086eb34d730572d54a5ab3f1e276a498f321fe784a8a193046",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusDefaultExtensions.kt": "32c56a76a20359bc504213f218494348a5269e04e988c218834dda8e9e9ab9ed",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusErrorContext.kt": "db484a8501f4517cb539f1803b130de26410ccd5336d510105e09f0b105d135e",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusErrorHandler.kt": "6ec06a872379fa3f7dea9ef64ff420648b9f71771c1e7ac68e2b2b43aac9a482",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusInspector.kt": "debf6f3548db30284ff59c9acafcad94e8fc649ff9381148352722a8280020a5",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusLogger.kt": "e4f5dddf7b6ff7ff012218afaddf9258adf7779cc728e6c77e4b806cea828ddf",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusMetrics.kt": "a4a6c4d9cb2d73514e2e1d21ce7c9325a3cbe796b9e9e9cd2e9137c583ac1a49",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusOwner.kt": "455c2ee633eb81faf896272b1e0b546887f3bd2596712a53d2b8383427b04d3f",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusPostResult.kt": "578fab74036b0412ebe9d6444f7bbc6b16a241782132c08d66502f416bacd7ab",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusScope.kt": "b4768c1a69d4110e298f0a0f2739abce0a39d4719989f231091eca92fc674c4a",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusStore.kt": "5337783f9ceaceb35b68f51f41346bf0134989cc7d6b987b64ade72e1abb9906",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusValueExtensions.kt": "dd60369ec5b7c16b05374e064df5a3cd73501e9d85349e24797b5a07ec058f6a",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/ScopedFlowBus.kt": "660a2342e50180e52f8527813e0a0894e5b409d47125a54c100d8cb82b8651a4"
+      },
+      "benchmarkSourceSha256": {
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/BusBenchmark.java": "a6dec43fe09906d9cda35e1352811ebf98f6c784dc7e55520e0c6ed3e35d977f",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/BusLifecycleBenchmark.java": "8e9531d4fc8cc57da372c17bd1dbb4362bc2c7ac1f4051ac576262c1d2000398",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/CandidateConfigBenchmark.java": "c86b7adacd57614c55a22eb5c3d7c00cba045786b8233f7f87863f2be8d5a27e",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/SubscriptionBenchmark.java": "02607939ebb78f359aa9c44e53293834493b429f0a952f1c9ea5110c745a30be",
+        "benchmarks/jvm/src/main/kotlin/com/logan/flowbus/benchmark/SubscriptionWorkload.kt": "8316a0dc825a267d956a5c42c224dca3d7762b36901d10b431958df58b2faa3d",
+        "benchmarks/jvm/src/main/kotlin/com/logan/flowbus/benchmark/Workload.kt": "66e59390f5856c9a506e18e600c7d7154f2a34674039b5fb12d0dda9a94cb80d"
+      },
+      "benchmarkBuildSha256": {
+        "build.gradle.kts": "79e42547c3b62b6f8aaae6058623234f6016269a33be198cee40c1d5440a92cc",
+        "settings.gradle.kts": "c17b8e3f6dfb135382c74c6abb2c50b8bb7f369dd8c8d50eec14b4cffafd2c0f"
+      },
+      "reportSha256": "85f83fc416b44c0352d1328375ba70a2fc50ec5a6f4a6996bf4eb8f09cf8e1f6"
+    },
+    "baseline-stable-1.2.0-reverse": {
+      "schemaVersion": 1,
+      "target": "baseline",
+      "coreJar": {
+        "path": "/Users/logan/.gradle/caches/modules-2/files-2.1/io.github.logan0817/flowbus-core/1.2.0/10dc99e9df12db93fa9e12c06a80a23f3f15eb7f/flowbus-core-1.2.0.jar",
+        "sha256": "525c10846d00e7a41f932ac0ce45dba47b7b8b1da58bc68266e33df4a4b974f2",
+        "version": "1.2.0"
+      },
+      "baselineVersion": "1.2.0",
+      "baselineSha256": "525c10846d00e7a41f932ac0ce45dba47b7b8b1da58bc68266e33df4a4b974f2",
+      "candidateVersion": "1.3.0-SNAPSHOT",
+      "candidateSha256": "1d7b645de2c41bd2e79c716d161373dd262abb1d079f78aecbbf57b793bf32e9",
+      "sourceSha256": {
+        "flowbus-core/src/main/java/com/logan/flowbus/core/DefaultFlowBus.kt": "dcc4f7f3f0e85fadae598815e05980f2766f1d677f9b35f482abd43a0a8fb338",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventChannel.kt": "3d4fedb67edc1a3e556b14ee2b7ee1d59c9e3ddf03c159cca1734a07557f4a0d",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventChannelExtensions.kt": "f3ba4e5ecebc0bfbabd17d958fa69c8dfbccc0b85f4f8f8a8a8040de4d651800",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventKey.kt": "643ba0ca3b4060e05b0c4a83bf13187573caacda96937f04701d3b6b2fcbdff8",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/ExperimentalFlowBusApi.kt": "9c30748371de23953fab012d8e07be32313a74eb1d8359e98c91226ff7949bed",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBus.kt": "5cb89bd544499fa7932fc2e2cf783e2bb72486e43c0b63e866a4f3929414ae61",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusChannelConfig.kt": "7f36a6412e00af83fd6b7c02f472b1dca55aeba1876bc42d5af6188c783b0738",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusChannelSnapshot.kt": "2f45f35731defbbee3cfc1fa3b68759035a3bcdf2dd99a0974c6ad4c227e81e2",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusCloseResult.kt": "b325e215db92fecae6fbf1abf4a4a3ac2ca7b0931d55b71abe71a4ce80c35c17",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusCollector.kt": "838c005e1701a1964637463551b6e2344a73f0ca0052fcc73dea9e8f719715d7",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusConfig.kt": "d9716aaaa7e5eb086eb34d730572d54a5ab3f1e276a498f321fe784a8a193046",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusDefaultExtensions.kt": "32c56a76a20359bc504213f218494348a5269e04e988c218834dda8e9e9ab9ed",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusErrorContext.kt": "db484a8501f4517cb539f1803b130de26410ccd5336d510105e09f0b105d135e",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusErrorHandler.kt": "6ec06a872379fa3f7dea9ef64ff420648b9f71771c1e7ac68e2b2b43aac9a482",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusInspector.kt": "debf6f3548db30284ff59c9acafcad94e8fc649ff9381148352722a8280020a5",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusLogger.kt": "e4f5dddf7b6ff7ff012218afaddf9258adf7779cc728e6c77e4b806cea828ddf",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusMetrics.kt": "a4a6c4d9cb2d73514e2e1d21ce7c9325a3cbe796b9e9e9cd2e9137c583ac1a49",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusOwner.kt": "455c2ee633eb81faf896272b1e0b546887f3bd2596712a53d2b8383427b04d3f",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusPostResult.kt": "578fab74036b0412ebe9d6444f7bbc6b16a241782132c08d66502f416bacd7ab",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusScope.kt": "b4768c1a69d4110e298f0a0f2739abce0a39d4719989f231091eca92fc674c4a",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusStore.kt": "5337783f9ceaceb35b68f51f41346bf0134989cc7d6b987b64ade72e1abb9906",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusValueExtensions.kt": "dd60369ec5b7c16b05374e064df5a3cd73501e9d85349e24797b5a07ec058f6a",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/ScopedFlowBus.kt": "660a2342e50180e52f8527813e0a0894e5b409d47125a54c100d8cb82b8651a4"
+      },
+      "benchmarkSourceSha256": {
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/BusBenchmark.java": "a6dec43fe09906d9cda35e1352811ebf98f6c784dc7e55520e0c6ed3e35d977f",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/BusLifecycleBenchmark.java": "8e9531d4fc8cc57da372c17bd1dbb4362bc2c7ac1f4051ac576262c1d2000398",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/CandidateConfigBenchmark.java": "c86b7adacd57614c55a22eb5c3d7c00cba045786b8233f7f87863f2be8d5a27e",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/SubscriptionBenchmark.java": "02607939ebb78f359aa9c44e53293834493b429f0a952f1c9ea5110c745a30be",
+        "benchmarks/jvm/src/main/kotlin/com/logan/flowbus/benchmark/SubscriptionWorkload.kt": "8316a0dc825a267d956a5c42c224dca3d7762b36901d10b431958df58b2faa3d",
+        "benchmarks/jvm/src/main/kotlin/com/logan/flowbus/benchmark/Workload.kt": "66e59390f5856c9a506e18e600c7d7154f2a34674039b5fb12d0dda9a94cb80d"
+      },
+      "benchmarkBuildSha256": {
+        "build.gradle.kts": "79e42547c3b62b6f8aaae6058623234f6016269a33be198cee40c1d5440a92cc",
+        "settings.gradle.kts": "c17b8e3f6dfb135382c74c6abb2c50b8bb7f369dd8c8d50eec14b4cffafd2c0f"
+      },
+      "reportSha256": "79eeb6c35b86a567f7d7b45ae178891cbe946b8b8903d87804a278bb7df10cd5"
+    },
+    "candidate-registration-1.3.0-reverse": {
+      "schemaVersion": 1,
+      "target": "candidate",
+      "coreJar": {
+        "path": "/Volumes/LoganSSD/Projects/Android/AndroidStudio/FlowBus/build/candidate-maven/io/github/logan0817/flowbus-core/1.3.0-SNAPSHOT/flowbus-core-1.3.0-SNAPSHOT.jar",
+        "sha256": "1d7b645de2c41bd2e79c716d161373dd262abb1d079f78aecbbf57b793bf32e9",
+        "version": "1.3.0-SNAPSHOT"
+      },
+      "baselineVersion": "1.2.0",
+      "baselineSha256": "525c10846d00e7a41f932ac0ce45dba47b7b8b1da58bc68266e33df4a4b974f2",
+      "candidateVersion": "1.3.0-SNAPSHOT",
+      "candidateSha256": "1d7b645de2c41bd2e79c716d161373dd262abb1d079f78aecbbf57b793bf32e9",
+      "sourceSha256": {
+        "flowbus-core/src/main/java/com/logan/flowbus/core/DefaultFlowBus.kt": "dcc4f7f3f0e85fadae598815e05980f2766f1d677f9b35f482abd43a0a8fb338",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventChannel.kt": "3d4fedb67edc1a3e556b14ee2b7ee1d59c9e3ddf03c159cca1734a07557f4a0d",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventChannelExtensions.kt": "f3ba4e5ecebc0bfbabd17d958fa69c8dfbccc0b85f4f8f8a8a8040de4d651800",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventKey.kt": "643ba0ca3b4060e05b0c4a83bf13187573caacda96937f04701d3b6b2fcbdff8",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/ExperimentalFlowBusApi.kt": "9c30748371de23953fab012d8e07be32313a74eb1d8359e98c91226ff7949bed",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBus.kt": "5cb89bd544499fa7932fc2e2cf783e2bb72486e43c0b63e866a4f3929414ae61",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusChannelConfig.kt": "7f36a6412e00af83fd6b7c02f472b1dca55aeba1876bc42d5af6188c783b0738",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusChannelSnapshot.kt": "2f45f35731defbbee3cfc1fa3b68759035a3bcdf2dd99a0974c6ad4c227e81e2",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusCloseResult.kt": "b325e215db92fecae6fbf1abf4a4a3ac2ca7b0931d55b71abe71a4ce80c35c17",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusCollector.kt": "838c005e1701a1964637463551b6e2344a73f0ca0052fcc73dea9e8f719715d7",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusConfig.kt": "d9716aaaa7e5eb086eb34d730572d54a5ab3f1e276a498f321fe784a8a193046",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusDefaultExtensions.kt": "32c56a76a20359bc504213f218494348a5269e04e988c218834dda8e9e9ab9ed",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusErrorContext.kt": "db484a8501f4517cb539f1803b130de26410ccd5336d510105e09f0b105d135e",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusErrorHandler.kt": "6ec06a872379fa3f7dea9ef64ff420648b9f71771c1e7ac68e2b2b43aac9a482",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusInspector.kt": "debf6f3548db30284ff59c9acafcad94e8fc649ff9381148352722a8280020a5",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusLogger.kt": "e4f5dddf7b6ff7ff012218afaddf9258adf7779cc728e6c77e4b806cea828ddf",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusMetrics.kt": "a4a6c4d9cb2d73514e2e1d21ce7c9325a3cbe796b9e9e9cd2e9137c583ac1a49",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusOwner.kt": "455c2ee633eb81faf896272b1e0b546887f3bd2596712a53d2b8383427b04d3f",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusPostResult.kt": "578fab74036b0412ebe9d6444f7bbc6b16a241782132c08d66502f416bacd7ab",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusScope.kt": "b4768c1a69d4110e298f0a0f2739abce0a39d4719989f231091eca92fc674c4a",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusStore.kt": "5337783f9ceaceb35b68f51f41346bf0134989cc7d6b987b64ade72e1abb9906",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusValueExtensions.kt": "dd60369ec5b7c16b05374e064df5a3cd73501e9d85349e24797b5a07ec058f6a",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/ScopedFlowBus.kt": "660a2342e50180e52f8527813e0a0894e5b409d47125a54c100d8cb82b8651a4"
+      },
+      "benchmarkSourceSha256": {
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/BusBenchmark.java": "a6dec43fe09906d9cda35e1352811ebf98f6c784dc7e55520e0c6ed3e35d977f",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/BusLifecycleBenchmark.java": "8e9531d4fc8cc57da372c17bd1dbb4362bc2c7ac1f4051ac576262c1d2000398",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/CandidateConfigBenchmark.java": "c86b7adacd57614c55a22eb5c3d7c00cba045786b8233f7f87863f2be8d5a27e",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/SubscriptionBenchmark.java": "02607939ebb78f359aa9c44e53293834493b429f0a952f1c9ea5110c745a30be",
+        "benchmarks/jvm/src/main/kotlin/com/logan/flowbus/benchmark/SubscriptionWorkload.kt": "8316a0dc825a267d956a5c42c224dca3d7762b36901d10b431958df58b2faa3d",
+        "benchmarks/jvm/src/main/kotlin/com/logan/flowbus/benchmark/Workload.kt": "66e59390f5856c9a506e18e600c7d7154f2a34674039b5fb12d0dda9a94cb80d"
+      },
+      "benchmarkBuildSha256": {
+        "build.gradle.kts": "79e42547c3b62b6f8aaae6058623234f6016269a33be198cee40c1d5440a92cc",
+        "settings.gradle.kts": "c17b8e3f6dfb135382c74c6abb2c50b8bb7f369dd8c8d50eec14b4cffafd2c0f"
+      },
+      "reportSha256": "903958b9dcb42c4b5bbcd6aede01947250297224fd89fe14134c75b503ca18e2"
+    },
+    "baseline-registration-1.2.0-reverse": {
+      "schemaVersion": 1,
+      "target": "baseline",
+      "coreJar": {
+        "path": "/Users/logan/.gradle/caches/modules-2/files-2.1/io.github.logan0817/flowbus-core/1.2.0/10dc99e9df12db93fa9e12c06a80a23f3f15eb7f/flowbus-core-1.2.0.jar",
+        "sha256": "525c10846d00e7a41f932ac0ce45dba47b7b8b1da58bc68266e33df4a4b974f2",
+        "version": "1.2.0"
+      },
+      "baselineVersion": "1.2.0",
+      "baselineSha256": "525c10846d00e7a41f932ac0ce45dba47b7b8b1da58bc68266e33df4a4b974f2",
+      "candidateVersion": "1.3.0-SNAPSHOT",
+      "candidateSha256": "1d7b645de2c41bd2e79c716d161373dd262abb1d079f78aecbbf57b793bf32e9",
+      "sourceSha256": {
+        "flowbus-core/src/main/java/com/logan/flowbus/core/DefaultFlowBus.kt": "dcc4f7f3f0e85fadae598815e05980f2766f1d677f9b35f482abd43a0a8fb338",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventChannel.kt": "3d4fedb67edc1a3e556b14ee2b7ee1d59c9e3ddf03c159cca1734a07557f4a0d",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventChannelExtensions.kt": "f3ba4e5ecebc0bfbabd17d958fa69c8dfbccc0b85f4f8f8a8a8040de4d651800",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/EventKey.kt": "643ba0ca3b4060e05b0c4a83bf13187573caacda96937f04701d3b6b2fcbdff8",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/ExperimentalFlowBusApi.kt": "9c30748371de23953fab012d8e07be32313a74eb1d8359e98c91226ff7949bed",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBus.kt": "5cb89bd544499fa7932fc2e2cf783e2bb72486e43c0b63e866a4f3929414ae61",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusChannelConfig.kt": "7f36a6412e00af83fd6b7c02f472b1dca55aeba1876bc42d5af6188c783b0738",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusChannelSnapshot.kt": "2f45f35731defbbee3cfc1fa3b68759035a3bcdf2dd99a0974c6ad4c227e81e2",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusCloseResult.kt": "b325e215db92fecae6fbf1abf4a4a3ac2ca7b0931d55b71abe71a4ce80c35c17",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusCollector.kt": "838c005e1701a1964637463551b6e2344a73f0ca0052fcc73dea9e8f719715d7",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusConfig.kt": "d9716aaaa7e5eb086eb34d730572d54a5ab3f1e276a498f321fe784a8a193046",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusDefaultExtensions.kt": "32c56a76a20359bc504213f218494348a5269e04e988c218834dda8e9e9ab9ed",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusErrorContext.kt": "db484a8501f4517cb539f1803b130de26410ccd5336d510105e09f0b105d135e",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusErrorHandler.kt": "6ec06a872379fa3f7dea9ef64ff420648b9f71771c1e7ac68e2b2b43aac9a482",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusInspector.kt": "debf6f3548db30284ff59c9acafcad94e8fc649ff9381148352722a8280020a5",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusLogger.kt": "e4f5dddf7b6ff7ff012218afaddf9258adf7779cc728e6c77e4b806cea828ddf",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusMetrics.kt": "a4a6c4d9cb2d73514e2e1d21ce7c9325a3cbe796b9e9e9cd2e9137c583ac1a49",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusOwner.kt": "455c2ee633eb81faf896272b1e0b546887f3bd2596712a53d2b8383427b04d3f",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusPostResult.kt": "578fab74036b0412ebe9d6444f7bbc6b16a241782132c08d66502f416bacd7ab",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusScope.kt": "b4768c1a69d4110e298f0a0f2739abce0a39d4719989f231091eca92fc674c4a",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusStore.kt": "5337783f9ceaceb35b68f51f41346bf0134989cc7d6b987b64ade72e1abb9906",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/FlowBusValueExtensions.kt": "dd60369ec5b7c16b05374e064df5a3cd73501e9d85349e24797b5a07ec058f6a",
+        "flowbus-core/src/main/java/com/logan/flowbus/core/ScopedFlowBus.kt": "660a2342e50180e52f8527813e0a0894e5b409d47125a54c100d8cb82b8651a4"
+      },
+      "benchmarkSourceSha256": {
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/BusBenchmark.java": "a6dec43fe09906d9cda35e1352811ebf98f6c784dc7e55520e0c6ed3e35d977f",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/BusLifecycleBenchmark.java": "8e9531d4fc8cc57da372c17bd1dbb4362bc2c7ac1f4051ac576262c1d2000398",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/CandidateConfigBenchmark.java": "c86b7adacd57614c55a22eb5c3d7c00cba045786b8233f7f87863f2be8d5a27e",
+        "benchmarks/jvm/src/main/java/com/logan/flowbus/benchmark/SubscriptionBenchmark.java": "02607939ebb78f359aa9c44e53293834493b429f0a952f1c9ea5110c745a30be",
+        "benchmarks/jvm/src/main/kotlin/com/logan/flowbus/benchmark/SubscriptionWorkload.kt": "8316a0dc825a267d956a5c42c224dca3d7762b36901d10b431958df58b2faa3d",
+        "benchmarks/jvm/src/main/kotlin/com/logan/flowbus/benchmark/Workload.kt": "66e59390f5856c9a506e18e600c7d7154f2a34674039b5fb12d0dda9a94cb80d"
+      },
+      "benchmarkBuildSha256": {
+        "build.gradle.kts": "79e42547c3b62b6f8aaae6058623234f6016269a33be198cee40c1d5440a92cc",
+        "settings.gradle.kts": "c17b8e3f6dfb135382c74c6abb2c50b8bb7f369dd8c8d50eec14b4cffafd2c0f"
+      },
+      "reportSha256": "17c0cb62c0424819ee487d60c86b9d2e95e7499ac59c989912deb0b35e36d3ff"
+    }
+  },
+  "limitation": "Background load uncontrolled; directed JVM measurements only. Registration throughput needs idle-workstation confirmation. Historical complete results/current was preserved."
+}

@@ -18,6 +18,7 @@ implementation("io.github.logan0817:flowbus:1.2.0")
 
 - [快速开始](#3-分钟上手) · [API 选择](#api-选择矩阵)
 - [owner 配置](#android-owner-configuration) · [挂起回调与实例接入](#suspend-callbacks)
+- [1.3.0 开发版：Java、订阅建立与诊断](#development-130)
 - [sticky](#sticky-与-replay) · [全局默认配置](#可选配置)
 - [兼容性](../docs/compatibility.md) · [排障](../TROUBLESHOOTING.md)
 
@@ -605,6 +606,94 @@ viewLifecycleOwner.collectEventSuspending(eventFlow<RefreshHomeEvent>()) { event
 
 `collectEventSuspending` 是通用 Flow 工具，按生命周期顺序执行挂起回调；上游和回调异常直接传播，不自动套用 FlowBus logger/errorHandler。需要实例策略时选择 `collectEventFromSuspending`。需要取消上一条处理时使用原生 Flow 的 `collectLatest` 并明确业务取消含义，不把它作为这些新入口的默认行为。
 
+<a id="development-130"></a>
+
+## 1.3.0 开发版：Java、订阅建立与诊断
+
+以下入口仅存在于当前源码及本地 **1.3.0-SNAPSHOT** 候选，尚未正式发布。上方 Maven Central 的 **1.2.0** 安装坐标保持不变，不能用它编译本节新增 API。候选生成与验证见[普通 Android 消费者](../compatibility/android-consumer/README.md)，原有 Kotlin 入口继续保留。
+
+### Java 最短路径
+
+在 Activity 的主线程注册，`receiver` 是负责订阅生命周期的 `LifecycleOwner`；Fragment 使用 `getViewLifecycleOwner()`。下面的 `render` 是业务方法，`RefreshEvent` 是业务事件类：
+
+```java
+import com.logan.flowbus.FlowBusJava;
+import com.logan.flowbus.core.EventChannel;
+
+EventChannel<RefreshEvent> refresh =
+        FlowBusJava.channel("home.refresh", RefreshEvent.class);
+FlowBusJava.Subscription subscription =
+        FlowBusJava.subscribe(receiver, refresh, event -> render(event));
+
+// 接收方已经活跃并实际建立订阅后，由用户操作或业务流程发送。
+boolean accepted = FlowBusJava.post(refresh, new RefreshEvent("login"));
+
+// 提前停止接收时可主动取消；重复调用安全，销毁 receiver 也会自动结束订阅。
+subscription.cancel();
+boolean cancellationRequested = subscription.isCancelled();
+boolean callbackFinished = subscription.isCompleted();
+```
+
+发送结果只表示底层接收情况；`accepted=true` 不代表事件已处理。`cancel()` 请求协作取消，`isCompleted()` 才表示该订阅及其在途回调已经结束；阻塞代码不能被强制停止。STOP 期间订阅句柄可仍未取消或完成，但收集已暂停，不应根据这两个标志判断是否活跃。
+
+| Java 操作 | 全局来源 | 明确 owner 来源 |
+| --- | --- | --- |
+| 普通发送 | `post(channel, value)` | `postTo(owner, channel, value)` |
+| 普通发送诊断 | `postResult(channel, value)` | `postResultTo(owner, channel, value)` |
+| sticky 发送 | `postSticky(channel, value)` | `postStickyTo(owner, channel, value)` |
+| sticky 发送诊断 | `postStickyResult(channel, value)` | `postStickyResultTo(owner, channel, value)` |
+| 普通订阅 | `subscribe(receiver, channel, listener)` | `subscribeFrom(receiver, owner, channel, listener)` |
+| sticky 订阅 | `subscribeSticky(receiver, channel, listener)` | `subscribeStickyFrom(receiver, owner, channel, listener)` |
+| 通道诊断 | `inspectChannel(channel)` | `inspectChannelFrom(owner, channel)` |
+
+表中方法均位于 `FlowBusJava`。owner 决定事件来源，receiver 决定何时收集及何时结束，两者可以不同。所有订阅及 owner 来源操作须在主线程调用，默认 STARTED / Main.immediate，不引入另一套总线。Java 发出的事件可由同来源、同 channel 的 Kotlin 入口接收，反向也相同。普通与 sticky 仍是独立流；普通订阅不会收到 `postSticky`，sticky 订阅也不会收到普通 `post`。
+
+### 确认当前订阅真正建立
+
+Java 四种订阅均有在 listener 前增加 `Runnable onSubscribed` 的重载。以下示例在每次进入活跃状态、底层登记完成后通知业务；`markSubscriptionActive()` 不应执行阻塞操作：
+
+```java
+FlowBusJava.Subscription subscription = FlowBusJava.subscribeFrom(
+        receiver, sourceOwner, refresh,
+        () -> markSubscriptionActive(),
+        event -> render(event));
+```
+
+Kotlin 显式来源的 `collectEventFromSuspending` 提供相同通知，支持 `FlowBus`、`ScopedFlowBus` 和 `FlowBusScope`：
+
+```kotlin
+import com.logan.flowbus.collectEventFromSuspending
+import com.logan.flowbus.core.eventKey
+
+val refreshKey = eventKey<RefreshHomeEvent>("home.refresh")
+viewLifecycleOwner.collectEventFromSuspending(
+    from = featureBus,
+    key = refreshKey,
+    onSubscribed = { markSubscriptionActive() }
+) { event ->
+    viewModel.refreshSuspending(event.source)
+}
+```
+
+`featureBus` 由业务持有并同时提供给发送方。该通知针对这一次实际订阅，不是“总订阅数大于零”；每次生命周期重新活跃时都会再次触发，sticky 通知位于历史回放之前。通知运行在收集协程上下文，Android 新入口默认主线程；自定义 dispatcher 只控制事件回调，不改变通知上下文。通知不挂起且不在总线注册锁内执行，异常直接终止订阅，不作为事件回调错误交给 errorHandler。总线事件回调仍沿用来源错误策略。通知不保证之后永不取消，也不提供业务 ACK；旧入口返回 Job 的时机保持原样。
+
+### 查看通道的实际策略
+
+```java
+import com.logan.flowbus.core.FlowBusChannelSnapshot;
+
+FlowBusChannelSnapshot snapshot = FlowBusJava.inspectChannelFrom(sourceOwner, refresh);
+if (snapshot != null) {
+    int normalSubscribers = snapshot.getNormalSubscriptionCount();
+    int stickySubscribers = snapshot.getStickySubscriptionCount();
+    int normalCapacity = snapshot.getNormalBufferCapacity();
+}
+```
+
+快照包含当前通道有效的普通/sticky 容量、replay、溢出策略和各自活跃订阅数，不暴露 payload。未知通道返回 null，不绑定类型、配置或创建 Flow；已绑定同名通道的类型冲突仍明确失败。`FlowBusJava.inspectChannel*` 首次获取 Android 来源时可能创建其 `FlowEventBus`，因此需要先完成 `FlowBusAndroid.configure`。持有 `FlowEventBus` 时可直接调用 `inspectChannel(key)`；显式 core 来源使用自身同名方法。
+
+快照用于排障，不是就绪屏障或跨线程一致性事务。旧 `inspect().config` 继续表示 bus 默认值；不要把 accepted/rejected 或快照订阅数换算为送达率。
+
 ## 可选配置
 
 如果你想改底层缓冲、日志、错误处理，请在第一次调用任何总线 API 之前配置：
@@ -629,7 +718,7 @@ FlowBusAndroid.configure(
 
 Android 模块没有单独做 UI 面板式诊断。
 
-需要调试底层事件元数据时，可以在自建 `FlowEventBus` / core `FlowBus` 场景中使用 `flowbus-core` 的 `inspect()`。
+需要调试底层事件元数据时，可使用 core `FlowBus.inspect()`；1.3.0 开发版另外提供上述 `FlowEventBus.inspectChannel(key)` 和 Java 通道诊断入口。
 
 写日志前请确认 `eventName`、`scopeName` 没有包含手机号、token、订单号等敏感值。
 

@@ -20,6 +20,7 @@
 - [安装](#安装) · [快速开始](#快速开始)
 - [scope](#scope-与所有权) · [API 选择](#api-选择矩阵)
 - [通道配置](#channel-configuration) · [挂起订阅](#suspend-collection)
+- [1.3 候选订阅通知](#subscription-notification) · [候选通道诊断](#channel-diagnostics)
 - [诊断](#诊断) · [行为边界](#行为边界)
 - [兼容性](../docs/compatibility.md) · [排障](../TROUBLESHOOTING.md)
 
@@ -61,6 +62,8 @@
 ```gradle
 implementation("io.github.logan0817:flowbus-core:1.2.0")
 ```
+
+最新正式版本仍为 **1.2.0**。下文标记“1.3 候选”的能力只在本地 **1.3.0-SNAPSHOT** 候选中提供，尚未发布到 Maven Central，不能通过以上正式坐标调用。候选制品的本地生成与消费者验证见[发布清单](../docs/release-checklist.md)。
 
 <a id="先看最短路径"></a>
 
@@ -479,6 +482,60 @@ bus.post(refreshKey, SyncFinishedEvent(taskId = "task-1"))
 
 `FlowBusScope` 关闭后不会主动取消已持有 Flow 的订阅；但重新用已关闭句柄建立订阅会失败。总线或 scope 的生命周期由持有者管理，订阅不会取得关闭权。
 
+<a id="subscription-notification"></a>
+
+### 1.3 候选：具体订阅建立通知
+
+本节需要本地 `1.3.0-SNAPSHOT` 候选。`onSubscribed` 在**当前这一次**底层订阅登记后、本来源事件交给该订阅前调用。它不会因同 key 的其他收集器已经存在而提前触发，也不会在仅调用 `flow(...)` 取得 Flow 时触发。相同 Flow 被多次收集时，每次实际收集分别通知。
+
+需要在建立订阅后启动生产者时，让非挂起 hook 只完成信号，并由独立协程发送。下面是可在挂起上下文调用的完整握手示例；零容量 `SUSPEND` 配置使用 `emit` 等待接收，发送不依赖固定延时：
+
+```kotlin
+import com.logan.flowbus.core.FlowBus
+import com.logan.flowbus.core.FlowBusConfig
+import com.logan.flowbus.core.eventKey
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+
+suspend fun verifyFirstNotification() = coroutineScope {
+    val bus = FlowBus(FlowBusConfig(
+        normalBufferCapacity = 0,
+        overflowPolicy = BufferOverflow.SUSPEND
+    ))
+    val key = eventKey<Int>("sync.first")
+    val subscribed = CompletableDeferred<Unit>()
+    val received = CompletableDeferred<Int>()
+    val subscription = launch {
+        bus.collectSuspending(key, onSubscribed = { subscribed.complete(Unit) }) {
+            received.complete(it)
+        }
+    }
+    val producer = launch {
+        subscribed.await()
+        bus.emit(key, 1)
+    }
+    try {
+        producer.join()
+        check(received.await() == 1)
+    } finally {
+        producer.cancel()
+        subscription.cancel()
+    }
+}
+```
+
+`FlowBus`、`ScopedFlowBus`、`FlowBusScope` 的显式 `EventKey` 成员入口支持此通知。需要组合 Flow 时使用 `flow(key, onSubscribed)` / `stickyFlow(key, onSubscribed)`；需要来源日志和事件错误策略时使用带通知的 `collectSuspending` / `collectStickySuspending`。旧重载继续可用，普通 Flow 的上游及回调异常处理仍由调用方决定。
+
+使用边界：
+
+- hook 类型是非挂起 `() -> Unit`，运行于实际收集协程上下文。收集入口的 `dispatcher` 用于事件回调，不会自动迁移 hook；避免阻塞或等待同一订阅处理事件。用 `runBlocking` 等方式在 hook 中向同一零容量通道挂起发送，可能等待自身开始取值而死锁。
+- 通知表示底层订阅已登记，不表示业务已完成或 sticky 历史值已处理。sticky 先捕获本次历史快照，再通知、回放和收集 live；clear/consume 仍可能使捕获的历史失效。通知不改变 DROP、背压、取消和无订阅者时的行为，也不提供可靠投递或去重保证。
+- hook 自身抛错会直接终止该次收集，不作为事件回调异常交给 `errorHandler`。事件回调仍使用来源既定策略，取消照常传播。
+- 已观察到取消时不再通知；取消与通知并发时，可能刚通知就停止。订阅在通知前被单独取消时，调用方也需取消等待方，信号不会自动跟随订阅 Job 终止。不要将一次完成的 `Deferred` 当作永久活跃状态；生命周期适配每次重新进入活跃阶段并建立新订阅时，均会再次通知。
+- 取得的 Flow 仍绑定原 store。移除通道或关闭 scope 不会借此取消旧引用，通知也不会把旧 Flow 自动切到同名新 store；已关闭 owned 句柄的新取流/收集操作仍失败。
+
 <a id="订阅-api-怎么选"></a>
 
 ## 订阅 API
@@ -570,6 +627,35 @@ val session = bus.inspectScope("session")
 4. `inspectScope(...)` 在 scope 尚未创建时返回 `null`。
 5. `events` 表示当前已登记的事件元数据，不等于一定有活跃订阅者。
 6. `metrics` 只统计 `tryEmit` 层面的接受或拒绝，不代表业务处理成功。
+
+<a id="channel-diagnostics"></a>
+
+### 1.3 候选：通道有效配置与分流订阅数
+
+本节需要本地 `1.3.0-SNAPSHOT` 候选。`inspect().config` 继续表示 bus 默认摘要；新增 `inspectChannel(key)` 返回独立的 `FlowBusChannelSnapshot?`，可查询该通道实际绑定的策略：
+
+```kotlin
+val bus = FlowBus()
+val key = eventKey<Int>("work.progress")
+check(bus.inspectChannel(key) == null)
+bus.configureChannel(key, FlowBusChannelConfig(normalBufferCapacity = 1))
+val channel = checkNotNull(bus.inspectChannel(key))
+check(channel.normalBufferCapacity == 1)
+check(!channel.hasNormalFlow) // 仅配置/诊断不会创建 Flow。
+println("normal=${channel.normalSubscriptionCount}, sticky=${channel.stickySubscriptionCount}")
+```
+
+| 字段 | 含义 |
+| --- | --- |
+| `eventName` / `valueTypeName` | 已绑定名称和类型；原 raw key 未补全类型时类型名为 null |
+| `normalBufferCapacity` / `normalOverflowPolicy` | 普通流最终有效容量和溢出策略 |
+| `stickyReplay` / `stickyExtraBufferCapacity` / `stickyOverflowPolicy` | sticky 最终有效 replay、额外缓冲和策略 |
+| `hasNormalFlow` / `hasStickyFlow` | 当前 store 中对应 Flow 是否存在 |
+| `normalSubscriptionCount` / `stickySubscriptionCount` | 对应流读取瞬间的订阅数，分别统计 |
+
+三种显式来源均支持查询。未知通道或尚未存在的 shared store 返回 null，不创建 store、Flow、配置、类型绑定或发送计数；同名已绑定类型冲突抛 `IllegalArgumentException`，对 raw key 的查询不会补全类型。owned `FlowBusScope` 关闭中或已关闭时查询抛 `IllegalStateException`。
+
+移除单条流后仍可查看保留的配置；完整 scope 清理后 shared 查询返回 null，同名重建重新使用默认值。快照不含 payload，不是跨线程一致性事务；分流订阅数仍不能替代具体订阅通知，也不能推算送达率或业务完成。
 
 <a id="eventchannel对象式发送扩展eventname-怎么选"></a>
 

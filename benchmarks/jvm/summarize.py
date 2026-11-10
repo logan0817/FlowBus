@@ -11,12 +11,45 @@ from datetime import datetime, timezone
 ROOT = Path(__file__).resolve().parents[2]
 WORK = ROOT / "benchmarks/jvm"
 OUT = WORK / "results/current"
+BASELINE_VERSION = "1.2.0"
+BASELINE_SHA256 = "525c10846d00e7a41f932ac0ce45dba47b7b8b1da58bc68266e33df4a4b974f2"
 
 def command(*args):
     return subprocess.check_output(args, cwd=ROOT, text=True).strip()
 
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+def source_digests(directory):
+    return {path.relative_to(ROOT).as_posix(): digest(path)
+            for path in sorted(directory.rglob("*")) if path.is_file()}
+
+def validate_identity(report, target, candidate_version, candidate):
+    sidecar = report.with_name(report.stem + ".identity.json")
+    if not sidecar.is_file():
+        raise ValueError(f"Missing measurement identity: {sidecar}")
+    identity = json.loads(sidecar.read_text())
+    expected = {
+        "schemaVersion": 1, "target": target, "reportSha256": digest(report),
+        "baselineVersion": BASELINE_VERSION, "baselineSha256": BASELINE_SHA256,
+        "candidateVersion": candidate_version, "candidateSha256": digest(candidate),
+        "sourceSha256": source_digests(ROOT / "flowbus-core/src/main"),
+        "benchmarkSourceSha256": source_digests(WORK / "src"),
+        "benchmarkBuildSha256": {name: digest(WORK / name)
+                                 for name in ["build.gradle.kts", "settings.gradle.kts"]},
+    }
+    for name, value in expected.items():
+        if identity.get(name) != value:
+            raise ValueError(f"Stale or mismatched {target} measurement identity: {name}")
+    core = identity.get("coreJar", {})
+    core_path = Path(core.get("path", ""))
+    version = BASELINE_VERSION if target == "baseline" else candidate_version
+    core_hash = BASELINE_SHA256 if target == "baseline" else digest(candidate)
+    if (core.get("version") != version or core.get("sha256") != core_hash
+            or not core_path.is_file() or digest(core_path) != core_hash
+            or (target != "baseline" and core_path.resolve() != candidate.resolve())):
+        raise ValueError(f"Wrong {target} runtime core artifact")
+    return identity
 
 def validate(rows, target):
     common = {"noSubscribers", "active1", "active8", "slowSuspend", "slowDrop", "stickySend", "stickyReplay", "producers"}
@@ -37,9 +70,14 @@ def validate(rows, target):
 
 def main():
     metrics = {}
+    identities = {}
+    properties = dict(line.split("=", 1) for line in (ROOT / "gradle.properties").read_text().splitlines() if "=" in line and not line.startswith("#"))
+    candidate_version = properties["VERSION_NAME"]
+    candidate = ROOT / f"build/candidate-maven/io/github/logan0817/flowbus-core/{candidate_version}/flowbus-core-{candidate_version}.jar"
     expected_counts = {"baseline": 20, "candidate": 22, "shared": 16}
     for target in expected_counts:
         path = WORK / f"build/reports/{target}.json"
+        identities[target] = validate_identity(path, target, candidate_version, candidate)
         rows = json.loads(path.read_text())
         validate(rows, target)
         for row in rows:
@@ -49,7 +87,6 @@ def main():
     runtime_settings = {(r["jdkVersion"], r["vmVersion"], tuple(r["jvmArgs"])) for rows in metrics.values() for r in rows}
     if len(runtime_settings) != 1:
         raise ValueError("Compared groups must use the same runtime and JVM arguments")
-    candidate = ROOT / "build/candidate-maven/io/github/logan0817/flowbus-core/1.2.0/flowbus-core-1.2.0.jar"
     environment = {
         "generatedUtc": datetime.now(timezone.utc).isoformat(),
         "commit": command("git", "rev-parse", "HEAD"),
@@ -57,8 +94,9 @@ def main():
         "sourceSha256": {str(p.relative_to(ROOT)): digest(p) for p in sorted((ROOT / "flowbus-core/src/main").rglob("*.kt"))},
         "benchmarkSourceSha256": {str(p.relative_to(ROOT)): digest(p) for p in sorted((WORK / "src").rglob("*")) if p.is_file()},
         "benchmarkBuildSha256": {name: digest(WORK / name) for name in ["build.gradle.kts", "settings.gradle.kts"]},
-        "candidateVersion": "1.2.0", "candidateSha256": digest(candidate),
-        "baselineVersion": "1.1.0", "baselineSha256": "ffafa4c77ed1e7b8183f53de26a14904b37a5d6958b49fa6930d2273173fcb9f",
+        "measurementIdentities": identities,
+        "candidateVersion": candidate_version, "candidateSha256": digest(candidate),
+        "baselineVersion": BASELINE_VERSION, "baselineSha256": BASELINE_SHA256,
         "os": platform.platform(), "architecture": platform.machine(),
         "cpu": command("sysctl", "-n", "machdep.cpu.brand_string") if platform.system() == "Darwin" else platform.processor(),
         "logicalCpuCount": __import__("os").cpu_count(),
@@ -72,7 +110,7 @@ def main():
     (OUT / "environment.json").write_text(json.dumps(environment, ensure_ascii=False, indent=2) + "\n")
     def find(target, scenario, mode="thrpt"):
         return next((r for r in metrics[target] if r["params"].get("scenario", "configuredRegistration") == scenario and r["mode"] == mode), None)
-    lines = ["# JVM 基线实测报告", "", "本报告由真实 JMH JSON 生成；3 forks、5 × 1s 预热、5 × 1s 测量，包含 Throughput/SampleTime 与 GC profiler。误差为 JMH scoreError（默认 99.9% CI）。", "", f"候选 core SHA-256：`{environment['candidateSha256']}`。", f"环境：{environment['cpu']} / {environment['os']}；JDK {metrics['candidate'][0]['jdkVersion']}。", "", "ops/ms 表示批次/ms；B/op 表示每批次分配。active/slow/producers 的每批次包含订阅与校验，不是单事件延迟。", "", "| 场景 | 1.1.0 ops/ms ± 误差 | 1.2.0 ops/ms ± 误差 | SharedFlow ops/ms ± 误差 | 候选/基线 | 候选 B/op |", "| --- | --- | --- | --- | --- | --- |"]
+    lines = ["# JVM 基线实测报告", "", "本报告由真实 JMH JSON 生成；3 forks、5 × 1s 预热、5 × 1s 测量，包含 Throughput/SampleTime 与 GC profiler。误差为 JMH scoreError（默认 99.9% CI）。", "", f"候选 core SHA-256：`{environment['candidateSha256']}`。", f"环境：{environment['cpu']} / {environment['os']}；JDK {metrics['candidate'][0]['jdkVersion']}。", "", "ops/ms 表示批次/ms；B/op 表示每批次分配。active/slow/producers 的每批次包含订阅与校验，不是单事件延迟。", "", "| 场景 | 1.2.0 ops/ms ± 误差 | 当前候选 ops/ms ± 误差 | SharedFlow ops/ms ± 误差 | 候选/基线 | 候选 B/op |", "| --- | --- | --- | --- | --- | --- |"]
     scenarios = ["noSubscribers", "active1", "active8", "slowSuspend", "slowDrop", "stickySend", "stickyReplay", "producers", "registration", "scope", "configuredRegistration"]
     for scenario in scenarios:
         rows = [find(t, scenario) for t in ["baseline", "candidate", "shared"]]

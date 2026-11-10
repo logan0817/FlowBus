@@ -7,16 +7,22 @@ import org.gradle.api.provider.Property
 
 val mavenLocalPublishTasks = listOf(
     ":flowbus-core:publishToMavenLocal",
-    ":library-android:publishToMavenLocal"
+    ":library-android:publishToMavenLocal",
+    ":library-compose:publishToMavenLocal"
 )
 val mavenCentralPublishTasks = listOf(
     ":flowbus-core:publishAllPublicationsToMavenCentralRepository",
-    ":library-android:publishAllPublicationsToMavenCentralRepository"
+    ":library-android:publishAllPublicationsToMavenCentralRepository",
+    ":library-compose:publishAllPublicationsToMavenCentralRepository"
 )
 val artifactGroup = providers.gradleProperty("GROUP").get()
 val artifactVersion = providers.gradleProperty("VERSION_NAME").get()
 val centralDeploymentProject = rootProject.name
-val centralPublications = mapOf(":flowbus-core" to "flowbus-core", ":library-android" to "flowbus")
+val centralPublications = mapOf(
+    ":flowbus-core" to "flowbus-core",
+    ":library-android" to "flowbus",
+    ":library-compose" to "flowbus-compose"
+)
 val groupPath = artifactGroup.replace('.', '/')
 val mavenRepositoryRoot = System.getProperty("maven.repo.local")
     ?.let { file(it) }
@@ -24,6 +30,7 @@ val mavenRepositoryRoot = System.getProperty("maven.repo.local")
 val mavenLocalRoot = mavenRepositoryRoot.resolve(groupPath)
 val coreArtifactDir = mavenLocalRoot.resolve("flowbus-core/$artifactVersion")
 val androidArtifactDir = mavenLocalRoot.resolve("flowbus/$artifactVersion")
+val composeArtifactDir = mavenLocalRoot.resolve("flowbus-compose/$artifactVersion")
 
 fun Task.stagingCoordinate(name: String): Property<String> {
     val value = property(name)
@@ -96,20 +103,20 @@ val cleanMavenLocalArtifacts = tasks.register("cleanMavenLocalArtifacts") {
     group = "publishing"
     description = "Remove this release version from Maven local before publishing fresh artifacts."
     doLast {
-        delete(coreArtifactDir, androidArtifactDir)
+        delete(coreArtifactDir, androidArtifactDir, composeArtifactDir)
     }
 }
 
 tasks.register("publishToMavenLocal") {
     group = "publishing"
-    description = "Local verification entry: publish flowbus-core and flowbus to Maven local from the main FlowBus project."
+    description = "Local verification entry: publish core, Android and optional Compose artifacts to Maven local."
     dependsOn(cleanMavenLocalArtifacts)
     dependsOn(mavenLocalPublishTasks)
 }
 
 tasks.register("publishToMavenCentral") {
     group = "publishing"
-    description = "Upload flowbus-core and flowbus to a Maven Central Portal deployment from the main FlowBus project."
+    description = "Upload core, Android and optional Compose artifacts to a Maven Central Portal deployment."
     dependsOn(mavenCentralPublishTasks)
 }
 

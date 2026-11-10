@@ -109,6 +109,55 @@ fun <T : Any> LifecycleOwner.collectEventFromSuspending(
     else from.collectSuspending(key, dispatcher, onReceived)
 }
 
+/**
+ * 当前活跃阶段的底层订阅建立后调用 [onSubscribed]，随后按顺序执行挂起回调。
+ * 每次重新进入活跃阶段都会重新通知；通知不代表业务处理完成，也不能保证后续不会取消。
+ * [onSubscribed] 的异常直接终止本次订阅，不交给事件回调错误策略。
+ */
+@MainThread
+fun <T : Any> LifecycleOwner.collectEventFromSuspending(
+    from: FlowBus,
+    key: EventKey<T>,
+    onSubscribed: () -> Unit,
+    dispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
+    minLifecycleState: Lifecycle.State = Lifecycle.State.STARTED,
+    isSticky: Boolean = false,
+    onReceived: suspend (T) -> Unit
+): Job = launchFlowBusCollection(minLifecycleState) {
+    if (isSticky) from.collectStickySuspending(key, onSubscribed, dispatcher, onReceived)
+    else from.collectSuspending(key, onSubscribed, dispatcher, onReceived)
+}
+
+/** 按当前命名 scope 的实际订阅通知；非活跃期间 store 重建后，下次活跃会从新 store 订阅。 */
+@MainThread
+fun <T : Any> LifecycleOwner.collectEventFromSuspending(
+    from: ScopedFlowBus,
+    key: EventKey<T>,
+    onSubscribed: () -> Unit,
+    dispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
+    minLifecycleState: Lifecycle.State = Lifecycle.State.STARTED,
+    isSticky: Boolean = false,
+    onReceived: suspend (T) -> Unit
+): Job = launchFlowBusCollection(minLifecycleState) {
+    if (isSticky) from.collectStickySuspending(key, onSubscribed, dispatcher, onReceived)
+    else from.collectSuspending(key, onSubscribed, dispatcher, onReceived)
+}
+
+/** 按固定 scope 句柄的实际订阅通知；取消订阅不会关闭来源，已关闭句柄不会切换到同名新来源。 */
+@MainThread
+fun <T : Any> LifecycleOwner.collectEventFromSuspending(
+    from: FlowBusScope,
+    key: EventKey<T>,
+    onSubscribed: () -> Unit,
+    dispatcher: CoroutineDispatcher = Dispatchers.Main.immediate,
+    minLifecycleState: Lifecycle.State = Lifecycle.State.STARTED,
+    isSticky: Boolean = false,
+    onReceived: suspend (T) -> Unit
+): Job = launchFlowBusCollection(minLifecycleState) {
+    if (isSticky) from.collectStickySuspending(key, onSubscribed, dispatcher, onReceived)
+    else from.collectSuspending(key, onSubscribed, dispatcher, onReceived)
+}
+
 @MainThread
 private fun LifecycleOwner.launchFlowBusCollection(
     minLifecycleState: Lifecycle.State,

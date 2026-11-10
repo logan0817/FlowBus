@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.0（开发中，未发布）
+
+新增具体订阅建立通知、独立通道实际配置与分流订阅数诊断、Android Java 入口和可选 flowbus-compose 模块。旧方法与投递/所有权语义保留，基础两个坐标不增加 Compose 依赖。候选版本为 1.3.0-SNAPSHOT，正式安装仍为 1.2.0；行为、回退与验收边界见[开发说明](docs/release-notes-1.3.0.md)。
+
 ## 1.2.0（2026-10-15）
 
 新增 FlowBusChannelConfig、core/root/shared/owned 的 configureChannel、Android owner 配置入口。普通与 sticky 可分别覆盖容量和溢出策略；首次使用原子绑定，相同有效配置幂等，冲突明确失败，PostResult 返回实际策略。旧默认值、既有数据类 JVM 描述符、minSdk 21、Java 8 和基础依赖保持。

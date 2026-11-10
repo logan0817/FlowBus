@@ -19,7 +19,7 @@ policy_spec.loader.exec_module(policy_driver)
 
 class VerifyEffectsTest(unittest.TestCase):
     def test_device_result_boundaries(self):
-        self.verify_driver(driver, "flowbus.compose.verifyEffects", "FlowBusCompose")
+        self.verify_driver(driver, "flowbus.compose.verifyEffects", "FlowBusCompose", wrong_count=True)
 
     def test_policy_result_boundaries(self):
         self.verify_driver(policy_driver, "flowbus.compose.verifyPolicies", "FlowBusComposePolicy", wrong_count=True)
@@ -50,7 +50,7 @@ class VerifyEffectsTest(unittest.TestCase):
                         run_id = args[-1]
                         self.assertIn("com.logan.flowbus.composeconsumer/.ConsumerActivity", args)
                         self.assertIn(mode, args)
-                        other_mode = "flowbus.compose.verifyEffects" if wrong_count else "flowbus.compose.verifyPolicies"
+                        other_mode = "flowbus.compose.verifyEffects" if selected_driver is policy_driver else "flowbus.compose.verifyPolicies"
                         self.assertNotIn(other_mode, args)
                         return "Status: ok"
                     if args[0] == "logcat":

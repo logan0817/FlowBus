@@ -105,9 +105,29 @@ class FlowBus(
         return rootStore.flow(key = key, isSticky = false)
     }
 
+    /**
+     * 返回普通事件流，每次实际订阅登记后、接收事件前调用 [onSubscribed]。
+     *
+     * 通知不代表业务完成或持续活跃，不改变缓冲、丢弃和取消行为。
+     * 回调在收集协程中执行，适合发出短通知；异常直接终止该次收集。
+     */
+    fun <T : Any> flow(key: EventKey<T>, onSubscribed: () -> Unit): Flow<T> {
+        return rootStore.flow(key = key, isSticky = false, onSubscribed = onSubscribed)
+    }
+
     /** 返回根总线中的粘性事件流。 */
     fun <T : Any> stickyFlow(key: EventKey<T>): Flow<T> {
         return rootStore.flow(key = key, isSticky = true)
+    }
+
+    /** 返回 sticky 流，每次订阅登记并捕获历史快照后、回放前通知；历史值尚未处理完成。 */
+    fun <T : Any> stickyFlow(key: EventKey<T>, onSubscribed: () -> Unit): Flow<T> {
+        return rootStore.flow(key = key, isSticky = true, onSubscribed = onSubscribed)
+    }
+
+    /** 只读查询已绑定通道的有效配置及分流订阅数；未知 key 返回 null，不创建通道。 */
+    fun <T : Any> inspectChannel(key: EventKey<T>): FlowBusChannelSnapshot? {
+        return rootStore.inspectChannel(key)
     }
 
     /**
@@ -136,6 +156,23 @@ class FlowBus(
     ) {
         collectFlowBusSuspendingSequentially(
             flow = flow(key),
+            eventKey = key,
+            dispatcher = dispatcher,
+            logger = config.logger,
+            errorHandler = config.errorHandler,
+            onReceived = onReceived
+        )
+    }
+
+    /** 顺序收集并通知本次订阅建立；通知自身的异常直接传播，不进入事件回调错误策略。 */
+    suspend fun <T : Any> collectSuspending(
+        key: EventKey<T>,
+        onSubscribed: () -> Unit,
+        dispatcher: CoroutineDispatcher? = null,
+        onReceived: suspend (T) -> Unit
+    ) {
+        collectFlowBusSuspendingSequentially(
+            flow = flow(key, onSubscribed),
             eventKey = key,
             dispatcher = dispatcher,
             logger = config.logger,
@@ -180,6 +217,24 @@ class FlowBus(
         )
     }
 
+    /** 顺序收集 sticky，并在历史回放前通知本次订阅建立；通知异常直接传播。 */
+    suspend fun <T : Any> collectStickySuspending(
+        key: EventKey<T>,
+        onSubscribed: () -> Unit,
+        dispatcher: CoroutineDispatcher? = null,
+        onReceived: suspend (T) -> Unit
+    ) {
+        collectFlowBusSuspendingSequentially(
+            flow = stickyFlow(key, onSubscribed),
+            eventKey = key,
+            isSticky = true,
+            dispatcher = dispatcher,
+            logger = config.logger,
+            errorHandler = config.errorHandler,
+            onReceived = onReceived
+        )
+    }
+
     /** 从根总线中移除指定普通事件的当前 store 条目。 */
     fun <T : Any> removeEvent(key: EventKey<T>) {
         rootStore.removeEvent(key)
@@ -215,7 +270,7 @@ class FlowBus(
             storeProvider = ::getScopedStore,
             removeScopeAction = ::removeScope,
             configProvider = { config }
-        )
+        ).withChannelInspector { key -> scopedStores[scopeName]?.store?.inspectChannel(key) }
     }
 
     /**
@@ -419,7 +474,7 @@ class FlowBus(
             storeProvider = { store },
             removeScopeAction = ::removeScope,
             configProvider = { config }
-        )
+        ).withChannelInspector(store::inspectChannel)
     }
 
     private fun closeOpenScope(scopeName: String, scope: FlowBusScope) {

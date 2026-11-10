@@ -35,6 +35,7 @@ subprojects {
             include(".github/workflows/*.yml", ".github/actions/**/*.yml", "docs/**/*.md", "gradle/**")
             include("flowbus-core/build.gradle.kts", "flowbus-core/README*.md")
             include("library-android/build.gradle.kts", "library-android/README*.md")
+            include("library-compose/build.gradle.kts", "library-compose/README*.md")
             include("app/build.gradle.kts", "app/proguard*.pro", "app/src/**")
             include("compatibility/android-consumer/app/src/**", "compatibility/run-api21.sh", "compatibility/run-api35.sh")
         }).withPropertyName("repositoryGuardrailFiles")

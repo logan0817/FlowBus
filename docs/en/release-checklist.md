@@ -1,8 +1,10 @@
-# 1.2.0 release checklist
+# 1.3.0 development and release checklist
+
+Current sources target **1.3.0-SNAPSHOT**, which is unpublished. Public installation remains 1.2.0. See [development notes](release-notes-1.3.0.md) for new behavior; the 1.2.0 evidence below is historical and does not validate this candidate. Local publication now prepares core, Android and optional Compose artifacts. API 35 additionally verifies the same sealed Android/Compose candidates as API 21, using separate APK/report paths before serial device execution.
 
 [中文](../release-checklist.md)
 
-Target configuration: VERSION_NAME=1.2.0, APP_VERSION_NAME=1.2.0, APP_VERSION_CODE=9. 1.2.0 was published to Maven Central on 2026-10-15. This checklist defines the procedure; tested commits and reports belong in the [1.2.0 notes](release-notes-1.2.0.md). Historical publication evidence belongs in the [1.1.0 notes](release-notes-1.1.0.md).
+Target configuration: VERSION_NAME=1.3.0-SNAPSHOT, APP_VERSION_NAME=1.3.0-SNAPSHOT, APP_VERSION_CODE=10. 1.2.0 was published to Maven Central on 2026-10-15. This checklist defines the procedure; current tested commits and reports belong in the [1.3.0 development notes](release-notes-1.3.0.md). Historical evidence remains in the [1.2.0](release-notes-1.2.0.md) and [1.1.0](release-notes-1.1.0.md) notes.
 
 ## Release sequence
 
@@ -15,7 +17,7 @@ Record fixed tested snapshots in release notes and use the candidate PR's Checks
 
 ## CI jobs and candidate identity
 
-The former single serial `verify` job is now `prepare` → parallel `consumers`, four `kotlin` matrix workspaces, `api21`, and `api35` → final `verify`. Preparation checks APIs, fresh JVM unit tests, release lint and publishes one isolated Maven candidate. Consumers retain Java 8, default Kotlin Android R8, both 1.0.7/1.1.0 binary and symbol baselines, newer Compose/Navigation, all three JMH smoke targets and release dry-run. API 21 explicitly retains Kotlin 1.8.22 / compileSdk 33 Android (the APK left by the old compileSdk check), baseline Compose, Navigation 2.4.1 and NavHost devices; API 35 builds sample debug/release APKs and runs library debug/sample release instrumentation. No toolchain or SDK baseline changes.
+The former single serial `verify` job is now `prepare` → parallel `consumers`, four `kotlin` matrix workspaces, `api21`, and `api35` → final `verify`. Preparation checks APIs, fresh JVM unit tests, release lint and publishes one isolated Maven candidate. Consumers retain Java 8, default Kotlin Android R8, 1.0.7/1.1.0/1.2.0 core unchanged-bytecode and core/Android symbol baselines, newer Compose/Navigation, all three default JMH smoke targets, separate candidate subscription smoke and release dry-run. API 21 retains Kotlin 1.8.22 / compileSdk 33 Android, baseline Compose, Navigation 2.4.1 and NavHost. API 35 runs library debug/sample release instrumentation followed serially by Android seven-stage, Compose eleven-effect/eight-policy checks using separate APK/report paths. No toolchain or SDK baseline changes.
 
 `flowbus-candidate-<workflow SHA>-<attempt>` contains `candidate-maven/` and `candidate-manifest.json`, preserving Maven paths and metadata. The manifest binds the checkout SHA, exact file set and SHA-256 of every file. Preparation also exports the manifest digest through an independent job output. Downstream jobs download into `build/`, explicitly reject a mismatch against that digest and check file identity before and after verification, and pass `-Pflowbus.verification.reuseCandidate=true` so verification never republishes the candidate. Missing or altered candidates fail. Rerun the entire workflow rather than mixing jobs from different attempts. Local entry points without this property retain automatic publication. A dirty local checkout also needs its patch to identify tested sources.
 
@@ -23,7 +25,7 @@ Only `prepare` writes the existing setup-gradle cache; downstream jobs read it. 
 
 The final `verify` uses `always()` and requires all five job groups to succeed, including the whole Kotlin matrix (`fail-fast: false`). Failure, cancellation, skipped or missing jobs cannot pass. The existing required check name `verify` is preserved; maintainers should confirm actual contexts/rulesets after the first cloud run and adjust any explicitly enumerated checks themselves. New commits cancel only older runs of the same PR; main/master runs remain independent. Trigger paths are unchanged; Markdown cannot be blanket-ignored because some documents feed tests/generated outputs.
 
-To reproduce candidate reuse, publish `verifyMavenLocalArtifacts` with `-Dmaven.repo.local=$PWD/build/candidate-maven`, run `python3 -B compatibility/candidate_bundle.py seal`, then use the reuse property on consumers. Run `bash compatibility/prepare-api21.sh` before starting the dedicated API 21 emulator and `bash compatibility/run-api21.sh` after it boots. Republishing requires resealing and fresh acceptance evidence. Use the existing JDK/SDK environment.
+To reproduce candidate reuse, publish `verifyMavenLocalArtifacts` with `-Dmaven.repo.local=$PWD/build/candidate-maven`, run `python3 -B compatibility/candidate_bundle.py seal`, then use the reuse property on consumers. Run `bash compatibility/prepare-api21.sh` before starting the dedicated API 21 emulator and `bash compatibility/run-api21.sh` after it boots. In the separate API 35 workspace, run `bash compatibility/run-api35.sh --prepare` before emulator startup, then the same script without arguments after boot. Republishing requires resealing and fresh acceptance evidence. Use the existing JDK/SDK environment.
 
 Timeouts allow for historical timings and cold setup: 20 minutes for preparation, consumers and devices, 15 for each compiler and 5 for aggregation. Reassess after the first run.
 
@@ -31,15 +33,15 @@ Compare the next authorized cloud run's wall time including queues, per-job/step
 
 ## Local quality and artifact gates
 
-Use the existing JDK 17, Android SDK, and wrapper from the repository root. Root publishToMavenLocal removes the selected repository's two current-version directories before publishing; use an isolated candidate repository.
+Use the existing JDK 17, Android SDK, and wrapper from the repository root. Root publishToMavenLocal removes the selected repository's three current-version coordinate directories before publishing; use an isolated candidate repository.
 
 ```bash
-./gradlew apiCheck :flowbus-core:test :library-android:testDebugUnitTest :app:testDebugUnitTest :library-android:lintRelease :app:lintRelease :app:assembleDebug :app:assembleRelease --warning-mode=all
+./gradlew apiCheck :flowbus-core:test :library-android:testDebugUnitTest :app:testDebugUnitTest :library-android:lintRelease :library-compose:lintRelease :app:lintRelease :app:assembleDebug :app:assembleRelease --warning-mode=all
 ./gradlew verifyMavenLocalArtifacts verifyMavenLocalCoreConsumer verifyMavenLocalBinaryCoreConsumer verifyMavenLocalConsumer verifyMavenLocalComposeConsumer "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8 --warning-mode=all
 ./gradlew verifyMavenLocalBinaryCoreConsumer -Pflowbus.consumer.baselineVersion=1.1.0 "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8
 ./gradlew verifyCentralDeploymentName --warning-mode=all
 ./gradlew releaseToMavenCentral --dry-run --warning-mode=all
-git diff --check HEAD -- . ':(exclude)flowbus-core/api/*.api' ':(exclude)library-android/api/*.api'
+git diff --check HEAD -- . ':(exclude)flowbus-core/api/*.api' ':(exclude)library-android/api/*.api' ':(exclude)library-compose/api/*.api'
 ```
 
 The Java parameter selects only the consumer runtime; Gradle still uses JDK 17. Use an existing JDK 8. Review apiDump changes for intentional public API changes; do not bypass apiCheck. Generated API snapshot trailing lines are excluded from ordinary whitespace checks.
@@ -47,11 +49,11 @@ The Java parameter selects only the consumer runtime; Gradle still uses JDK 17. 
 Repository documentation and release configuration are explicit JVM test inputs. Changes to those files must rerun the gates rather than reuse earlier passing results.
 
 - Core/Android/app JVM tests and release lint pass; sample release uses R8/minify.
-- flowbus-core-1.2.0.jar, flowbus-1.2.0.aar, sources/javadoc, POM, and module metadata exist.
-- Check dependency scopes, license, developer, SCM, and versions: core exposes Coroutines; Android exposes matching core and Lifecycle runtime/viewmodel.
-- AAR includes classes.jar and proguard.txt; both coordinates use Java 8 bytecode without fixture, Compose/Navigation, or local configuration.
-- Run the Maven core consumer on JDK 8. Compile binary consumers separately against pinned Central 1.0.7 and 1.1.0 and run identical bytecode against original and candidate. Android/Compose consumers pass release R8.
-- Verify published 1.0.7 and 1.1.0 JVM symbols using consumer READMEs. Preserve raw internal differences; static symbols are not full ABI certification.
+- flowbus-core-1.3.0-SNAPSHOT.jar, flowbus-1.3.0-SNAPSHOT.aar, flowbus-compose-1.3.0-SNAPSHOT.aar, and sources/javadoc, POM, and module metadata for all three coordinates exist.
+- Check dependency scopes, license, developer, SCM, and versions: core exposes Coroutines; Android exposes matching core and Lifecycle runtime/viewmodel; optional Compose exposes matching core, Lifecycle runtime and Compose runtime 1.5.4.
+- AARs include classes.jar and proguard.txt; all three coordinates use Java 8 bytecode without fixtures, Navigation, or local configuration. Core/Android remain free of Compose; only the optional Compose coordinate adds that dependency.
+- Run the Maven core consumer on JDK 8. Compile binary consumers separately against pinned Central 1.0.7, 1.1.0 and 1.2.0 and run identical bytecode against original and candidate. Android/Compose consumers pass release R8; Android interoperability compiles actual Java source.
+- Verify published 1.0.7, 1.1.0 and 1.2.0 core/Android JVM symbols using consumer READMEs. The 1.2.0 core supported-symbol gate uses its original API snapshot and preserves raw internal differences; static symbols are neither full ABI certification nor old Android bytecode device evidence.
 - Remote dry-run verifies the unified graph and cleanup order; it executes neither clean nor upload/signature verification.
 
 ## Device and minimum API gates
@@ -69,7 +71,7 @@ ANDROID_SERIAL=device-serial ./gradlew :library-android:connectedDebugAndroidTes
 
 1. Run library instrumentation and minified sample release instrumentation.
 2. minSdk 21 requires API 21 library and test-signed minified Maven consumer execution. API 24, filenames, and static D8 checks cannot replace it.
-3. Verify each selected version combination independently: [Android](../../compatibility/android-consumer/README.md) six stages, [Compose](../../compatibility/compose-consumer/README_EN.md) nine effect/eight policy stages, [Navigation](../../compatibility/navigation-consumer/README_EN.md) seven stages, and [actual NavHost](../../compatibility/navhost-consumer/README_EN.md) eight stages. Drivers require current runId logs, same-package UI, and every stage.
+3. Verify each selected version combination independently: [Android](../../compatibility/android-consumer/README_EN.md) seven stages, [Compose](../../compatibility/compose-consumer/README_EN.md) eleven effect/eight policy stages, [Navigation](../../compatibility/navigation-consumer/README_EN.md) seven stages, and [actual NavHost](../../compatibility/navhost-consumer/README_EN.md) eight stages. API 35 additionally runs the same candidate's Android/Compose three drivers serially. Drivers require current runId logs, same-package UI, and every stage.
 4. Mocks verify protocol only. Missing devices, timeouts, missing stages, and stale results are not passes.
 5. CI configures API 21 and API 35 gates; remote success must match the final commit.
 
@@ -77,7 +79,7 @@ The API 21 step records and asserts the selected emulator's actual API and boot 
 
 emulator-runner executes each `script` line in a separate shell, so multiline heredocs and continued commands must live in a standalone script. API 21 first runs `bash compatibility/prepare-api21.sh` to build and snapshot distinct APKs, then uses one `bash compatibility/run-api21.sh` command inside the emulator for device identity checks, test signing, and consumer verification, stopping at the first failure. Keep compound commands in that script. Mocked-ADB script regression checks identity rejection and failure propagation; it does not replace device verification. JDK keytool generates consumer test signing material in `build/api21-signing/`, without depending on a user-home debug keystore. Keys are neither uploaded nor committed and are not used for publication.
 
-API 35 UI checks use `bash compatibility/run-api35.sh` to wake the emulator and dismiss a non-secure keyguard before library and sample release tests. Before exit, the script saves `build/api35-environment/window.txt` and `power.txt` to diagnose resumed Activities without Espresso window focus. Diagnostics preserve the original test exit code. When an Activity lacks focus, the sample test rule prints window state before finishing it. Use that in-test evidence; Launcher focus after the whole suite does not identify the failure-time owner.
+Before API 35 emulator startup, `bash compatibility/run-api35.sh --prepare` validates the sealed candidate, builds instrumentation/Maven consumers and saves default Android/Compose variants to `build/api35-apks/{android,compose}.apk`. After boot, invoke it without arguments to wake/dismiss a non-secure keyguard and serially run instrumentation and the three consumer drivers. Consumers use local `build/api35-signing/` material, with reports under `build/api35-consumers/{android,compose-effects,compose-policies}/`. Before exit, the script saves `build/api35-environment/window.txt` and `power.txt`; diagnostics preserve the original test/driver exit code. When an Activity lacks focus, inspect the rule's window state before finish; Launcher focus after the whole suite does not identify the failure-time owner.
 
 The sequential home-navigation test finishes each child Activity on the main thread and waits for its destruction before confirming that the home Activity resumed and clicking the next entry. `RESUMED` or an idle main thread does not establish that the outgoing window has been removed. If logcat reports `InputDispatcher: No new touched window`, inspect click/window-exit ordering rather than extending the launch timeout or retrying the click. Cleanup timeouts still fail, and a regression rejects treating an obscured, undestroyed Activity as cleaned up. On an authorized device, run `ANDROID_SERIAL=device-serial ./gradlew :app:connectedReleaseAndroidTest --rerun -Pandroid.testInstrumentationRunnerArguments.class=com.logan.flowbusapp.app.MainActivityTest --warning-mode=all` for focused validation. Local results on another API do not replace the API 35 cloud gate.
 
@@ -95,9 +97,9 @@ Keep Kotlin 1.9.25, Coroutines 1.8.1, Lifecycle 2.6.2, AGP 8.6.1, Gradle 8.7, bu
 
 After public resolution succeeds, update stable coordinates in root/module READMEs, candidate status in the documentation indexes, candidate-build instructions, and the changelog release date. Retain historical version notes and baseline fixtures.
 
-Check bilingual root/module READMEs, CHANGELOG, 1.2.0 notes, API comments, versions, and CI paths. Preserve 1.0.7 only for baseline/history/semantics. Delivery, sticky replay, closure, error policy, and cooperative cancellation documentation must match implementation.
+Check bilingual root/module READMEs, CHANGELOG, 1.3.0 development notes, API comments, versions, and CI paths while preserving actual historical evidence. Delivery, sticky replay, closure, subscription notifications, error policy, and cooperative cancellation documentation must match implementation.
 
-Inspect git status and working/staged diffs. Exclude generated artifacts, signing material, secrets, logs, local configuration, temporary conversation records, and unrelated changes. Retain useful fixtures, API baselines, and tests. Both modules belong to the main repository without nested Git/submodule or independent publication configuration.
+Inspect git status and working/staged diffs. Exclude generated artifacts, signing material, secrets, logs, local configuration, temporary conversation records, and unrelated changes. Retain useful fixtures, API baselines, and tests. All three publication modules belong to the main repository without nested Git/submodule or independent publication configuration.
 
 ## Remote publication and rollback
 
@@ -105,7 +107,7 @@ Remote actions require separate authorization. Configure Central token/GPG signi
 
 ### GPG signing and upload credentials
 
-Both modules use `signing { useGpgCmd() }`, delegating signing to the local GPG executable and existing keyring. In Gradle 8.7, this implementation reads `signing.gnupg.*`; it does not automatically use or translate the traditional PGP properties `signing.keyId`, `signing.password`, or `signing.secretKeyRingFile`. Without `signing.gnupg.keyName`, key selection follows GPG configuration and defaults. Verify the actual signing key before publication rather than relying on an ineffective `signing.keyId`.
+All three publication modules use `signing { useGpgCmd() }`, delegating signing to the local GPG executable and existing keyring. In Gradle 8.7, this implementation reads `signing.gnupg.*`; it does not automatically use or translate the traditional PGP properties `signing.keyId`, `signing.password`, or `signing.secretKeyRingFile`. Without `signing.gnupg.keyName`, key selection follows GPG configuration and defaults. Verify the actual signing key before publication rather than relying on an ineffective `signing.keyId`.
 
 To select a key explicitly, optionally add the following to the user-level `~/.gradle/gradle.properties`, replacing the placeholder with your full key fingerprint. Never put private keys or passphrases in project configuration:
 
@@ -122,14 +124,22 @@ By default, GPG / `gpg-agent` manages private-key unlocking. Manual and automate
 
 ### Upload, verification, and rollback
 
-Future upload batches use `GROUP-root project name-VERSION_NAME`, currently `io.github.logan0817-FlowBus-1.2.0`, so different projects with the same group and version remain recognizable. The name is for human identification; queries, release, and drop must use the unique deployment ID returned by that upload and verify the batch contents. Actual Maven coordinates remain `io.github.logan0817:flowbus-core:1.2.0` and `io.github.logan0817:flowbus:1.2.0`.
+Upload batches use `GROUP-root project name-VERSION_NAME`, currently deriving `io.github.logan0817-FlowBus-1.3.0-SNAPSHOT`. This does not establish upload or that the development SNAPSHOT can be used as a final Central release. Set/review the final version, then repeat acceptance and dry-run before publication. Coordinates are `io.github.logan0817:flowbus-core:<final version>`, `io.github.logan0817:flowbus:<final version>` and `io.github.logan0817:flowbus-compose:<final version>`. Names identify batches to humans; queries, release and drop use the upload's unique deployment ID after checking its contents.
 
-Publication plugin 0.33.0 has no public deployment-name setting. The root publication script sets only the staging artifact identity of both `createStagingRepository` tasks to the root project name, allowing the plugin to derive a name from one shared staging identity. It does not change `MavenPublication` or publication file paths. Single-module uploads use the same project name; actual coordinates distinguish the module contents. `verifyCentralDeploymentName` checks both staging identities and actual publication coordinates locally and in CI, and runs before staging tasks. It performs no signing or network upload. After upgrading the publication plugin, review its naming algorithm and staging task properties, then run this check and the remote dry-run again.
+Publication plugin 0.33.0 has no public deployment-name setting. The root publication script sets only the staging artifact identity of all three `createStagingRepository` tasks to the root project name, allowing the plugin to derive a name from one shared staging identity. It does not change `MavenPublication` or publication file paths. Single-module uploads use the same project name; actual coordinates distinguish module contents. `verifyCentralDeploymentName` checks all three staging identities and actual publication coordinates locally and in CI, before staging tasks. It performs no signing or network upload. After upgrading the plugin, review its naming algorithm/task properties, then repeat this check and remote dry-run.
 
 Changing the naming configuration does not automatically affect existing deployments. Replacing an unpublished deployment requires separate authorization: verify its state and coordinates using the original deployment ID, drop it, then upload and verify the replacement. Use the newly returned deployment ID for all operations on the replacement. Published coordinates cannot be overwritten.
 
-Publication is in gradle/release-publishing.gradle.kts and validation in gradle/release-verification.gradle.kts. publishToMavenCentral / releaseToMavenCentral upload a Central Portal deployment; this does not automatically release it. Inspect both coordinates, sources/javadoc, .asc signatures, and checksums before releasing or dropping in Portal. Maven local does not generate remote signatures.
+Publication is in gradle/release-publishing.gradle.kts and validation in gradle/release-verification.gradle.kts. publishToMavenCentral / releaseToMavenCentral upload a Central Portal deployment; this does not automatically release it. Inspect all three coordinates, sources/javadoc, .asc signatures, and checksums before releasing or dropping in Portal. Maven local does not generate remote signatures.
 
-After authorized publication and Central availability, resolve 1.2.0 from the remote repository in an independent consumer and run a normal/sticky delivery smoke check. Verify the resolved version so local candidates or old caches cannot stand in for the published artifacts.
+After authorized publication and Central availability, resolve the final version remotely in independent consumers and run core/Android normal/sticky, Java interoperability and optional Compose effect smoke checks. Verify all three resolved versions so local candidates or old caches cannot stand in for published artifacts.
 
-Rollback consumers to published 1.1.0 and revert new API calls when necessary. Drop unpublished deployments; never overwrite a released version.
+Rollback consumers to published 1.2.0 and remove new Java, subscription-notification and diagnostics calls. The optional Compose coordinate did not exist in 1.2.0; restore existing lifecycle Flow collection or fixture-style integration. Drop unpublished deployments only within authorization; never overwrite a released version.
+
+## 1.3.0 candidate additions
+
+```bash
+./gradlew verifyMavenLocalBinaryCoreConsumer -Pflowbus.consumer.baselineVersion=1.2.0 "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8
+```
+
+Review apiDump additions for all three modules. Old descriptors must remain; do not replace compatibility assertions with regenerated snapshots. The Compose AAR, POM/module metadata, sources/javadoc and public runtime dependencies must be verified. Test Java calls from actual .java sources, not only Kotlin calls to the facade. API 36 local results do not replace API 21/35 or cloud CI.

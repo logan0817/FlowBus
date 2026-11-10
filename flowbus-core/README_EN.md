@@ -20,6 +20,7 @@ If you are not building an Android app, or if you want to manage bus instances, 
 - [Install](#install) · [Quick start](#quick-start)
 - [Scopes](#scopes-and-ownership) · [API selection](#api-selection-matrix)
 - [Channel configuration](#channel-configuration) · [Suspend collection](#suspend-collection)
+- [1.3 candidate subscription notification](#subscription-notification) · [Candidate channel diagnostics](#channel-diagnostics)
 - [Diagnostics](#diagnostics) · [Behavior boundaries](#behavior-boundaries)
 - [Compatibility](../docs/en/compatibility.md) · [Troubleshooting](../TROUBLESHOOTING.md) (Chinese)
 
@@ -61,6 +62,8 @@ Cleanup APIs have 2 extra rules:
 ```gradle
 implementation("io.github.logan0817:flowbus-core:1.2.0")
 ```
+
+The latest released version remains **1.2.0**. Features marked “1.3 candidate” below are available only in the local **1.3.0-SNAPSHOT** candidate. They have not been published to Maven Central and are unavailable through the released dependency above. See the [release checklist](../docs/en/release-checklist.md) for local candidate preparation and consumer verification.
 
 <a id="start-with-the-shortest-path"></a>
 
@@ -480,6 +483,60 @@ Type validation, logger, and errorHandler are shared with existing APIs. Ordinar
 
 Closing a `FlowBusScope` does not actively cancel subscriptions holding old Flow references, but starting collection through a closed handle fails. Bus/scope lifecycle remains with its owner; subscriptions do not acquire close ownership.
 
+<a id="subscription-notification"></a>
+
+### 1.3 candidate: notification for a specific subscription
+
+This section requires the local `1.3.0-SNAPSHOT` candidate. `onSubscribed` runs after **this particular** underlying subscription is registered, before any source event reaches that subscription. Another collector of the same key cannot trigger it early. Merely obtaining a Flow does not invoke it. Collecting the same Flow multiple times invokes the notification once for each actual collection.
+
+When a producer must wait for registration, let the non-suspending hook complete a signal and send from a separate coroutine. This complete suspending example uses zero-capacity `SUSPEND` with `emit`, rather than a fixed delay:
+
+```kotlin
+import com.logan.flowbus.core.FlowBus
+import com.logan.flowbus.core.FlowBusConfig
+import com.logan.flowbus.core.eventKey
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
+
+suspend fun verifyFirstNotification() = coroutineScope {
+    val bus = FlowBus(FlowBusConfig(
+        normalBufferCapacity = 0,
+        overflowPolicy = BufferOverflow.SUSPEND
+    ))
+    val key = eventKey<Int>("sync.first")
+    val subscribed = CompletableDeferred<Unit>()
+    val received = CompletableDeferred<Int>()
+    val subscription = launch {
+        bus.collectSuspending(key, onSubscribed = { subscribed.complete(Unit) }) {
+            received.complete(it)
+        }
+    }
+    val producer = launch {
+        subscribed.await()
+        bus.emit(key, 1)
+    }
+    try {
+        producer.join()
+        check(received.await() == 1)
+    } finally {
+        producer.cancel()
+        subscription.cancel()
+    }
+}
+```
+
+The explicit `EventKey` member APIs on `FlowBus`, `ScopedFlowBus`, and `FlowBusScope` support this hook. Use `flow(key, onSubscribed)` / `stickyFlow(key, onSubscribed)` when composing a Flow, or the corresponding `collectSuspending` / `collectStickySuspending` overload when source logging and event error policies are needed. Existing overloads remain available. Error handling for upstream work and callbacks in a directly collected Flow remains the caller's responsibility.
+
+Boundaries:
+
+- The hook is a non-suspending `() -> Unit` running in the actual collection context. A collector's `dispatcher` controls event callbacks and does not automatically move the hook. Avoid blocking or waiting for the same subscription to process an event. Bridging a suspending send with `runBlocking` inside the hook on the same zero-capacity channel can deadlock by waiting for itself to start receiving.
+- Registration does not mean business work or sticky replay handling has finished. Sticky collection captures its historical snapshot, notifies, delivers replay, and then receives live values. Clear/consume can still invalidate captured history. Notification preserves overflow, backpressure, cancellation, and behavior without subscribers; it does not guarantee reliable delivery or deduplication.
+- An exception thrown by the hook terminates that collection directly, without being treated as an event callback failure by `errorHandler`. Event callbacks retain their source policy; cancellation propagates normally.
+- Once cancellation has been observed, the hook is skipped. Concurrent cancellation can stop collection immediately after notification. If the subscription is independently cancelled before notification, the caller must also cancel its waiter; the signal does not automatically complete with the subscription Job. A completed one-shot `Deferred` is not permanent active state. A lifecycle adapter notifies again whenever a new active period establishes a new subscription.
+- A Flow still refers to its original store. Removal or scope closure does not cancel old references or automatically attach them to a new store with the same name. New flow/collection operations through a closed owned handle still fail.
+
 <a id="how-to-choose-subscription-apis"></a>
 
 ## Subscription APIs
@@ -571,6 +628,35 @@ Diagnostics snapshots only expose metadata. Keep these 6 boundaries in mind:
 4. `inspectScope(...)` returns `null` when that scope has not been created.
 5. `events` means registered event metadata, not necessarily active subscribers.
 6. `metrics` only describes bus-layer `tryEmit` acceptance or rejection, not business handling success.
+
+<a id="channel-diagnostics"></a>
+
+### 1.3 candidate: effective channel configuration and separate subscriber counts
+
+This section requires the local `1.3.0-SNAPSHOT` candidate. `inspect().config` remains the bus-default summary. The new `inspectChannel(key)` returns an independent `FlowBusChannelSnapshot?` with the channel's effective binding:
+
+```kotlin
+val bus = FlowBus()
+val key = eventKey<Int>("work.progress")
+check(bus.inspectChannel(key) == null)
+bus.configureChannel(key, FlowBusChannelConfig(normalBufferCapacity = 1))
+val channel = checkNotNull(bus.inspectChannel(key))
+check(channel.normalBufferCapacity == 1)
+check(!channel.hasNormalFlow) // Configuration and inspection do not create a Flow.
+println("normal=${channel.normalSubscriptionCount}, sticky=${channel.stickySubscriptionCount}")
+```
+
+| Fields | Meaning |
+| --- | --- |
+| `eventName` / `valueTypeName` | Bound name and type; the type name remains null for an untyped raw key |
+| `normalBufferCapacity` / `normalOverflowPolicy` | Effective normal-flow capacity and overflow policy |
+| `stickyReplay` / `stickyExtraBufferCapacity` / `stickyOverflowPolicy` | Effective sticky replay, extra capacity, and overflow policy |
+| `hasNormalFlow` / `hasStickyFlow` | Whether the corresponding Flow exists in the current store |
+| `normalSubscriptionCount` / `stickySubscriptionCount` | Separately sampled subscriber counts for the corresponding flows |
+
+All three explicit source types support this query. An unknown channel or a shared store that does not exist returns null without creating a store, Flow, configuration, type binding, or send counters. A known same-name type conflict throws `IllegalArgumentException`; querying a raw key does not complete its type binding. An owned `FlowBusScope` that is closing or closed rejects queries with `IllegalStateException`.
+
+Removing an individual Flow retains its configuration. Complete scope cleanup makes a shared query return null; recreating the same name restores bus defaults. Snapshots contain no payload and are not cross-thread transactions. Separate counts cannot replace a specific subscription notification or establish delivery rate or business completion.
 
 <a id="eventchannel-event-extension-helpers-or-plain-eventname"></a>
 
