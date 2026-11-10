@@ -5,5 +5,9 @@
   "1.1.0": {
     "coreSha256": "ffafa4c77ed1e7b8183f53de26a14904b37a5d6958b49fa6930d2273173fcb9f",
     "androidSha256": "bc7eb2750832da36f49f6be797ea76e922b864093b8ff0d3513b41a3f3450b6a"
+  },
+  "1.2.0": {
+    "coreSha256": "525c10846d00e7a41f932ac0ce45dba47b7b8b1da58bc68266e33df4a4b974f2",
+    "androidSha256": "c10b2978c3ebdf69ea97ed9112c212fa65cf9b5744da0ff0b5b8823c8c1819bd"
   }
 }

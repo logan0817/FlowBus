@@ -1,6 +1,8 @@
 package com.logan.flowbus.core
 
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.onSubscription
@@ -147,14 +149,47 @@ internal class FlowBusStore(
         emit(key = key, value = value, isSticky = isSticky, scopeName = null)
     }
 
-    @Suppress("UNCHECKED_CAST")
     fun <T : Any> flow(key: EventKey<T>, isSticky: Boolean): Flow<T> {
+        return flow(key, isSticky, onSubscribed = null)
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    fun <T : Any> flow(key: EventKey<T>, isSticky: Boolean, onSubscribed: (() -> Unit)?): Flow<T> {
         val channelConfig = bindChannel(key)
         return if (isSticky) {
-            getStickyEventFlow(key.name, channelConfig).asFlow() as Flow<T>
+            getStickyEventFlow(key.name, channelConfig).asFlow(onSubscribed) as Flow<T>
         } else {
-            getNormalEventFlow(key.name, channelConfig) as Flow<T>
+            val flow = getNormalEventFlow(key.name, channelConfig)
+            if (onSubscribed == null) flow as Flow<T>
+            else flow.onSubscription {
+                currentCoroutineContext().ensureActive()
+                onSubscribed()
+            } as Flow<T>
         }
+    }
+
+    fun inspectChannel(key: EventKey<*>): FlowBusChannelSnapshot? {
+        val binding = channelBindings[key.name] ?: return null
+        val expectedType = key.valueType
+        require(binding.valueType == null || expectedType == null || binding.valueType == expectedType) {
+            keyTypeConflictMessage(key.name, binding.valueType, checkNotNull(expectedType))
+        }
+        val channelConfig = binding.config
+        val normalFlow = normalEventFlows[key.name]
+        val stickyFlow = stickyEventFlows[key.name]
+        return FlowBusChannelSnapshot(
+            eventName = key.name,
+            valueTypeName = binding.valueType?.qualifiedName,
+            normalBufferCapacity = channelConfig.normalBufferCapacity,
+            normalOverflowPolicy = channelConfig.normalOverflowPolicy,
+            stickyReplay = channelConfig.stickyReplay,
+            stickyExtraBufferCapacity = channelConfig.stickyExtraBufferCapacity,
+            stickyOverflowPolicy = channelConfig.stickyOverflowPolicy,
+            hasNormalFlow = normalFlow != null,
+            hasStickyFlow = stickyFlow != null,
+            normalSubscriptionCount = normalFlow?.subscriptionCount?.value ?: 0,
+            stickySubscriptionCount = stickyFlow?.subscriptionCount ?: 0
+        )
     }
 
     fun <T : Any> clearSticky(key: EventKey<T>) {
@@ -441,9 +476,16 @@ internal class FlowBusStore(
             }
         }
 
-        fun asFlow(): Flow<Any> = backing
+        fun asFlow(): Flow<Any> = asFlow(null)
+
+        fun asFlow(onSubscribed: (() -> Unit)?): Flow<Any> = backing
             .onSubscription {
                 val replaySnapshot = replaySnapshot()
+                if (onSubscribed != null) {
+                    currentCoroutineContext().ensureActive()
+                    // 先固定历史快照，避免通知后新写入的 live 值再次进入本次 replay。
+                    onSubscribed()
+                }
                 replaySnapshot.values.forEach { stickyValue ->
                     if (replaySnapshot.generation == generation) {
                         emit(StickyDelivery.replay(stickyValue, replaySnapshot.generation))

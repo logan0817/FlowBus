@@ -117,10 +117,10 @@ private fun NavHostVerification(activity: ComponentActivity, model: HostVerifica
             composable(HOME_ROUTE) { HostPage(model, HOME_ROUTE, it, !finished) }
             composable(DETAIL_ROUTE) { HostPage(model, DETAIL_ROUTE, it, !finished) }
         }
-        AndroidView(factory = { TextView(it) }, update = {
-            it.text = status + System.lineSeparator() + model.phases.joinToString(",") +
+        VerificationResult(
+            status + System.lineSeparator() + model.phases.joinToString(",") +
                 System.lineSeparator() + "animatedWindow=${model.animatedWindow} restored=${model.restoring}"
-        })
+        )
     }
 
     LaunchedEffect(controller, runId) {

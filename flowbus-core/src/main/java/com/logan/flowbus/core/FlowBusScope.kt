@@ -121,10 +121,28 @@ class FlowBusScope internal constructor(
         }
     }
 
+    /** 取得当前 store 的 Flow，每次实际订阅登记后通知；旧 Flow 的关闭边界保持。 */
+    fun <T : Any> flow(key: EventKey<T>, onSubscribed: () -> Unit): Flow<T> {
+        return withOpenOperation { operationBus -> operationBus.flow(key, onSubscribed) }
+    }
+
     /** 返回当前 scope 中指定粘性事件对应的 [Flow]。 */
     fun <T : Any> stickyFlow(key: EventKey<T>): Flow<T> {
         return withOpenOperation { operationBus ->
             operationBus.stickyFlow(key)
+        }
+    }
+
+    /** 取得 sticky Flow，每次订阅登记并捕获历史快照后、回放前通知。 */
+    fun <T : Any> stickyFlow(key: EventKey<T>, onSubscribed: () -> Unit): Flow<T> {
+        return withOpenOperation { operationBus -> operationBus.stickyFlow(key, onSubscribed) }
+    }
+
+    /** 只读查询已绑定通道，不创建 store；关闭中或关闭后的句柄拒绝查询。 */
+    fun <T : Any> inspectChannel(key: EventKey<T>): FlowBusChannelSnapshot? {
+        return operationLock.withLock {
+            check(!isClosing && !isClosed) { "FlowBusScope '$scopeName' is already closed." }
+            scopedBus.inspectChannel(key)
         }
     }
 
@@ -168,6 +186,26 @@ class FlowBusScope internal constructor(
         )
     }
 
+    /** 顺序收集并通知本次订阅建立；通知异常直接传播。 */
+    suspend fun <T : Any> collectSuspending(
+        key: EventKey<T>,
+        onSubscribed: () -> Unit,
+        dispatcher: CoroutineDispatcher? = null,
+        onReceived: suspend (T) -> Unit
+    ) {
+        val targetFlow = flow(key, onSubscribed)
+        val config = scopedBus.currentConfig()
+        collectFlowBusSuspendingSequentially(
+            flow = targetFlow,
+            eventKey = key,
+            scopeName = scopeName,
+            dispatcher = dispatcher,
+            logger = config.logger,
+            errorHandler = config.errorHandler,
+            onReceived = onReceived
+        )
+    }
+
     /**
      * 按顺序收集当前 scope 中的粘性事件，并自动使用所属 [FlowBus] 的日志和错误处理策略。
      */
@@ -197,6 +235,27 @@ class FlowBusScope internal constructor(
         onReceived: suspend (T) -> Unit
     ) {
         val targetFlow = stickyFlow(key)
+        val config = scopedBus.currentConfig()
+        collectFlowBusSuspendingSequentially(
+            flow = targetFlow,
+            eventKey = key,
+            scopeName = scopeName,
+            isSticky = true,
+            dispatcher = dispatcher,
+            logger = config.logger,
+            errorHandler = config.errorHandler,
+            onReceived = onReceived
+        )
+    }
+
+    /** 顺序收集 sticky，并在历史回放前通知本次订阅建立；通知异常直接传播。 */
+    suspend fun <T : Any> collectStickySuspending(
+        key: EventKey<T>,
+        onSubscribed: () -> Unit,
+        dispatcher: CoroutineDispatcher? = null,
+        onReceived: suspend (T) -> Unit
+    ) {
+        val targetFlow = stickyFlow(key, onSubscribed)
         val config = scopedBus.currentConfig()
         collectFlowBusSuspendingSequentially(
             flow = targetFlow,

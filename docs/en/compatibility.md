@@ -2,7 +2,11 @@
 
 [中文](../compatibility.md) · [Documentation](README.md)
 
-FlowBus publishes a Kotlin/JVM core and an Android adapter. There are no Kotlin Multiplatform, cross-process, Compose, or Navigation artifacts. The Android coordinate depends transitively on the matching core version.
+Published 1.2.0 provides a Kotlin/JVM core and an Android adapter; the 1.3.0 development version adds an optional Compose coordinate. Android and Compose coordinates depend transitively on the matching core version. There are no Kotlin Multiplatform, cross-process, or Navigation artifacts.
+
+## 1.3.0 development verification
+
+Current sources target unpublished 1.3.0-SNAPSHOT. Base minSdk 21, Java 8, Kotlin 1.9.25, Coroutines 1.8.1 and Lifecycle 2.6.2 remain. Optional Compose uses runtime 1.5.4/compiler 1.5.15 and does not enter the existing base coordinates. Published 1.2.0 is added as a fixed core bytecode / Android symbol baseline. The real Java/Compose consumers resolve this candidate; API 21/35 and final CI still require their own results. See [development notes](release-notes-1.3.0.md).
 
 ## Requirements and defaults
 

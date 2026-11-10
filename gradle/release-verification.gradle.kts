@@ -1,5 +1,6 @@
 import groovy.json.JsonSlurper
 import java.util.zip.ZipFile
+import java.util.zip.ZipInputStream
 import javax.xml.parsers.DocumentBuilderFactory
 import org.gradle.api.artifacts.VersionCatalog
 import org.gradle.api.artifacts.VersionCatalogsExtension
@@ -67,12 +68,18 @@ val consumerAndroidCompileSdk = providers.gradleProperty("flowbus.consumer.compi
 
 tasks.register("verifyMavenLocalArtifacts") {
     group = "verification"
-    description = "Verify locally published flowbus-core and flowbus Maven artifacts and POM metadata."
+    description = "Verify core, Android and optional Compose Maven artifacts and metadata."
     dependsOn(candidatePrerequisite)
 
     doLast {
         val coreBase = mavenLocalRoot.resolve("flowbus-core/$artifactVersion/flowbus-core-$artifactVersion")
         val androidBase = mavenLocalRoot.resolve("flowbus/$artifactVersion/flowbus-$artifactVersion")
+        val composeBase = mavenLocalRoot.resolve("flowbus-compose/$artifactVersion/flowbus-compose-$artifactVersion")
+        val composeAar = composeBase.resolveSibling("${composeBase.name}.aar")
+        val composePom = composeBase.resolveSibling("${composeBase.name}.pom")
+        val composeModule = composeBase.resolveSibling("${composeBase.name}.module")
+        val composeSourcesJar = composeBase.resolveSibling("${composeBase.name}-sources.jar")
+        val composeJavadocJar = composeBase.resolveSibling("${composeBase.name}-javadoc.jar")
         val coreJar = coreBase.resolveSibling("${coreBase.name}.jar")
         val corePom = coreBase.resolveSibling("${coreBase.name}.pom")
         val coreModule = coreBase.resolveSibling("${coreBase.name}.module")
@@ -205,6 +212,15 @@ tasks.register("verifyMavenLocalArtifacts") {
         requireFile(androidModule, "flowbus Gradle module metadata")
         requireFile(androidSourcesJar, "flowbus sources jar")
         requireFile(androidJavadocJar, "flowbus javadoc jar")
+        listOf(composeAar, composePom, composeModule, composeSourcesJar, composeJavadocJar).forEach {
+            requireFile(it, "flowbus-compose artifact")
+        }
+        requireZipEntry(composeSourcesJar, "flowbus-compose sources jar") {
+            it.startsWith("com/logan/flowbus/compose/") && it.endsWith(".kt")
+        }
+        requireZipEntry(composeJavadocJar, "flowbus-compose javadoc jar") {
+            it.endsWith("index.html") || it.endsWith("package-list") || it.endsWith("element-list")
+        }
         requireZipEntry(coreSourcesJar, "flowbus-core sources jar") {
             it.startsWith("com/logan/flowbus/core/") && it.endsWith(".kt")
         }
@@ -218,7 +234,7 @@ tasks.register("verifyMavenLocalArtifacts") {
             it.endsWith("index.html") || it.endsWith("package-list") || it.endsWith("element-list")
         }
 
-        listOf(corePom to "flowbus-core", androidPom to "flowbus").forEach { (pom, artifactId) ->
+        listOf(corePom to "flowbus-core", androidPom to "flowbus", composePom to "flowbus-compose").forEach { (pom, artifactId) ->
             requirePomValue(pom, "<groupId>$artifactGroup</groupId>", "groupId")
             requirePomValue(pom, "<artifactId>$artifactId</artifactId>", "artifactId")
             requirePomValue(pom, "<version>$artifactVersion</version>", "version")
@@ -285,7 +301,18 @@ tasks.register("verifyMavenLocalArtifacts") {
             version = libsCatalog.version("lifecycle_version")
         )
 
-        listOf(corePom to coreModule, androidPom to androidModule).forEach { (pom, module) ->
+        listOf(
+            Triple(artifactGroup, "flowbus-core", artifactVersion),
+            Triple("androidx.lifecycle", "lifecycle-runtime-ktx", libsCatalog.version("lifecycle_version")),
+            Triple("androidx.compose.runtime", "runtime", "1.5.4")
+        ).forEach { (group, module, version) ->
+            requirePomDependency(composePom, group, module, "compile", version)
+            requireModuleDependency(composeModule, group, module, version)
+        }
+        check(!androidPom.readText().contains("<groupId>androidx.compose")) {
+            "The base Android coordinate must not depend on Compose."
+        }
+        listOf(corePom to coreModule, androidPom to androidModule, composePom to composeModule).forEach { (pom, module) ->
             requirePomDependency(
                 pom, "org.jetbrains.kotlin", "kotlin-stdlib", "compile", libsCatalog.version("kotlin")
             )
@@ -310,9 +337,29 @@ tasks.register("verifyMavenLocalArtifacts") {
                 }
             }
         }
-        ZipFile(androidAar).use { aar ->
-            check(aar.getEntry("classes.jar") != null) { "${androidAar.name} is missing classes.jar" }
-            check(aar.getEntry("proguard.txt") != null) { "${androidAar.name} is missing proguard.txt" }
+        listOf(androidAar, composeAar).forEach { artifact ->
+            ZipFile(artifact).use { aar ->
+                check(aar.getEntry("classes.jar") != null) { "${artifact.name} is missing classes.jar" }
+                check(aar.getEntry("proguard.txt") != null) { "${artifact.name} is missing proguard.txt" }
+                var classCount = 0
+                ZipInputStream(aar.getInputStream(aar.getEntry("classes.jar"))).use { classes ->
+                    var entry = classes.nextEntry
+                    while (entry != null) {
+                        if (entry.name.endsWith(".class")) {
+                            check(!entry.name.contains("/consumer/") && !entry.name.contains("/composeconsumer/")) {
+                                "Consumer fixture must not be packaged in ${artifact.name}."
+                            }
+                            val header = java.io.DataInputStream(classes)
+                            check(header.readInt() == 0xCAFEBABE.toInt()) { "Invalid class: ${entry.name}" }
+                            header.readUnsignedShort()
+                            check(header.readUnsignedShort() == 52) { "Non-Java-8 class: ${entry.name}" }
+                            classCount++
+                        }
+                        entry = classes.nextEntry
+                    }
+                }
+                check(classCount > 0) { "${artifact.name} contains no classes." }
+            }
         }
     }
 }
@@ -473,7 +520,7 @@ val prepareMavenLocalConsumer = tasks.register("prepareMavenLocalConsumer") {
     inputs.property("repository", consumerRepositoryUri)
     inputs.property("agp", libsCatalog.version("agp"))
     inputs.property("kotlin", consumerKotlinVersion)
-    inputs.file(rootProject.file("compatibility/android-consumer/app/src/main/java/com/logan/flowbus/consumer/ConsumerActivity.kt"))
+    inputs.dir(rootProject.file("compatibility/android-consumer/app/src/main/java"))
     inputs.dir(rootProject.file("compatibility/android-consumer/legacy/src"))
     trackConsumerAndroidBaseline(consumerAndroidCompileSdk)
     outputs.dir(consumerDir)
@@ -653,6 +700,10 @@ val prepareMavenLocalConsumer = tasks.register("prepareMavenLocalConsumer") {
         rootProject.file(
             "compatibility/android-consumer/app/src/main/java/com/logan/flowbus/consumer/ConsumerActivity.kt"
         ).copyTo(sourceDir.resolve("ConsumerActivity.kt"), overwrite = true)
+        rootProject.file("compatibility/android-consumer/app/src/main/java/com/logan/flowbus/consumer")
+            .listFiles { file -> file.extension == "java" }.orEmpty().forEach {
+                it.copyTo(sourceDir.resolve(it.name), overwrite = true)
+            }
     }
 }
 
@@ -693,6 +744,7 @@ val prepareMavenLocalBinaryCoreConsumer = tasks.register("prepareMavenLocalBinar
     val candidateJar = mavenLocalRoot.resolve("flowbus-core/$artifactVersion/flowbus-core-$artifactVersion.jar")
     inputs.dir(templateDir.resolve("src"))
     inputs.dir(templateDir.resolve("src-1.1.0"))
+    inputs.dir(templateDir.resolve("src-1.2.0"))
     inputs.file(binaryConsumerBaselinesFile)
     inputs.property("baselineVersion", binaryConsumerBaselineVersion)
     inputs.file(templateDir.resolve("build.gradle.kts.template"))
@@ -716,13 +768,20 @@ val prepareMavenLocalBinaryCoreConsumer = tasks.register("prepareMavenLocalBinar
             """.trimIndent()
         )
         templateDir.resolve("src").copyRecursively(root.resolve("src"), overwrite = true)
-        if (binaryConsumerBaselineVersion == "1.1.0") {
+        if (binaryConsumerBaselineVersion in setOf("1.1.0", "1.2.0")) {
             templateDir.resolve("src-1.1.0").copyRecursively(root.resolve("src"), overwrite = true)
+        }
+        if (binaryConsumerBaselineVersion == "1.2.0") {
+            templateDir.resolve("src-1.2.0").copyRecursively(root.resolve("src"), overwrite = true)
         }
         val consumerSource = root.resolve("src/main/kotlin/com/logan/flowbus/binaryconsumer/BinaryCoreConsumer.kt")
         consumerSource.writeText(consumerSource.readText().replace(
             "// @VERSION_SPECIFIC_CHECK@",
-            if (binaryConsumerBaselineVersion == "1.1.0") "BinaryCoreConsumer110.verify()" else ""
+            when (binaryConsumerBaselineVersion) {
+                "1.1.0" -> "BinaryCoreConsumer110.verify()"
+                "1.2.0" -> "BinaryCoreConsumer110.verify(); BinaryCoreConsumer120.verify()"
+                else -> ""
+            }
         ))
         val baselineMetadata = checkNotNull(binaryConsumerBaselines[binaryConsumerBaselineVersion]) as Map<*, *>
         val replacements = mapOf(
@@ -866,6 +925,7 @@ val prepareMavenLocalComposeConsumer = tasks.register("prepareMavenLocalComposeC
             }
             dependencies {
                 implementation("$artifactGroup:flowbus:$artifactVersion")
+                implementation("$artifactGroup:flowbus-compose:$artifactVersion")
                 implementation("androidx.activity:activity-compose:1.8.2")
                 implementation("androidx.compose.runtime:runtime:$composeVersion")
                 implementation("androidx.compose.ui:ui:$composeVersion")

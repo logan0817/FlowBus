@@ -1,0 +1,107 @@
+import com.vanniktech.maven.publish.AndroidSingleVariantLibrary
+import org.gradle.kotlin.dsl.withType
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
+plugins {
+    id("com.android.library")
+    kotlin("android")
+
+    id("signing")
+    alias(libs.plugins.vanniktech.maven.publish)
+}
+
+android {
+    namespace = "com.logan.flowbus.compose"
+    compileSdk = libs.versions.compile.sdk.version.get().toInt()
+
+    defaultConfig {
+        minSdk = libs.versions.min.sdk.version.get().toInt()
+        consumerProguardFiles("consumer-rules.pro")
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    buildFeatures {
+        compose = true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion = libs.versions.compose.compiler.get()
+    }
+
+    lint {
+        warningsAsErrors = true
+        abortOnError = true
+        disable.add("GradleDependency")
+        disable.add("AndroidGradlePluginVersion")
+    }
+}
+
+tasks.withType<KotlinCompile>().configureEach {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_1_8)
+    }
+}
+
+dependencies {
+    api(projects.flowbusCore)
+    api(libs.lifecycle.runtime)
+    api(libs.compose.runtime)
+}
+
+signing {
+    // 私钥和签名开关沿用根发布流程；本地候选验证不触发正式签名。
+    useGpgCmd()
+}
+
+mavenPublishing {
+    configure(
+        AndroidSingleVariantLibrary(
+            variant = "release",
+            sourcesJar = true,
+            publishJavadocJar = true
+        )
+    )
+
+    coordinates(
+        providers.gradleProperty("GROUP").get(),
+        "flowbus-compose",
+        providers.gradleProperty("VERSION_NAME").get()
+    )
+
+    publishToMavenCentral(false)
+    signAllPublications()
+
+    pom {
+        name.set("FlowBus Compose")
+        description.set("Optional lifecycle-aware Jetpack Compose effects for FlowBus.")
+        inceptionYear.set("2026")
+        url.set(providers.gradleProperty("POM_URL"))
+        licenses {
+            license {
+                name.set(providers.gradleProperty("POM_LICENSE_NAME"))
+                url.set(providers.gradleProperty("POM_LICENSE_URL"))
+                distribution.set("repo")
+            }
+        }
+        developers {
+            developer {
+                id.set(providers.gradleProperty("POM_DEVELOPER_ID"))
+                name.set(providers.gradleProperty("POM_DEVELOPER_NAME"))
+                email.set(providers.gradleProperty("POM_DEVELOPER_EMAIL"))
+            }
+        }
+        scm {
+            url.set(providers.gradleProperty("POM_SCM_URL"))
+            connection.set(providers.gradleProperty("POM_SCM_CONNECTION"))
+            developerConnection.set(providers.gradleProperty("POM_SCM_DEV_CONNECTION"))
+        }
+        issueManagement {
+            url.set(providers.gradleProperty("POM_ISSUE_URL"))
+            system.set(providers.gradleProperty("POM_ISSUE_SYSTEM"))
+        }
+    }
+}

@@ -179,6 +179,10 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 - Maven Central 坐标：使用 `io.github.logan0817:flowbus:1.2.0` 或 `io.github.logan0817:flowbus-core:1.2.0`
 - [变化、迁移、验证证据与性能边界](docs/release-notes-1.2.0.md)
 
+## 1.3.0 开发版
+
+当前源码开发版本为 **1.3.0-SNAPSHOT**，尚未发布。新增具体订阅建立通知、Java 友好入口、通道实际配置诊断和可选 [Compose 模块](library-compose/README.md)。正式安装仍使用上面的 1.2.0；候选用法与验收边界见 [1.3.0 开发说明](docs/release-notes-1.3.0.md)。
+
 ## 兼容与发布状态
 
 Android 支持 API 21+，发布字节码目标为 Java 8。库使用 Kotlin 1.9.25、Coroutines 1.8.1、Lifecycle 2.6.2、AGP 8.6.1、Gradle 8.7、JDK 17 和 compileSdk/targetSdk 35 构建。消费者的工具链要求与已测组合见[兼容性说明](docs/compatibility.md)。

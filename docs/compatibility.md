@@ -2,7 +2,11 @@
 
 [English](en/compatibility.md) · [文档索引](README.md)
 
-FlowBus 发布 Kotlin/JVM core 和 Android 适配两个坐标，不提供 Kotlin Multiplatform、跨进程、Compose 或 Navigation 制品。Android 坐标传递依赖同版本 core。
+正式 1.2.0 发布 Kotlin/JVM core 和 Android 适配两个坐标；1.3.0 开发版另增可选 Compose 坐标。Android 和 Compose 坐标传递依赖同版本 core，不提供 Kotlin Multiplatform、跨进程或 Navigation 制品。
+
+## 1.3.0 开发版验收
+
+当前源码为尚未发布的 1.3.0-SNAPSHOT。基础 minSdk 21、Java 8、Kotlin 1.9.25、Coroutines 1.8.1 与 Lifecycle 2.6.2 保持；可选 Compose 使用 runtime 1.5.4/compiler 1.5.15，不进入既有两个基础坐标。新增正式 1.2.0 core 同字节码和 Android 符号基线。真实 Java/Compose 消费者从候选解析；API 21/35 和最终云端 CI 必须分别取得本轮结果，见[开发说明](release-notes-1.3.0.md)。
 
 ## 接入要求与默认依赖
 

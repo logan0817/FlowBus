@@ -18,6 +18,7 @@ If you are integrating FlowBus into an Android app, this is usually the place to
 
 - [Quick start](#3-minute-quick-start) · [API selection](#api-selection-matrix)
 - [Owner configuration](#android-owner-configuration) · [Suspend callbacks and explicit instances](#suspend-callbacks)
+- [1.3.0 development: Java, subscription notification, diagnostics](#development-130)
 - [Sticky](#sticky-events) · [Global defaults](#optional-configuration)
 - [Compatibility](../docs/en/compatibility.md) · [Troubleshooting](../TROUBLESHOOTING.md) (Chinese)
 
@@ -541,6 +542,94 @@ viewLifecycleOwner.collectEventSuspending(eventFlow<RefreshHomeEvent>()) { event
 
 `collectEventSuspending` is a generic Flow helper with sequential lifecycle-bound suspend callbacks. Upstream and callback exceptions propagate directly without automatically applying FlowBus logger/errorHandler. Choose `collectEventFromSuspending` for instance policy. Use native Flow `collectLatest` explicitly when previous handling should be cancelled; that behavior is not the default for these APIs.
 
+<a id="development-130"></a>
+
+## 1.3.0 development: Java, subscription notification, diagnostics
+
+The following APIs exist only in the current source and local **1.3.0-SNAPSHOT** candidate. They are not released. The Maven Central installation above remains **1.2.0**, which cannot compile these new calls. See the [Android consumer](../compatibility/android-consumer/README_EN.md) for candidate preparation and verification. Existing Kotlin APIs remain available.
+
+### A short Java path
+
+Register on the main thread. `receiver` is the `LifecycleOwner` controlling the subscription; a Fragment should use `getViewLifecycleOwner()`. `render` and `RefreshEvent` below are application code:
+
+```java
+import com.logan.flowbus.FlowBusJava;
+import com.logan.flowbus.core.EventChannel;
+
+EventChannel<RefreshEvent> refresh =
+        FlowBusJava.channel("home.refresh", RefreshEvent.class);
+FlowBusJava.Subscription subscription =
+        FlowBusJava.subscribe(receiver, refresh, event -> render(event));
+
+// Send from user actions or business work after the receiver is active and subscribed.
+boolean accepted = FlowBusJava.post(refresh, new RefreshEvent("login"));
+
+// Explicit early cancellation is optional; receiver destruction also ends collection.
+subscription.cancel();
+boolean cancellationRequested = subscription.isCancelled();
+boolean callbackFinished = subscription.isCompleted();
+```
+
+`accepted=true` describes the bus accepting the send, not business processing. `cancel()` requests cooperative cancellation; `isCompleted()` confirms that the subscription and its in-flight callback have ended. Blocking code cannot be forcibly stopped. While stopped, a lifecycle subscription can remain neither cancelled nor completed even though collection is paused; these flags do not indicate activity.
+
+| Java operation | Global source | Explicit owner source |
+| --- | --- | --- |
+| Normal send | `post(channel, value)` | `postTo(owner, channel, value)` |
+| Normal send diagnostics | `postResult(channel, value)` | `postResultTo(owner, channel, value)` |
+| Sticky send | `postSticky(channel, value)` | `postStickyTo(owner, channel, value)` |
+| Sticky send diagnostics | `postStickyResult(channel, value)` | `postStickyResultTo(owner, channel, value)` |
+| Normal subscription | `subscribe(receiver, channel, listener)` | `subscribeFrom(receiver, owner, channel, listener)` |
+| Sticky subscription | `subscribeSticky(receiver, channel, listener)` | `subscribeStickyFrom(receiver, owner, channel, listener)` |
+| Channel diagnostics | `inspectChannel(channel)` | `inspectChannelFrom(owner, channel)` |
+
+All methods belong to `FlowBusJava`. The owner selects the source; the receiver controls collection and termination. They may differ. Register subscriptions and perform owner operations on the main thread. Defaults are STARTED / Main.immediate, and all calls use the existing bus. Java and Kotlin exchange events through the same source and channel. Normal and sticky remain separate streams: a normal subscription does not receive `postSticky`, and a sticky subscription does not receive normal `post`.
+
+### Know when this subscription is registered
+
+All four Java subscription families have an overload accepting `Runnable onSubscribed` before the listener. The notification runs after the underlying subscription is registered in each active lifecycle entry. `markSubscriptionActive()` must not block:
+
+```java
+FlowBusJava.Subscription subscription = FlowBusJava.subscribeFrom(
+        receiver, sourceOwner, refresh,
+        () -> markSubscriptionActive(),
+        event -> render(event));
+```
+
+Kotlin `collectEventFromSuspending` has equivalent notification overloads for explicit `FlowBus`, `ScopedFlowBus`, and `FlowBusScope` sources:
+
+```kotlin
+import com.logan.flowbus.collectEventFromSuspending
+import com.logan.flowbus.core.eventKey
+
+val refreshKey = eventKey<RefreshHomeEvent>("home.refresh")
+viewLifecycleOwner.collectEventFromSuspending(
+    from = featureBus,
+    key = refreshKey,
+    onSubscribed = { markSubscriptionActive() }
+) { event ->
+    viewModel.refreshSuspending(event.source)
+}
+```
+
+Application code owns `featureBus` and gives the same source to senders. The notification identifies this actual subscription, rather than testing whether any subscriber exists. It repeats on each active lifecycle entry and precedes sticky replay. It runs in the collection coroutine context, which defaults to the main thread for the new Android APIs. A custom dispatcher changes event callback execution, not the notification context. The notification is non-suspending and runs outside bus registration locks. Its exceptions terminate collection directly instead of entering the event callback error policy; event callbacks still use source policy. Notification does not prevent later cancellation or acknowledge business completion. Existing Job-return timing is unchanged.
+
+### Inspect the effective channel policy
+
+```java
+import com.logan.flowbus.core.FlowBusChannelSnapshot;
+
+FlowBusChannelSnapshot snapshot = FlowBusJava.inspectChannelFrom(sourceOwner, refresh);
+if (snapshot != null) {
+    int normalSubscribers = snapshot.getNormalSubscriptionCount();
+    int stickySubscribers = snapshot.getStickySubscriptionCount();
+    int normalCapacity = snapshot.getNormalBufferCapacity();
+}
+```
+
+The snapshot exposes effective normal/sticky capacities, replay, overflow policies, and separate active subscriber counts, without payloads. Unknown channels return null without binding types/configuration or creating Flow; conflicting types on existing names fail explicitly. Initial `FlowBusJava.inspectChannel*` source acquisition can create its Android `FlowEventBus`, so configure `FlowBusAndroid` first. An existing `FlowEventBus` exposes `inspectChannel(key)` directly; explicit core sources have the same query.
+
+Snapshots are diagnostic views, not readiness barriers or cross-thread transactions. Existing `inspect().config` still describes bus defaults. Accepted/rejected counters and subscriber counts do not establish delivery rates.
+
 ## Optional configuration
 
 Call `FlowBusAndroid.configure(...)` before the first `postEvent(...)`, `emitEvent(...)`, or `eventFlow(...)` call if you want to customize the underlying core config:
@@ -565,7 +654,7 @@ Put configuration in `Application.onCreate()`, before these entry points:
 
 The Android module does not add a UI diagnostics panel.
 
-When you need lower-level event metadata in custom `FlowEventBus` / core `FlowBus` scenarios, use `inspect()` from `flowbus-core`.
+Use core `FlowBus.inspect()` for lower-level event metadata. The 1.3.0 development candidate additionally exposes the `FlowEventBus.inspectChannel(key)` and Java diagnostics described above.
 
 Before logging snapshots, make sure `eventName` and `scopeName` do not contain phone numbers, tokens, order IDs, or other sensitive values.
 

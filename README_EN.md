@@ -179,6 +179,10 @@ The latest stable version is **1.2.0**, published to Maven Central on 2026-10-15
 - Maven Central coordinates: `io.github.logan0817:flowbus:1.2.0` or `io.github.logan0817:flowbus-core:1.2.0`
 - [Changes, migration, verification, and performance limits](docs/en/release-notes-1.2.0.md)
 
+## 1.3.0 development version
+
+Current sources target **1.3.0-SNAPSHOT**, not a public release. New capabilities include per-collection registration notification, Java convenience APIs, effective channel diagnostics and an optional [Compose module](library-compose/README_EN.md). Public installation remains 1.2.0; see the [development notes](docs/en/release-notes-1.3.0.md) for local candidate usage and verification boundaries.
+
 ## Compatibility and release status
 
 Android supports API 21+. Published bytecode targets Java 8. The library is built with Kotlin 1.9.25, Coroutines 1.8.1, Lifecycle 2.6.2, AGP 8.6.1, Gradle 8.7, JDK 17, and compileSdk/targetSdk 35. Consumer toolchain requirements and tested combinations are described in the [compatibility guide](docs/en/compatibility.md).

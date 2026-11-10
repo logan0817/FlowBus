@@ -33,7 +33,8 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           BASE_REF: ${{ github.base_ref }}
         run: |
-          API_SNAPSHOT_EXCLUDES=(-- . ':(exclude)flowbus-core/api/*.api' ':(exclude)library-android/api/*.api')
+          # 冻结基线按原版字节保留，包括生成器的文件末尾空行。
+          API_SNAPSHOT_EXCLUDES=(-- . ':(exclude)flowbus-core/api/*.api' ':(exclude)library-android/api/*.api' ':(exclude)library-compose/api/*.api' ':(exclude)compatibility/android-consumer/api/*.api' ':(exclude)compatibility/core-binary-consumer/api/*.api')
           if [ "$EVENT_NAME" = "pull_request" ]; then
             git diff --check "origin/$BASE_REF"...HEAD "${API_SNAPSHOT_EXCLUDES[@]}"
           elif git rev-parse HEAD~1 >/dev/null 2>&1; then
@@ -53,7 +54,7 @@ jobs:
         id: candidate
         run: |
           ./gradlew apiCheck :flowbus-core:test :library-android:testDebugUnitTest :app:testDebugUnitTest \
-            :library-android:lintRelease :app:lintRelease verifyMavenLocalArtifacts \
+            :library-android:lintRelease :library-compose:lintRelease :app:lintRelease verifyMavenLocalArtifacts \
             "-Dmaven.repo.local=$PWD/build/candidate-maven" --warning-mode=all
           python3 -B compatibility/candidate_bundle.py seal
           echo "manifest-sha256=$(sha256sum build/candidate-manifest.json | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
@@ -77,6 +78,7 @@ jobs:
             flowbus-core/build/test-results/
             library-android/build/test-results/
             app/build/test-results/
+            library-compose/build/reports/lint-results-release.*
             library-android/build/reports/lint-results-release.*
             app/build/reports/lint-results-release.*
             build/candidate-manifest.json
@@ -110,6 +112,8 @@ jobs:
             ./gradlew -p benchmarks/jvm selfCheck jmh \
               "-Pbenchmark.target=$benchmark_target" -Pbenchmark.smoke --warning-mode=all
           done
+          ./gradlew -p benchmarks/jvm jmh -Pbenchmark.target=candidate -Pbenchmark.smoke \
+            '-Pbenchmark.filter=.*SubscriptionBenchmark.*' -Pbenchmark.report=subscription-smoke --warning-mode=all
       - name: Verify unchanged 1.0.7 core consumer bytecode
         run: |
           ./gradlew verifyMavenLocalBinaryCoreConsumer \
@@ -129,6 +133,7 @@ jobs:
             --output build/core-1.1.0-jvm-symbol-verification.json
       - name: Verify published Android JVM symbols
         run: |
+          FLOWBUS_VERSION=$(sed -n 's/^VERSION_NAME=//p' gradle.properties)
           mkdir -p build/published-baseline
           curl --fail --location --silent --show-error \
             --output build/published-baseline/flowbus-1.0.7.aar \
@@ -136,20 +141,41 @@ jobs:
           python3 -c 'import hashlib, pathlib; actual = hashlib.sha256(pathlib.Path("build/published-baseline/flowbus-1.0.7.aar").read_bytes()).hexdigest(); assert actual == "84380a3e456285a77133a4535dd4ff69b2eeb85ee516e3a24326411503ff5592", actual'
           python3 -B compatibility/core-binary-consumer/verify_symbols.py \
             --baseline-artifact build/published-baseline/flowbus-1.0.7.aar \
-            --candidate-artifact build/candidate-maven/io/github/logan0817/flowbus/1.2.0/flowbus-1.2.0.aar \
+            --candidate-artifact "build/candidate-maven/io/github/logan0817/flowbus/$FLOWBUS_VERSION/flowbus-$FLOWBUS_VERSION.aar" \
             --baseline-api-snapshot compatibility/android-consumer/api/flowbus-1.0.7.api \
             --output build/android-jvm-symbol-verification.json
       - name: Verify published 1.1.0 Android JVM symbols
         run: |
+          FLOWBUS_VERSION=$(sed -n 's/^VERSION_NAME=//p' gradle.properties)
           curl --fail --location --silent --show-error \
             --output build/published-baseline/flowbus-1.1.0.aar \
             https://repo.maven.apache.org/maven2/io/github/logan0817/flowbus/1.1.0/flowbus-1.1.0.aar
           python3 -c 'import hashlib, pathlib; actual = hashlib.sha256(pathlib.Path("build/published-baseline/flowbus-1.1.0.aar").read_bytes()).hexdigest(); assert actual == "bc7eb2750832da36f49f6be797ea76e922b864093b8ff0d3513b41a3f3450b6a", actual'
           python3 -B compatibility/core-binary-consumer/verify_symbols.py \
             --baseline-artifact build/published-baseline/flowbus-1.1.0.aar \
-            --candidate-artifact build/candidate-maven/io/github/logan0817/flowbus/1.2.0/flowbus-1.2.0.aar \
+            --candidate-artifact "build/candidate-maven/io/github/logan0817/flowbus/$FLOWBUS_VERSION/flowbus-$FLOWBUS_VERSION.aar" \
             --baseline-api-snapshot compatibility/android-consumer/api/flowbus-1.1.0.api \
             --output build/android-1.1.0-jvm-symbol-verification.json
+      - name: Verify unchanged 1.2.0 consumers and Android JVM symbols
+        run: |
+          ./gradlew verifyMavenLocalBinaryCoreConsumer \
+            "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.verification.reuseCandidate=true \
+            -Pflowbus.consumer.baselineVersion=1.2.0 \
+            "-Pflowbus.consumer.java=$JAVA_HOME_8_X64/bin/java" -Pflowbus.consumer.expectedJava=1.8 --warning-mode=all
+          python3 -B compatibility/core-binary-consumer/verify_symbols.py \
+            --runtime-report build/maven-local-binary-core-consumer-1.2.0/build/reports/binary-compatibility.json \
+            --baseline-api-snapshot compatibility/core-binary-consumer/api/flowbus-core-1.2.0.api \
+            --output build/core-1.2.0-jvm-symbol-verification.json
+          FLOWBUS_VERSION=$(sed -n 's/^VERSION_NAME=//p' gradle.properties)
+          curl --fail --location --silent --show-error \
+            --output build/published-baseline/flowbus-1.2.0.aar \
+            https://repo.maven.apache.org/maven2/io/github/logan0817/flowbus/1.2.0/flowbus-1.2.0.aar
+          python3 -c 'import hashlib, pathlib; actual = hashlib.sha256(pathlib.Path("build/published-baseline/flowbus-1.2.0.aar").read_bytes()).hexdigest(); assert actual == "c10b2978c3ebdf69ea97ed9112c212fa65cf9b5744da0ff0b5b8823c8c1819bd", actual'
+          python3 -B compatibility/core-binary-consumer/verify_symbols.py \
+            --baseline-artifact build/published-baseline/flowbus-1.2.0.aar \
+            --candidate-artifact "build/candidate-maven/io/github/logan0817/flowbus/$FLOWBUS_VERSION/flowbus-$FLOWBUS_VERSION.aar" \
+            --baseline-api-snapshot compatibility/android-consumer/api/flowbus-1.2.0.api \
+            --output build/android-1.2.0-jvm-symbol-verification.json
       - name: Verify newer optional Navigation consumer
         run: |
           ./gradlew verifyMavenLocalComposeConsumer \
@@ -159,7 +185,9 @@ jobs:
       - name: Verify Maven Central release task graph
         run: |
           ./gradlew verifyCentralDeploymentName --warning-mode=all
-          ./gradlew releaseToMavenCentral --dry-run --warning-mode=all
+          # dry-run 也会校验凭据是否存在；这里只提供无效占位值，不引入发布 secrets。
+          ./gradlew releaseToMavenCentral --dry-run --warning-mode=all \
+            -PmavenCentralUsername=dry-run-unused -PmavenCentralPassword=dry-run-unused
       - name: Check candidate remains unchanged
         if: always()
         run: python3 -B compatibility/candidate_bundle.py check
@@ -293,16 +321,14 @@ jobs:
           path: build
       - name: Check candidate commit and digests
         run: python3 -B compatibility/candidate_bundle.py check
-      - name: Prepare sample APKs and source instrumentation before emulator
-        run: |
-          ./gradlew :app:assembleDebug :app:assembleRelease :app:assembleReleaseAndroidTest \
-            :library-android:assembleDebug :library-android:assembleDebugAndroidTest --warning-mode=all
+      - name: Prepare sample instrumentation and minified candidate consumers before emulator
+        run: bash compatibility/run-api35.sh --prepare
       - name: Enable KVM for Android emulator
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Run Android instrumented tests
+      - name: Run instrumentation and Android and Compose candidate checks on API 35
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
@@ -328,6 +354,9 @@ jobs:
             library-android/build/outputs/androidTest-results/
             library-android/build/reports/androidTests/
             build/api35-environment/
+            build/api35-consumers/
+            build/maven-local-consumer/legacy/build/reports/
+            build/maven-local-consumer/legacy/build/test-results/
             build/candidate-manifest.json
 
   # 保留原有 check 名 verify。跳过、失败、取消均不能成为整体成功。
