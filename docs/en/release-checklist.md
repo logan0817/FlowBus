@@ -1,10 +1,10 @@
 # 1.3.0 development and release checklist
 
-Current sources target **1.3.0-SNAPSHOT**, which is unpublished. Public installation remains 1.2.0. See [development notes](release-notes-1.3.0.md) for new behavior; the 1.2.0 evidence below is historical and does not validate this candidate. Local publication now prepares core, Android and optional Compose artifacts. API 35 additionally verifies the same sealed Android/Compose candidates as API 21, using separate APK/report paths before serial device execution.
+Current sources target the **1.3.0 release candidate**, which is unpublished. Public installation remains 1.2.0. See [development notes](release-notes-1.3.0.md) for new behavior; the 1.2.0 evidence below is historical and does not validate this candidate. Local publication now prepares core, Android and optional Compose artifacts. API 35 additionally verifies the same sealed Android/Compose candidates as API 21, using separate APK/report paths before serial device execution.
 
 [中文](../release-checklist.md)
 
-Target configuration: VERSION_NAME=1.3.0-SNAPSHOT, APP_VERSION_NAME=1.3.0-SNAPSHOT, APP_VERSION_CODE=10. 1.2.0 was published to Maven Central on 2026-10-15. This checklist defines the procedure; current tested commits and reports belong in the [1.3.0 development notes](release-notes-1.3.0.md). Historical evidence remains in the [1.2.0](release-notes-1.2.0.md) and [1.1.0](release-notes-1.1.0.md) notes.
+Target configuration: VERSION_NAME=1.3.0, APP_VERSION_NAME=1.3.0, APP_VERSION_CODE=11. 1.2.0 was published to Maven Central on 2026-10-15. This checklist defines the procedure; current tested commits and reports belong in the [1.3.0 release notes](release-notes-1.3.0.md). Historical evidence remains in the [1.2.0](release-notes-1.2.0.md) and [1.1.0](release-notes-1.1.0.md) notes.
 
 ## Release sequence
 
@@ -49,7 +49,7 @@ The Java parameter selects only the consumer runtime; Gradle still uses JDK 17. 
 Repository documentation and release configuration are explicit JVM test inputs. Changes to those files must rerun the gates rather than reuse earlier passing results.
 
 - Core/Android/app JVM tests and release lint pass; sample release uses R8/minify.
-- flowbus-core-1.3.0-SNAPSHOT.jar, flowbus-1.3.0-SNAPSHOT.aar, flowbus-compose-1.3.0-SNAPSHOT.aar, and sources/javadoc, POM, and module metadata for all three coordinates exist.
+- flowbus-core-1.3.0.jar, flowbus-1.3.0.aar, flowbus-compose-1.3.0.aar, and sources/javadoc, POM, and module metadata for all three coordinates exist.
 - Check dependency scopes, license, developer, SCM, and versions: core exposes Coroutines; Android exposes matching core and Lifecycle runtime/viewmodel; optional Compose exposes matching core, Lifecycle runtime and Compose runtime 1.5.4.
 - AARs include classes.jar and proguard.txt; all three coordinates use Java 8 bytecode without fixtures, Navigation, or local configuration. Core/Android remain free of Compose; only the optional Compose coordinate adds that dependency.
 - Run the Maven core consumer on JDK 8. Compile binary consumers separately against pinned Central 1.0.7, 1.1.0 and 1.2.0 and run identical bytecode against original and candidate. Android/Compose consumers pass release R8; Android interoperability compiles actual Java source.
@@ -97,7 +97,7 @@ Keep Kotlin 1.9.25, Coroutines 1.8.1, Lifecycle 2.6.2, AGP 8.6.1, Gradle 8.7, bu
 
 After public resolution succeeds, update stable coordinates in root/module READMEs, candidate status in the documentation indexes, candidate-build instructions, and the changelog release date. Retain historical version notes and baseline fixtures.
 
-Check bilingual root/module READMEs, CHANGELOG, 1.3.0 development notes, API comments, versions, and CI paths while preserving actual historical evidence. Delivery, sticky replay, closure, subscription notifications, error policy, and cooperative cancellation documentation must match implementation.
+Check bilingual root/module READMEs, CHANGELOG, 1.3.0 release notes, API comments, versions, and CI paths while preserving actual historical evidence. Delivery, sticky replay, closure, subscription notifications, error policy, and cooperative cancellation documentation must match implementation.
 
 Inspect git status and working/staged diffs. Exclude generated artifacts, signing material, secrets, logs, local configuration, temporary conversation records, and unrelated changes. Retain useful fixtures, API baselines, and tests. All three publication modules belong to the main repository without nested Git/submodule or independent publication configuration.
 
@@ -124,7 +124,7 @@ By default, GPG / `gpg-agent` manages private-key unlocking. Manual and automate
 
 ### Upload, verification, and rollback
 
-Upload batches use `GROUP-root project name-VERSION_NAME`, currently deriving `io.github.logan0817-FlowBus-1.3.0-SNAPSHOT`. This does not establish upload or that the development SNAPSHOT can be used as a final Central release. Set/review the final version, then repeat acceptance and dry-run before publication. Coordinates are `io.github.logan0817:flowbus-core:<final version>`, `io.github.logan0817:flowbus:<final version>` and `io.github.logan0817:flowbus-compose:<final version>`. Names identify batches to humans; queries, release and drop use the upload's unique deployment ID after checking its contents.
+Upload batches use `GROUP-root project name-VERSION_NAME`; the current release candidate derives `io.github.logan0817-FlowBus-1.3.0`. This establishes neither upload nor public availability. Regenerate and verify the candidate, including dry-run, after changing versions. Coordinates are `io.github.logan0817:flowbus-core:1.3.0`, `io.github.logan0817:flowbus:1.3.0` and `io.github.logan0817:flowbus-compose:1.3.0`. Names identify batches to humans; queries, release and drop use the upload's unique deployment ID after checking its contents.
 
 Publication plugin 0.33.0 has no public deployment-name setting. The root publication script sets only the staging artifact identity of all three `createStagingRepository` tasks to the root project name, allowing the plugin to derive a name from one shared staging identity. It does not change `MavenPublication` or publication file paths. Single-module uploads use the same project name; actual coordinates distinguish module contents. `verifyCentralDeploymentName` checks all three staging identities and actual publication coordinates locally and in CI, before staging tasks. It performs no signing or network upload. After upgrading the plugin, review its naming algorithm/task properties, then repeat this check and remote dry-run.
 

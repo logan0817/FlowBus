@@ -1,10 +1,10 @@
-# 1.3.0 开发与发布清单
+# 1.3.0 发布准备清单
 
-当前源码为 **1.3.0-SNAPSHOT，尚未发布**。正式安装仍为 1.2.0，新增能力与本轮验收边界见 [1.3.0 开发说明](release-notes-1.3.0.md)。下文保留的 1.2.0 发布历史不代表当前候选通过。根本地发布现生成 core、Android、可选 Compose 三个坐标；基础两个坐标不增加 Compose 依赖。API 35 另在模拟器启动前从同一封存候选准备 Android/Compose 独立 APK，随后与原 instrumentation 串行运行七阶段 Java/Android、十一阶段 effect 与八阶段 policy，并保留自身报告。
+当前源码为 **1.3.0，尚未发布**。正式安装仍为 1.2.0，新增能力与本轮验收边界见 [1.3.0 发布说明](release-notes-1.3.0.md)。下文保留的 1.2.0 发布历史不代表当前候选通过。根本地发布现生成 core、Android、可选 Compose 三个坐标；基础两个坐标不增加 Compose 依赖。API 35 另在模拟器启动前从同一封存候选准备 Android/Compose 独立 APK，随后与原 instrumentation 串行运行七阶段 Java/Android、十一阶段 effect 与八阶段 policy，并保留自身报告。
 
 [English](en/release-checklist.md)
 
-目标配置：VERSION_NAME=1.3.0-SNAPSHOT、APP_VERSION_NAME=1.3.0-SNAPSHOT、APP_VERSION_CODE=10。1.2.0 已于 2026-10-15 正式发布到 Maven Central。本清单维护操作流程，本轮受测提交与报告记录在 [1.3.0 开发说明](release-notes-1.3.0.md)；历史证据分别见 [1.2.0](release-notes-1.2.0.md) 与 [1.1.0](release-notes-1.1.0.md) 发布说明。
+目标配置：VERSION_NAME=1.3.0、APP_VERSION_NAME=1.3.0、APP_VERSION_CODE=11。1.2.0 已于 2026-10-15 正式发布到 Maven Central。本清单维护操作流程，本轮受测提交与报告记录在 [1.3.0 发布说明](release-notes-1.3.0.md)；历史证据分别见 [1.2.0](release-notes-1.2.0.md) 与 [1.1.0](release-notes-1.1.0.md) 发布说明。
 
 ## 发布顺序
 
@@ -73,7 +73,7 @@ bash compatibility/run-api35.sh
 原有不带 `reuseCandidate` 的本地消费者入口仍自动发布。封存后切勿再用默认入口重发候选；修改候选输入后应重新发布并封存，已有设备结果失效。CI 的干净 checkout SHA 标识源码；本地未提交修改还需结合工作区差异核对，不能仅凭 HEAD SHA 标识受测源码。
 
 - core / Android / app JVM 测试和 release lint 通过，示例 release 必须启用 R8/minify。
-- flowbus-core-1.3.0-SNAPSHOT.jar、flowbus-1.3.0-SNAPSHOT.aar、flowbus-compose-1.3.0-SNAPSHOT.aar，以及三个坐标的 sources/javadoc、POM 与 module metadata 均存在。
+- flowbus-core-1.3.0.jar、flowbus-1.3.0.aar、flowbus-compose-1.3.0.aar，以及三个坐标的 sources/javadoc、POM 与 module metadata 均存在。
 - POM/module metadata 的依赖 scope、license、developer、SCM 与版本正确：core 暴露 Coroutines；Android 暴露同版本 core 和 Lifecycle runtime/viewmodel；可选 Compose 暴露同版本 core、Lifecycle runtime 和 Compose runtime 1.5.4。
 - AAR 包含 classes.jar、proguard.txt；三个坐标均为 Java 8 字节码，不含消费者 fixture、Navigation 或本地配置。core/Android 不引入 Compose，Compose 依赖仅位于可选 flowbus-compose。
 - 真实 Maven core 消费者在 JDK 8 运行；旧 core 消费者分别用 Central 固定原版 1.0.7、1.1.0、1.2.0 编译，相同字节码分别运行原版与候选；Android / Compose 消费者经过 release R8，Android Java 互通路径来自真实 .java 编译。
@@ -121,7 +121,7 @@ CI 的 SDK 初始化显式选择 `platform-tools`，命令行工具由 setup-and
 
 正式仓库解析成功后，同步根/模块 README 正式坐标、文档索引候选状态、本地候选说明及更新日志发布日期。保留历史版本说明和固定旧版 fixture，不全仓替换旧版本号。
 
-核对根与模块 README 中英文、CHANGELOG、1.3.0 开发说明、API 注释、版本配置及 CI 路径，保留真实 1.2.0 历史记录。普通无人订阅、sticky replay、关闭等待、订阅建立通知、错误策略和协作取消说明必须与实现一致。
+核对根与模块 README 中英文、CHANGELOG、1.3.0 发布说明、API 注释、版本配置及 CI 路径，保留真实 1.2.0 历史记录。普通无人订阅、sticky replay、关闭等待、订阅建立通知、错误策略和协作取消说明必须与实现一致。
 
 检查 git status、工作区与暂存区差异；不提交构建产物、测试签名、密钥、日志、个人环境配置、临时沟通记录或无关改动。保留必要 fixtures、API 基准和回归测试。三个发布模块都由主仓统一维护，不能含子仓 .git/.gitmodules 或独立发布配置。
 
@@ -148,7 +148,7 @@ signing.gnupg.keyName=<完整密钥指纹>
 
 ### 上传、验收与回退
 
-上传批次名称采用 `GROUP-根项目名-VERSION_NAME`，按当前开发配置推导为 `io.github.logan0817-FlowBus-1.3.0-SNAPSHOT`；这不代表已上传或该 SNAPSHOT 可直接作为正式 Central 版本发布。正式发布前先审查并设置最终版本，再重新执行门禁和 dry-run。三个坐标分别为 `io.github.logan0817:flowbus-core:<最终版本>`、`io.github.logan0817:flowbus:<最终版本>`、`io.github.logan0817:flowbus-compose:<最终版本>`。名称用于人工识别；查询、release 或 drop 必须使用本次上传返回的唯一 deployment ID 并核对批次内容。
+上传批次名称采用 `GROUP-根项目名-VERSION_NAME`，当前发布候选为 `io.github.logan0817-FlowBus-1.3.0`；这不代表已经上传或公开发布。版本切换后须重新生成候选并执行门禁和 dry-run。三个坐标分别为 `io.github.logan0817:flowbus-core:1.3.0`、`io.github.logan0817:flowbus:1.3.0`、`io.github.logan0817:flowbus-compose:1.3.0`。名称用于人工识别；查询、release 或 drop 必须使用本次上传返回的唯一 deployment ID 并核对批次内容。
 
 发布插件 0.33.0 尚无公开的批次名称配置；根发布脚本只将三个 `createStagingRepository` 任务的暂存 artifact 标识统一为根项目名，让插件按同一个暂存标识生成名称，不修改 `MavenPublication` 或发布文件路径。单模块上传也使用同一项目名称，模块内容通过实际坐标区分。`verifyCentralDeploymentName` 在本地与 CI 核对三个暂存标识及实际发布坐标，并作为暂存任务的前置检查；该检查不执行签名或网络上传。升级发布插件后，必须重新核对其命名规则与暂存任务属性，并执行该检查及 remote dry-run。
 

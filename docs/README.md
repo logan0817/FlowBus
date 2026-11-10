@@ -19,7 +19,7 @@
 
 ## 开发中的版本
 
-[1.3.0-SNAPSHOT](release-notes-1.3.0.md) 尚未发布：具体订阅建立通知、Java 接入、[可选 Compose 模块](../library-compose/README.md)和通道诊断。源码候选与正式 1.2.0 安装分开说明，不继承历史验证结果。
+[1.3.0](release-notes-1.3.0.md) 尚未发布：具体订阅建立通知、Java 接入、[可选 Compose 模块](../library-compose/README.md)和通道诊断。源码候选与正式 1.2.0 安装分开说明，不继承历史验证结果。
 
 ## 版本记录
 

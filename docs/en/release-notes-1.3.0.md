@@ -1,8 +1,8 @@
-# FlowBus 1.3.0 development version
+# FlowBus 1.3.0 release candidate
 
 [中文](../release-notes-1.3.0.md)
 
-The current development version is **1.3.0-SNAPSHOT**, not a published release. The public installation version remains 1.2.0. These notes describe the local candidate; historical 1.2.0 results do not validate current inputs.
+The current release candidate version is **1.3.0**, not a published release. The public installation version remains 1.2.0. These notes describe the local candidate; historical 1.2.0 results do not validate current inputs.
 
 ## Changes
 
@@ -17,9 +17,9 @@ The current development version is **1.3.0-SNAPSHOT**, not a published release. 
 Published installation examples remain on 1.2.0. Use the isolated local repository described in [contributing](contributing.md) for new APIs:
 
 ```kotlin
-implementation("io.github.logan0817:flowbus:1.3.0-SNAPSHOT")
+implementation("io.github.logan0817:flowbus:1.3.0")
 // Only for Compose consumers:
-implementation("io.github.logan0817:flowbus-compose:1.3.0-SNAPSHOT")
+implementation("io.github.logan0817:flowbus-compose:1.3.0")
 ```
 
 Keep the hook short: complete a signal and let an independent producer send. Blocking the hook or waiting for the same zero-buffer SUSPEND subscription to consume can deadlock. Cancellation can follow the notification immediately; DROP policies can still discard values and zero-buffer tryPost can still reject. Replay processing follows notification. A one-shot first-registration signal does not represent every later lifecycle activation.
@@ -36,9 +36,19 @@ Tests use controlled scheduling and explicit signals for registration, cancellat
 
 Local results are reported with the implementation delivery. API 36 does not replace API 21/35 evidence; an unrun cloud matrix is not a successful release gate.
 
-## Local candidate verification (2026-10-30)
+## Final-version candidate preparation (2026-11-10)
 
-Evidence comes from an uncommitted workspace; HEAD `26df17a` alone does not identify the new sources. `build/verification-130/source-identity.json` records 50 source/build inputs. The sealed manifest SHA-256 is `529d3e6ae52262d6f105bd492c38e7cdaa3fd79df3b1ab03223968cf2445af02`; historical files remain in the isolated repository. Current primary artifact SHA-256 values are:
+Current sources use `1.3.0`, the sample uses `versionName=1.3.0` / `versionCode=11`, and test APKs use version `2 / 1.3.0`. All three coordinates are prepared only in an isolated Maven repository. No release signing, upload or public publication has occurred; public installation examples retain 1.2.0.
+
+The preceding development version merged through [PR #12](https://github.com/logan0817/FlowBus/pull/12) as `311c30f249631371877e25c0cb714a5ccc4917a8`. Its [main CI](https://github.com/logan0817/FlowBus/actions/runs/42771676046) passed all nine checks for `1.3.0-SNAPSHOT`. The local performance and device records below retain their original version identity; they do not establish new `1.3.0` artifact hashes or current device results.
+
+Local validation passed 257 JVM tests, API checks for the three libraries, Release Lint for Android/Compose/the sample app, metadata checks for all three coordinates, core consumer execution on Java 8, and real Maven Release R8 verification for Android and Compose. Compiler and API 21/35 evidence must come from this PR and the post-merge CI.
+
+This release-preparation PR must regenerate the `1.3.0` candidate and pass API, JVM, Lint, metadata, Java 8, real Maven/R8, old bytecode/symbol, compiler matrix and API 21/35 gates. Verify final main CI after merge. Release signing, upload, tags and GitHub Release require separate authorization; public installation examples change only after successful publication.
+
+## Historical development-candidate verification (2026-10-30)
+
+That development candidate was verified from an uncommitted workspace; HEAD `26df17a` alone does not identify the new sources. `build/verification-130/source-identity.json` records 50 source/build inputs. The sealed manifest SHA-256 is `529d3e6ae52262d6f105bd492c38e7cdaa3fd79df3b1ab03223968cf2445af02`; historical files remain in the isolated repository. Historical primary artifact SHA-256 values for that SNAPSHOT are:
 
 | Artifact | SHA-256 |
 | --- | --- |

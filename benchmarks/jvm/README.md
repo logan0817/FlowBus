@@ -1,6 +1,6 @@
 # FlowBus JVM 性能基准
 
-独立 Gradle 工程，不属于根项目 settings，不进入生产依赖或 Maven 发布产物。当前对照为固定 SHA-256 的 Maven Central **1.2.0**、隔离仓库 **1.3.0-SNAPSHOT** 开发候选和原生 SharedFlow。Kotlin 1.9.25、Coroutines 1.8.1、JMH 1.37、JDK 17 固定，fork heap 为 -Xms512m -Xmx512m；JMH 采用 [GPLv2 with Classpath Exception](https://github.com/openjdk/jmh/blob/1.37/LICENSE)，仅为开发测量工具，FlowBus 发布许可证仍为 MIT。`results/current/` 目前仍保存 **1.2.0 对照 1.1.0 的历史完整报告**，不代表本开发版的性能结果。
+独立 Gradle 工程，不属于根项目 settings，不进入生产依赖或 Maven 发布产物。当前对照为固定 SHA-256 的 Maven Central **1.2.0**、隔离仓库 **1.3.0** 发布候选和原生 SharedFlow。Kotlin 1.9.25、Coroutines 1.8.1、JMH 1.37、JDK 17 固定，fork heap 为 -Xms512m -Xmx512m；JMH 采用 [GPLv2 with Classpath Exception](https://github.com/openjdk/jmh/blob/1.37/LICENSE)，仅为开发测量工具，FlowBus 发布许可证仍为 MIT。`results/current/` 目前仍保存 **1.2.0 对照 1.1.0 的历史完整报告**，不代表本开发版的性能结果。
 
 ## 运行
 
@@ -19,7 +19,7 @@
 python3 benchmarks/jvm/summarize.py
 ```
 
-同一工作区的 Gradle 调用串行，不能同时运行多个正式基准或构建。CI 在独立 `consumers` job 内依次运行三组默认 smoke，再单独选择候选 SubscriptionBenchmark 生成 `subscription-smoke.json`；候选从本次 `prepare` artifact 下载并校验，不重新发布。其余编译器/设备使用独立工作区并行。基准报告位于该 job 的 `flowbus-verification-consumers-<workflow SHA>-<attempt>`，候选一致性和收集方式见[发布清单](../../docs/release-checklist.md#ci-任务关系与候选边界)。使用 Android Studio 时，与 IDE 复用相同的 Gradle JDK、Android SDK 和 Gradle user home。baseline 单独运行正式 1.2.0 JAR，SHA-256 固定为 `525c10846d00e7a41f932ac0ce45dba47b7b8b1da58bc68266e33df4a4b974f2`；candidate 使用 `build/candidate-maven/io/github/logan0817/flowbus-core/1.3.0-SNAPSHOT/flowbus-core-1.3.0-SNAPSHOT.jar`（版本读取根 gradle.properties），shared 依赖相同但收发直接使用 MutableSharedFlow。不允许用当前源码重建正式基线。
+同一工作区的 Gradle 调用串行，不能同时运行多个正式基准或构建。CI 在独立 `consumers` job 内依次运行三组默认 smoke，再单独选择候选 SubscriptionBenchmark 生成 `subscription-smoke.json`；候选从本次 `prepare` artifact 下载并校验，不重新发布。其余编译器/设备使用独立工作区并行。基准报告位于该 job 的 `flowbus-verification-consumers-<workflow SHA>-<attempt>`，候选一致性和收集方式见[发布清单](../../docs/release-checklist.md#ci-任务关系与候选边界)。使用 Android Studio 时，与 IDE 复用相同的 Gradle JDK、Android SDK 和 Gradle user home。baseline 单独运行正式 1.2.0 JAR，SHA-256 固定为 `525c10846d00e7a41f932ac0ce45dba47b7b8b1da58bc68266e33df4a4b974f2`；candidate 使用 `build/candidate-maven/io/github/logan0817/flowbus-core/1.3.0/flowbus-core-1.3.0.jar`（版本读取根 gradle.properties），shared 依赖相同但收发直接使用 MutableSharedFlow。不允许用当前源码重建正式基线。
 
 默认筛选：shared 仅 `BusBenchmark`，baseline 为 `BusBenchmark|BusLifecycleBenchmark`，candidate 为这两类加 `CandidateConfigBenchmark`。默认任务保留原完整报告范围，不自动混入仅候选支持的 `SubscriptionBenchmark`。新参数均为可选：`benchmark.filter` 替换类名正则，`benchmark.scenarios` 以逗号选择该类支持的 scenario，`benchmark.report` 选择 `build/reports/<名称>.json`，避免定向报告覆盖完整数据。仅包含所选类真实参数的组合才有效。
 
@@ -33,7 +33,7 @@ python3 benchmarks/jvm/summarize.py
 ./gradlew -p benchmarks/jvm jmh -Pbenchmark.target=candidate '-Pbenchmark.filter=.*SubscriptionBenchmark.*' -Pbenchmark.scenarios=plain,hook -Pbenchmark.report=candidate-subscription-1.3.0
 ```
 
-2026-10-30 已完成上述五组以及稳定发送/首次注册的两组反向复测，共九组定向正式测量，见 [1.3.0 定向报告](results/1.3.0/report.md)。工作站负载未受控，注册吞吐的快慢关系在复测中反转，发布前仍需空闲环境确认；不能据此宣称提速或完全无回退。不要将多个定向结果拼成完整三组基准。
+2026-10-30 使用当时的 **1.3.0-SNAPSHOT** 完成五组以及稳定发送/首次注册的两组反向复测，共九组定向正式测量，见 [开发版定向报告](results/1.3.0/report.md)。这些历史测量不验证当前 `1.3.0` 制品；上方命令按当前版本生成新结果。工作站负载未受控，注册吞吐的快慢关系在复测中反转，不能据此宣称提速或完全无回退。不要将多个定向结果拼成完整三组基准。
 
 JMH 成功后生成同名 `.identity.json`，绑定报告摘要、实际 JAR、源码与基准构建脚本。`summarize.py` 在写入结果前验证三份完整报告及身份；缺少标记、输入变化或摘要不符均拒绝。旧无标记报告保留为历史，不能手工补标记后改称当前测量。
 
@@ -65,7 +65,7 @@ SubscriptionBenchmark 两组都使用相同 Deferred/发送/取消工作量。pl
 
 ## 历史完整结果与注册 profile
 
-[实测报告](results/current/report.md)、[分析](results/current/analysis.md)、[环境](results/current/environment.json)记录 1.2.0 对照 1.1.0 的已测快照，保留原始含义，不用于证明 1.3.0-SNAPSHOT 性能。当前配置下重新定位注册开销时使用以下入口，不改变生产依赖：
+[实测报告](results/current/report.md)、[分析](results/current/analysis.md)、[环境](results/current/environment.json)记录 1.2.0 对照 1.1.0 的已测快照，保留原始含义，不用于证明 1.3.0 性能。当前配置下重新定位注册开销时使用以下入口，不改变生产依赖：
 
 ```bash
 ./gradlew -p benchmarks/jvm profileRegistration -Pbenchmark.target=baseline

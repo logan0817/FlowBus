@@ -2,7 +2,7 @@
 
 [English](README_EN.md)
 
-此 fixture 按所选基线调用已发布 1.0.7、1.1.0 或 1.2.0 的入口，默认基线为 1.0.7。它先用 Maven Central 的原始 core JAR 编译 Kotlin 与 Java 消费者，再将同一批消费者 class 文件分别放到原版和候选 JAR 上运行。它补充“针对候选重新编译”的消费者验证，检查旧 inline、默认参数和直接 Java JVM 调用的链接路径。当前候选为未发布的 **1.3.0-SNAPSHOT**，正式安装保持 **1.2.0**。
+此 fixture 按所选基线调用已发布 1.0.7、1.1.0 或 1.2.0 的入口，默认基线为 1.0.7。它先用 Maven Central 的原始 core JAR 编译 Kotlin 与 Java 消费者，再将同一批消费者 class 文件分别放到原版和候选 JAR 上运行。它补充“针对候选重新编译”的消费者验证，检查旧 inline、默认参数和直接 Java JVM 调用的链接路径。当前候选为未发布的 **1.3.0**，正式安装保持 **1.2.0**。
 
 ## 运行
 
@@ -22,7 +22,7 @@ python3 -B compatibility/core-binary-consumer/verify_symbols.py \
 python3 -B -m unittest discover -s compatibility/core-binary-consumer -p '*_test.py' -v
 ```
 
-Gradle 任务默认将当前 1.3.0-SNAPSHOT 候选发布到指定本地目录，不做远端发布；传入 `-Pflowbus.verification.reuseCandidate=true` 时只校验并复用封存候选。原版按所选版本从 Maven Central 非传递解析，默认坐标为 io.github.logan0817:flowbus-core:1.0.7；候选 JAR 按绝对路径加入第二次运行。不能把本地产物当作原版基准。
+Gradle 任务默认将当前 1.3.0 候选发布到指定本地目录，不做远端发布；传入 `-Pflowbus.verification.reuseCandidate=true` 时只校验并复用封存候选。原版按所选版本从 Maven Central 非传递解析，默认坐标为 io.github.logan0817:flowbus-core:1.0.7；候选 JAR 按绝对路径加入第二次运行。不能把本地产物当作原版基准。
 
 生成工程为 build/maven-local-binary-core-consumer。消费者编译 classpath 只含原版 core、基线 stdlib 和 Coroutines；运行候选时移除原版 core。两次运行都检查 FlowBus 的实际 codeSource，检查产物摘要不同，并核对消费者 class 摘要在切换前后不变。任务失败时不保留旧的成功 runtime report。
 

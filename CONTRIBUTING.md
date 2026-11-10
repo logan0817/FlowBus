@@ -129,6 +129,6 @@ repositories {
 }
 ```
 
-Android 使用 `implementation("io.github.logan0817:flowbus:1.3.0-SNAPSHOT")`；纯 JVM 使用 `implementation("io.github.logan0817:flowbus-core:1.3.0-SNAPSHOT")`。若使用集中仓库管理，将仓库配置放入消费者 `settings.gradle.kts` 的 `dependencyResolutionManagement.repositories`。不要把本地候选安装成功当作正式发布或完整设备验收。
+Android 使用 `implementation("io.github.logan0817:flowbus:1.3.0")`；纯 JVM 使用 `implementation("io.github.logan0817:flowbus-core:1.3.0")`。若使用集中仓库管理，将仓库配置放入消费者 `settings.gradle.kts` 的 `dependencyResolutionManagement.repositories`。不要把本地候选安装成功当作正式发布或完整设备验收。
 
-当前源码开发版本为 1.3.0-SNAPSHOT，尚未发布；Compose 消费者按需添加 `io.github.logan0817:flowbus-compose:1.3.0-SNAPSHOT`。正式用户继续使用 1.2.0，本地候选验收不等于公开发布。
+当前源码发布候选版本为 1.3.0，尚未发布；Compose 消费者按需添加 `io.github.logan0817:flowbus-compose:1.3.0`。正式用户继续使用 1.2.0，本地候选验收不等于公开发布。

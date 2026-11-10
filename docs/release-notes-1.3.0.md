@@ -1,8 +1,8 @@
-# FlowBus 1.3.0 开发版
+# FlowBus 1.3.0 发布候选
 
 [English](en/release-notes-1.3.0.md)
 
-当前开发版本为 **1.3.0-SNAPSHOT**，尚未发布。正式可安装版本仍为 1.2.0；本文描述本地候选行为，验收状态随最终输入更新，不继承 1.2.0 的历史通过结果。
+当前发布候选版本为 **1.3.0**，尚未发布。正式可安装版本仍为 1.2.0；本文描述本地候选行为，验收状态随最终输入更新，不继承 1.2.0 的历史通过结果。
 
 ## 使用者变化
 
@@ -17,9 +17,9 @@
 正式安装示例继续指向 1.2.0。新 API 仅可按[贡献指南](../CONTRIBUTING.md#本地体验候选版本)从本地隔离仓库使用：
 
 ```kotlin
-implementation("io.github.logan0817:flowbus:1.3.0-SNAPSHOT")
+implementation("io.github.logan0817:flowbus:1.3.0")
 // 仅 Compose 消费者添加：
-implementation("io.github.logan0817:flowbus-compose:1.3.0-SNAPSHOT")
+implementation("io.github.logan0817:flowbus-compose:1.3.0")
 ```
 
 新 hook 只执行短通知，可完成 CompletableDeferred，让独立生产协程继续发送。不要阻塞 hook，或在同一零缓冲 SUSPEND 通道内等待自己开始取值。通知后仍可能立即取消，DROP 策略仍可能丢值，零缓冲 tryPost 仍可能拒绝。历史 replay 在通知后处理，不能将一次性首轮信号解释为后续全部生命周期阶段永久就绪。
@@ -39,9 +39,19 @@ implementation("io.github.logan0817:flowbus-compose:1.3.0-SNAPSHOT")
 
 当前本地验证状态在本轮交付中列明。API 21/35 与云端完整 CI 未执行时不得视为发布就绪；本地 API 36 不能替代最低版本设备证据。
 
-## 本地候选验证（2026-10-30）
+## 正式版本候选准备（2026-11-10）
 
-当前证据来自未提交工作区；HEAD `26df17a` 不能单独标识新源码。`build/verification-130/source-identity.json` 记录 50 份生产源码/构建输入摘要，候选 manifest 摘要为 `529d3e6ae52262d6f105bd492c38e7cdaa3fd79df3b1ab03223968cf2445af02`。本地封存目录包含历史文件，当前版本的三个坐标按以下摘要验收：
+当前源码版本为 `1.3.0`，示例为 `versionName=1.3.0` / `versionCode=11`，测试 APK 为版本 `2 / 1.3.0`。三个坐标仍只在隔离 Maven 仓库准备，尚未签名上传或公开发布；正式安装示例继续使用 1.2.0。
+
+前一开发版已随 [PR #12](https://github.com/logan0817/FlowBus/pull/12) 合并为 `311c30f249631371877e25c0cb714a5ccc4917a8`，[main CI](https://github.com/logan0817/FlowBus/actions/runs/42771676046) 九项检查全部通过。它验证的是 `1.3.0-SNAPSHOT`；以下本地性能和设备记录也保留原始版本含义，不能作为 `1.3.0` 新制品摘要或本轮设备结果。
+
+本地已通过 257 项 JVM 测试、三个库模块的 API 检查、Android／Compose／示例应用的 Release Lint、三个坐标的 metadata、core 消费者的 Java 8 运行，以及 Android／Compose 的真实 Maven Release R8 验证。云端编译器与 API 21/35 结果以本轮 PR 及合并后的 CI 为准。
+
+本轮发布准备 PR 须重新生成 `1.3.0` 候选，完成 API、JVM、Lint、metadata、Java 8、真实 Maven/R8、旧二进制与符号、编译器矩阵及 API 21/35 门禁；合并后继续核对最终 main CI。正式发布还须单独授权签名、上传、标签和 Release，发布成功后再同步公开安装示例。
+
+## 开发版历史验证（2026-10-30）
+
+该开发版当时的证据来自未提交工作区；HEAD `26df17a` 不能单独标识新源码。`build/verification-130/source-identity.json` 记录 50 份生产源码/构建输入摘要，候选 manifest 摘要为 `529d3e6ae52262d6f105bd492c38e7cdaa3fd79df3b1ab03223968cf2445af02`。当时的本地封存目录包含历史文件，以下仅为该 SNAPSHOT 三个坐标的历史摘要：
 
 | 候选主制品 | SHA-256 |
 | --- | --- |

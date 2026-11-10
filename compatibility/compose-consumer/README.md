@@ -2,7 +2,7 @@
 
 [English](README_EN.md)
 
-此目录是独立消费者模板，用于评估当前 Kotlin 1.9.25 基线的 Compose 编译和 release R8 接入，现通过候选 Maven 坐标调用正式模块源码中的 [FlowBusEffect](../../library-compose/README.md)。当前 `flowbus-compose:1.3.0-SNAPSHOT` 是尚未发布的本地开发候选；公开 1.2.0 不包含该坐标。模板的生成、构建和验证由主仓验证任务负责，本目录没有独立发布任务。
+此目录是独立消费者模板，用于评估当前 Kotlin 1.9.25 基线的 Compose 编译和 release R8 接入，现通过候选 Maven 坐标调用正式模块源码中的 [FlowBusEffect](../../library-compose/README.md)。当前 `flowbus-compose:1.3.0` 是尚未发布的本地发布候选；公开 1.2.0 不包含该坐标。模板的生成、构建和验证由主仓验证任务负责，本目录没有独立发布任务。
 
 消费者默认使用 activity-compose `1.8.2`、Compose runtime/ui `1.5.4`、Compose compiler `1.5.15`，直接声明 Lifecycle `2.6.2`，消费当前候选 FlowBus 产物。另可选择 runtime/ui `1.7.8` 进行新版实验。全部仅作用于此消费者；基础库不传递引入 Compose，也不改变基础依赖、SDK 或 Kotlin 要求。两种组合的结果必须分开记录，声明版本不能代替实际解析或设备证据。
 

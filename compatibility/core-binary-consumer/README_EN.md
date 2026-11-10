@@ -2,7 +2,7 @@
 
 [中文](README.md)
 
-The fixture compiles Kotlin and Java consumers against a selected original Maven Central core JAR, then runs the same compiled classes against original and candidate JARs. Baselines are 1.0.7 (default), 1.1.0 and 1.2.0. This complements recompilation against the candidate by exercising existing inline, default-argument, and direct Java JVM references. The local candidate is unpublished **1.3.0-SNAPSHOT**; public installation remains **1.2.0**.
+The fixture compiles Kotlin and Java consumers against a selected original Maven Central core JAR, then runs the same compiled classes against original and candidate JARs. Baselines are 1.0.7 (default), 1.1.0 and 1.2.0. This complements recompilation against the candidate by exercising existing inline, default-argument, and direct Java JVM references. The local candidate is unpublished **1.3.0**; public installation remains **1.2.0**.
 
 ## Run
 
@@ -22,7 +22,7 @@ python3 -B compatibility/core-binary-consumer/verify_symbols.py \
 python3 -B -m unittest discover -s compatibility/core-binary-consumer -p '*_test.py' -v
 ```
 
-By default the task publishes the current 1.3.0-SNAPSHOT candidate to the selected local repository, without remote publication. `-Pflowbus.verification.reuseCandidate=true` instead checks/reuses a sealed candidate. The selected original version resolves non-transitively from Central, defaulting to io.github.logan0817:flowbus-core:1.0.7. Candidate execution uses an absolute JAR path; local artifacts must never be used as the published baseline.
+By default the task publishes the current 1.3.0 candidate to the selected local repository, without remote publication. `-Pflowbus.verification.reuseCandidate=true` instead checks/reuses a sealed candidate. The selected original version resolves non-transitively from Central, defaulting to io.github.logan0817:flowbus-core:1.0.7. Candidate execution uses an absolute JAR path; local artifacts must never be used as the published baseline.
 
 The generated build/maven-local-binary-core-consumer compiles only against the original core, baseline stdlib, and Coroutines. Candidate execution removes the original core from its classpath. Both executions verify the actual FlowBus codeSource. JAR hashes must differ, and consumer class hashes must remain unchanged across execution. A failed runtime verification does not retain an earlier successful runtime report.
 

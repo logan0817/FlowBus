@@ -162,9 +162,11 @@ class FlowBusReleaseReadinessTest {
     }
 
     @Test
-    fun `development versions and published installation examples remain distinct`() {
+    fun `release candidate versions and published installation examples remain distinct`() {
         val releaseVersion = "1.2.0"
-        val developmentVersion = "1.3.0-SNAPSHOT"
+        val candidateVersion = "1.3.0"
+        val candidateNotes = File("../docs/release-notes-1.3.0.md").readText()
+        val englishCandidateNotes = File("../docs/en/release-notes-1.3.0.md").readText()
         val gradleProperties = File("../gradle.properties").readText()
         val versionCatalog = File("../gradle/libs.versions.toml").readText()
         val rootReadme = File("../README.md").readText()
@@ -180,10 +182,10 @@ class FlowBusReleaseReadinessTest {
         val changelog = File("../CHANGELOG.md").readText()
 
         listOf(
-            gradleProperties to "VERSION_NAME=$developmentVersion",
-            gradleProperties to "APP_VERSION_NAME=$developmentVersion",
-            gradleProperties to "APP_VERSION_CODE=10",
-            versionCatalog to "flowbus_version = \"$developmentVersion\"",
+            gradleProperties to "VERSION_NAME=$candidateVersion",
+            gradleProperties to "APP_VERSION_NAME=$candidateVersion",
+            gradleProperties to "APP_VERSION_CODE=11",
+            versionCatalog to "flowbus_version = \"$candidateVersion\"",
             rootReadme to "flowbus:$releaseVersion",
             rootReadme to "flowbus-core:$releaseVersion",
             rootEnglishReadme to "flowbus:$releaseVersion",
@@ -192,14 +194,22 @@ class FlowBusReleaseReadinessTest {
             coreEnglishReadme to "flowbus-core:$releaseVersion",
             androidReadme to "flowbus:$releaseVersion",
             androidEnglishReadme to "flowbus:$releaseVersion",
-            checklist to "VERSION_NAME=$developmentVersion",
-            englishChecklist to "VERSION_NAME=$developmentVersion",
+            checklist to "VERSION_NAME=$candidateVersion",
+            englishChecklist to "VERSION_NAME=$candidateVersion",
+            candidateNotes to "**$candidateVersion**",
+            englishCandidateNotes to "**$candidateVersion**",
             releaseNotes to "FlowBus 1.2.0",
             englishReleaseNotes to "FlowBus 1.2.0",
             changelog to "## 1.2.0"
         ).forEach { (text, expected) ->
             assertTrue("Release target must include `$expected`.", text.contains(expected))
         }
+        listOf("../app/src/androidTest/AndroidManifest.xml", "../library-android/src/androidTest/AndroidManifest.xml")
+            .forEach { path ->
+                val manifest = File(path).readText()
+                assertTrue(manifest.contains("android:versionName=\"$candidateVersion\""))
+                assertTrue(manifest.contains("android:versionCode=\"2\""))
+            }
     }
 
     @Test

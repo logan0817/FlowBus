@@ -65,6 +65,6 @@ repositories {
 }
 ```
 
-For centralized repository management, put this in `dependencyResolutionManagement.repositories` in the consumer's `settings.gradle.kts`. Use `implementation("io.github.logan0817:flowbus:1.3.0-SNAPSHOT")` on Android, or `implementation("io.github.logan0817:flowbus-core:1.3.0-SNAPSHOT")` on JVM. Local consumption does not establish publication or complete device acceptance.
+For centralized repository management, put this in `dependencyResolutionManagement.repositories` in the consumer's `settings.gradle.kts`. Use `implementation("io.github.logan0817:flowbus:1.3.0")` on Android, or `implementation("io.github.logan0817:flowbus-core:1.3.0")` on JVM. Local consumption does not establish publication or complete device acceptance.
 
-Current sources are 1.3.0-SNAPSHOT and are not published. Compose consumers additionally use `io.github.logan0817:flowbus-compose:1.3.0-SNAPSHOT`; ordinary users keep public 1.2.0. Local verification must not be described as a public release.
+Current sources are 1.3.0 and are not published. Compose consumers additionally use `io.github.logan0817:flowbus-compose:1.3.0`; ordinary users keep public 1.2.0. Local verification must not be described as a public release.
