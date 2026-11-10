@@ -33,7 +33,8 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           BASE_REF: ${{ github.base_ref }}
         run: |
-          API_SNAPSHOT_EXCLUDES=(-- . ':(exclude)flowbus-core/api/*.api' ':(exclude)library-android/api/*.api' ':(exclude)library-compose/api/*.api')
+          # 冻结基线按原版字节保留，包括生成器的文件末尾空行。
+          API_SNAPSHOT_EXCLUDES=(-- . ':(exclude)flowbus-core/api/*.api' ':(exclude)library-android/api/*.api' ':(exclude)library-compose/api/*.api' ':(exclude)compatibility/android-consumer/api/*.api' ':(exclude)compatibility/core-binary-consumer/api/*.api')
           if [ "$EVENT_NAME" = "pull_request" ]; then
             git diff --check "origin/$BASE_REF"...HEAD "${API_SNAPSHOT_EXCLUDES[@]}"
           elif git rev-parse HEAD~1 >/dev/null 2>&1; then

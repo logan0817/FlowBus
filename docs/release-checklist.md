@@ -48,7 +48,7 @@ CI 的根 JVM `Test` 任务禁用历史结果复用（本地可用 `-Pflowbus.ve
 ./gradlew verifyMavenLocalBinaryCoreConsumer -Pflowbus.consumer.baselineVersion=1.1.0 "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8
 ./gradlew verifyCentralDeploymentName --warning-mode=all
 ./gradlew releaseToMavenCentral --dry-run --warning-mode=all
-git diff --check HEAD -- . ':(exclude)flowbus-core/api/*.api' ':(exclude)library-android/api/*.api' ':(exclude)library-compose/api/*.api'
+git diff --check HEAD -- . ':(exclude)flowbus-core/api/*.api' ':(exclude)library-android/api/*.api' ':(exclude)library-compose/api/*.api' ':(exclude)compatibility/android-consumer/api/*.api' ':(exclude)compatibility/core-binary-consumer/api/*.api'
 ```
 
 Java 参数只选择消费者运行 JVM，构建仍用 JDK 17。需要本机已有 JDK 8。不修改已审查的 API 快照来绕过 apiCheck；公共 API 变化应审查 apiDump 的差异。生成快照的尾空行由 API 检查处理，普通差异检查排除三个模块的 API 快照。
