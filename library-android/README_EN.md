@@ -546,7 +546,7 @@ viewLifecycleOwner.collectEventSuspending(eventFlow<RefreshHomeEvent>()) { event
 
 ## 1.3.0 development: Java, subscription notification, diagnostics
 
-The following APIs exist only in the current source and local **1.3.0-SNAPSHOT** candidate. They are not released. The Maven Central installation above remains **1.2.0**, which cannot compile these new calls. See the [Android consumer](../compatibility/android-consumer/README_EN.md) for candidate preparation and verification. Existing Kotlin APIs remain available.
+The following APIs exist only in the current source and local **1.3.0** candidate. They are not released. The Maven Central installation above remains **1.2.0**, which cannot compile these new calls. See the [Android consumer](../compatibility/android-consumer/README_EN.md) for candidate preparation and verification. Existing Kotlin APIs remain available.
 
 ### A short Java path
 
@@ -654,7 +654,7 @@ Put configuration in `Application.onCreate()`, before these entry points:
 
 The Android module does not add a UI diagnostics panel.
 
-Use core `FlowBus.inspect()` for lower-level event metadata. The 1.3.0 development candidate additionally exposes the `FlowEventBus.inspectChannel(key)` and Java diagnostics described above.
+Use core `FlowBus.inspect()` for lower-level event metadata. The 1.3.0 release candidate additionally exposes the `FlowEventBus.inspectChannel(key)` and Java diagnostics described above.
 
 Before logging snapshots, make sure `eventName` and `scopeName` do not contain phone numbers, tokens, order IDs, or other sensitive values.
 

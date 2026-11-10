@@ -6,12 +6,12 @@
 
 ## Development status and candidate installation
 
-This module is part of the **local 1.3.0-SNAPSHOT development candidate and has not been published**. The public stable version remains 1.2.0. Maven Central 1.2.0 does not include the `flowbus-compose` artifact or subscription-established notifications.
+This module is part of the **local 1.3.0 release candidate and has not been published**. The public stable version remains 1.2.0. Maven Central 1.2.0 does not include the `flowbus-compose` artifact or subscription-established notifications.
 
 First build and configure an isolated Maven repository using the [local candidate workflow](../CONTRIBUTING.md#candidate-builds), then declare:
 
 ```kotlin
-implementation("io.github.logan0817:flowbus-compose:1.3.0-SNAPSHOT")
+implementation("io.github.logan0817:flowbus-compose:1.3.0")
 ```
 
 Use `exclusiveContent` for `io.github.logan0817` so all three coordinates resolve from the same candidate batch and missing artifacts cannot fall back to older remote releases. This is not a public release installation coordinate.

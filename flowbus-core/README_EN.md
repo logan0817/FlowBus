@@ -63,7 +63,7 @@ Cleanup APIs have 2 extra rules:
 implementation("io.github.logan0817:flowbus-core:1.2.0")
 ```
 
-The latest released version remains **1.2.0**. Features marked “1.3 candidate” below are available only in the local **1.3.0-SNAPSHOT** candidate. They have not been published to Maven Central and are unavailable through the released dependency above. See the [release checklist](../docs/en/release-checklist.md) for local candidate preparation and consumer verification.
+The latest released version remains **1.2.0**. Features marked “1.3 candidate” below are available only in the local **1.3.0** candidate. They have not been published to Maven Central and are unavailable through the released dependency above. See the [release checklist](../docs/en/release-checklist.md) for local candidate preparation and consumer verification.
 
 <a id="start-with-the-shortest-path"></a>
 
@@ -487,7 +487,7 @@ Closing a `FlowBusScope` does not actively cancel subscriptions holding old Flow
 
 ### 1.3 candidate: notification for a specific subscription
 
-This section requires the local `1.3.0-SNAPSHOT` candidate. `onSubscribed` runs after **this particular** underlying subscription is registered, before any source event reaches that subscription. Another collector of the same key cannot trigger it early. Merely obtaining a Flow does not invoke it. Collecting the same Flow multiple times invokes the notification once for each actual collection.
+This section requires the local `1.3.0` candidate. `onSubscribed` runs after **this particular** underlying subscription is registered, before any source event reaches that subscription. Another collector of the same key cannot trigger it early. Merely obtaining a Flow does not invoke it. Collecting the same Flow multiple times invokes the notification once for each actual collection.
 
 When a producer must wait for registration, let the non-suspending hook complete a signal and send from a separate coroutine. This complete suspending example uses zero-capacity `SUSPEND` with `emit`, rather than a fixed delay:
 
@@ -633,7 +633,7 @@ Diagnostics snapshots only expose metadata. Keep these 6 boundaries in mind:
 
 ### 1.3 candidate: effective channel configuration and separate subscriber counts
 
-This section requires the local `1.3.0-SNAPSHOT` candidate. `inspect().config` remains the bus-default summary. The new `inspectChannel(key)` returns an independent `FlowBusChannelSnapshot?` with the channel's effective binding:
+This section requires the local `1.3.0` candidate. `inspect().config` remains the bus-default summary. The new `inspectChannel(key)` returns an independent `FlowBusChannelSnapshot?` with the channel's effective binding:
 
 ```kotlin
 val bus = FlowBus()

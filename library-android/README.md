@@ -610,7 +610,7 @@ viewLifecycleOwner.collectEventSuspending(eventFlow<RefreshHomeEvent>()) { event
 
 ## 1.3.0 开发版：Java、订阅建立与诊断
 
-以下入口仅存在于当前源码及本地 **1.3.0-SNAPSHOT** 候选，尚未正式发布。上方 Maven Central 的 **1.2.0** 安装坐标保持不变，不能用它编译本节新增 API。候选生成与验证见[普通 Android 消费者](../compatibility/android-consumer/README.md)，原有 Kotlin 入口继续保留。
+以下入口仅存在于当前源码及本地 **1.3.0** 候选，尚未正式发布。上方 Maven Central 的 **1.2.0** 安装坐标保持不变，不能用它编译本节新增 API。候选生成与验证见[普通 Android 消费者](../compatibility/android-consumer/README.md)，原有 Kotlin 入口继续保留。
 
 ### Java 最短路径
 

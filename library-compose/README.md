@@ -6,12 +6,12 @@
 
 ## 开发状态与候选安装
 
-当前模块属于 **1.3.0-SNAPSHOT 本地开发候选，尚未发布**。公开正式版本仍为 1.2.0，Maven Central 的 1.2.0 不包含 `flowbus-compose` 坐标，也不包含订阅建立通知 API。
+当前模块属于 **1.3.0 本地发布候选，尚未发布**。公开正式版本仍为 1.2.0，Maven Central 的 1.2.0 不包含 `flowbus-compose` 坐标，也不包含订阅建立通知 API。
 
 先按[本地候选安装流程](../CONTRIBUTING.md#candidate-builds)生成并配置隔离 Maven 仓库，再在消费者中声明：
 
 ```kotlin
-implementation("io.github.logan0817:flowbus-compose:1.3.0-SNAPSHOT")
+implementation("io.github.logan0817:flowbus-compose:1.3.0")
 ```
 
 候选仓库应对 `io.github.logan0817` 使用 `exclusiveContent`，确保三个坐标来自同一批候选，缺失时不会回退到远端旧制品。不要把上述坐标当作已公开发布的安装方式。

@@ -4,7 +4,7 @@
 
 This directory holds source fixtures for an independent consumer of the real candidate Maven artifacts after release R8. It is not a standalone Gradle project or a published library. It does not add production dependencies, raise minSdk, or configure production signing.
 
-The current candidate is **1.3.0-SNAPSHOT**, built from local source and not released. The current Maven Central installation remains **1.2.0**. Historical evidence does not establish that this candidate passes.
+The current candidate is **1.3.0**, built from local source and not released. The current Maven Central installation remains **1.2.0**. Historical evidence does not establish that this candidate passes.
 
 ## Generate and build
 
@@ -93,7 +93,7 @@ Android API snapshots for 1.0.7, 1.1.0, and 1.2.0 remain in `api/`; do not repla
 ```bash
 python3 -B compatibility/core-binary-consumer/verify_symbols.py \
   --baseline-artifact build/published-baseline/flowbus-1.0.7.aar \
-  --candidate-artifact build/candidate-maven/io/github/logan0817/flowbus/1.3.0-SNAPSHOT/flowbus-1.3.0-SNAPSHOT.aar \
+  --candidate-artifact build/candidate-maven/io/github/logan0817/flowbus/1.3.0/flowbus-1.3.0.aar \
   --baseline-api-snapshot compatibility/android-consumer/api/flowbus-1.0.7.api \
   --javap /path/to/jdk17/bin/javap \
   --output build/android-jvm-symbol-verification.json

@@ -21,7 +21,7 @@ release 使用 R8，未配置签名。预期输出为：
 - APK：`build/maven-local-consumer/app/build/outputs/apk/release/app-release-unsigned.apk`
 - mapping：`build/maven-local-consumer/app/build/outputs/mapping/release/mapping.txt`
 
-此目录验证本地源码生成的 **1.3.0-SNAPSHOT** 开发候选，尚未正式发布；Maven Central 当前正式安装仍使用 **1.2.0**。兼容基线包含 1.0.7、1.1.0 和正式 1.2.0；本 APK 的旧版实际调用 fixture 仍单独固定为 1.1.0，其他基线按相应静态符号或 core 二进制入口验证，不混称本 APK 已运行全部旧 Android 字节码。本地候选验收不能替代公开仓库验证。
+此目录验证本地源码生成的 **1.3.0** 发布候选，尚未正式发布；Maven Central 当前正式安装仍使用 **1.2.0**。兼容基线包含 1.0.7、1.1.0 和正式 1.2.0；本 APK 的旧版实际调用 fixture 仍单独固定为 1.1.0，其他基线按相应静态符号或 core 二进制入口验证，不混称本 APK 已运行全部旧 Android 字节码。本地候选验收不能替代公开仓库验证。
 
 ## 本地测试签名
 
@@ -88,7 +88,7 @@ CI 已新增该驱动回归步骤，并在既有 API 21 库层 instrumentation �
 
 各组通过 finally 清理自己持有的 owner、订阅、source 或 channel；显式 lifecycle 组先取消订阅并同步关闭 source/channel，再 join，避免已取消协程在挂起等待时跳过资源关闭。Activity onDestroy 取消验证 scope。正常销毁导致的取消既不生成 PASS，也不误报 FAIL；验证中途关闭 Activity 应重新冷启动完成验证。
 
-历史 1.1.0/1.2.0 的结果见兼容性评估；它们不证明当前七阶段开发候选已通过设备验证。API 21 或其他设备必须核对最终候选的实际报告，APK 名称、签名或静态检查不代表最低系统通过。完整已测组合与未认证范围见[兼容性评估](../../docs/compatibility.md)。
+历史 1.1.0/1.2.0 的结果见兼容性评估；它们不证明当前七阶段发布候选已通过设备验证。API 21 或其他设备必须核对最终候选的实际报告，APK 名称、签名或静态检查不代表最低系统通过。完整已测组合与未认证范围见[兼容性评估](../../docs/compatibility.md)。
 
 ## 已发布 1.0.7 AAR 的 JVM 符号核对
 
@@ -113,7 +113,7 @@ PY
 
 python3 -B compatibility/core-binary-consumer/verify_symbols.py \
   --baseline-artifact build/published-baseline/flowbus-1.0.7.aar \
-  --candidate-artifact build/candidate-maven/io/github/logan0817/flowbus/1.3.0-SNAPSHOT/flowbus-1.3.0-SNAPSHOT.aar \
+  --candidate-artifact build/candidate-maven/io/github/logan0817/flowbus/1.3.0/flowbus-1.3.0.aar \
   --baseline-api-snapshot compatibility/android-consumer/api/flowbus-1.0.7.api \
   --javap /path/to/jdk17/bin/javap \
   --output build/android-jvm-symbol-verification.json
@@ -125,7 +125,7 @@ python3 -B compatibility/core-binary-consumer/verify_symbols.py \
 
 ## 1.1.0 原版编译的 Android 消费者
 
-legacy/src/main 是独立 Android library fixture，compileOnly 只含正式 1.1.0 的 core JAR/AAR classes.jar 和原有 Lifecycle；prepare 先核对 baselines.json 中的固定 SHA-256，候选 APK 只将其编译好的 class 与当前 1.3.0-SNAPSHOT runtime 一起交给 R8。旧实现代码不引用新配置 API。
+legacy/src/main 是独立 Android library fixture，compileOnly 只含正式 1.1.0 的 core JAR/AAR classes.jar 和原有 Lifecycle；prepare 先核对 baselines.json 中的固定 SHA-256，候选 APK 只将其编译好的 class 与当前 1.3.0 runtime 一起交给 R8。旧实现代码不引用新配置 API。
 
 verifyMavenLocalConsumer 先执行 :legacy:testReleaseUnitTest，再构建 minified APK。单测使用候选 Maven Android/core 依赖并明确剔除原版 compileOnly JAR，校验实际加载的 FlowBus/FlowEventBus class 字节与候选制品一致，运行旧挂起回调及 root/shared/owned/owner 入口，检查旧 main class 全部摘要在执行前后不变。报告为 build/maven-local-consumer/legacy/build/reports/binary-android-compatibility.txt。JVM 单测使用可控 Main dispatcher 和 createUnsafe LifecycleRegistry，不代表 Android Main/设备运行；设备七阶段还会执行同一旧 fixture。
 

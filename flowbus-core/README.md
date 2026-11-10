@@ -63,7 +63,7 @@
 implementation("io.github.logan0817:flowbus-core:1.2.0")
 ```
 
-最新正式版本仍为 **1.2.0**。下文标记“1.3 候选”的能力只在本地 **1.3.0-SNAPSHOT** 候选中提供，尚未发布到 Maven Central，不能通过以上正式坐标调用。候选制品的本地生成与消费者验证见[发布清单](../docs/release-checklist.md)。
+最新正式版本仍为 **1.2.0**。下文标记“1.3 候选”的能力只在本地 **1.3.0** 候选中提供，尚未发布到 Maven Central，不能通过以上正式坐标调用。候选制品的本地生成与消费者验证见[发布清单](../docs/release-checklist.md)。
 
 <a id="先看最短路径"></a>
 
@@ -486,7 +486,7 @@ bus.post(refreshKey, SyncFinishedEvent(taskId = "task-1"))
 
 ### 1.3 候选：具体订阅建立通知
 
-本节需要本地 `1.3.0-SNAPSHOT` 候选。`onSubscribed` 在**当前这一次**底层订阅登记后、本来源事件交给该订阅前调用。它不会因同 key 的其他收集器已经存在而提前触发，也不会在仅调用 `flow(...)` 取得 Flow 时触发。相同 Flow 被多次收集时，每次实际收集分别通知。
+本节需要本地 `1.3.0` 候选。`onSubscribed` 在**当前这一次**底层订阅登记后、本来源事件交给该订阅前调用。它不会因同 key 的其他收集器已经存在而提前触发，也不会在仅调用 `flow(...)` 取得 Flow 时触发。相同 Flow 被多次收集时，每次实际收集分别通知。
 
 需要在建立订阅后启动生产者时，让非挂起 hook 只完成信号，并由独立协程发送。下面是可在挂起上下文调用的完整握手示例；零容量 `SUSPEND` 配置使用 `emit` 等待接收，发送不依赖固定延时：
 
@@ -632,7 +632,7 @@ val session = bus.inspectScope("session")
 
 ### 1.3 候选：通道有效配置与分流订阅数
 
-本节需要本地 `1.3.0-SNAPSHOT` 候选。`inspect().config` 继续表示 bus 默认摘要；新增 `inspectChannel(key)` 返回独立的 `FlowBusChannelSnapshot?`，可查询该通道实际绑定的策略：
+本节需要本地 `1.3.0` 候选。`inspect().config` 继续表示 bus 默认摘要；新增 `inspectChannel(key)` 返回独立的 `FlowBusChannelSnapshot?`，可查询该通道实际绑定的策略：
 
 ```kotlin
 val bus = FlowBus()
