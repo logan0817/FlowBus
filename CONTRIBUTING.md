@@ -108,7 +108,7 @@ Kotlin 参数只选择 core/普通 Android 消费者编译器，不用于 Compos
 
 ## 本地验证开发制品
 
-1.2.0 已发布到 Maven Central，普通接入直接使用正式仓库。验证本地源码修改时，在仓库根目录执行：
+1.3.0 的 core、Android 和可选 Compose 坐标已发布到 Maven Central，普通接入直接使用正式仓库。验证本地源码修改时，在仓库根目录执行：
 
 ```bash
 ./gradlew publishToMavenLocal "-Dmaven.repo.local=$PWD/build/candidate-maven"
@@ -131,4 +131,4 @@ repositories {
 
 Android 使用 `implementation("io.github.logan0817:flowbus:1.3.0")`；纯 JVM 使用 `implementation("io.github.logan0817:flowbus-core:1.3.0")`。若使用集中仓库管理，将仓库配置放入消费者 `settings.gradle.kts` 的 `dependencyResolutionManagement.repositories`。不要把本地候选安装成功当作正式发布或完整设备验收。
 
-当前源码发布候选版本为 1.3.0，尚未发布；Compose 消费者按需添加 `io.github.logan0817:flowbus-compose:1.3.0`。正式用户继续使用 1.2.0，本地候选验收不等于公开发布。
+当前源码版本为已发布的 1.3.0；Compose 消费者按需添加 `io.github.logan0817:flowbus-compose:1.3.0`。本地修改生成的候选不代表这些新修改已公开发布；不要覆盖已发布版本。

@@ -1,8 +1,8 @@
-# FlowBus 1.3.0 发布候选
+# FlowBus 1.3.0 发布说明
 
 [English](en/release-notes-1.3.0.md)
 
-当前发布候选版本为 **1.3.0**，尚未发布。正式可安装版本仍为 1.2.0；本文描述本地候选行为，验收状态随最终输入更新，不继承 1.2.0 的历史通过结果。
+正式版本 **1.3.0** 已于 2026-11-10 发布到 Maven Central，包含 core、Android 与可选 Compose 三个坐标。以下先记录正式发布证据，开发版历史结果保留原始版本与限制。
 
 ## 使用者变化
 
@@ -14,7 +14,7 @@
 
 ## 接入与边界
 
-正式安装示例继续指向 1.2.0。新 API 仅可按[贡献指南](../CONTRIBUTING.md#本地体验候选版本)从本地隔离仓库使用：
+在仓库配置 `mavenCentral()` 后可直接使用正式坐标；仅验证本地源码修改时使用[隔离候选流程](../CONTRIBUTING.md#本地体验候选版本)：
 
 ```kotlin
 implementation("io.github.logan0817:flowbus:1.3.0")
@@ -37,17 +37,44 @@ implementation("io.github.logan0817:flowbus-compose:1.3.0")
 - Compose effect 自检增加建立次数与回调更新不重订阅，原错误/取消自检保留。
 - 性能对照基线转为公开 1.2.0；1.2.0 的已有结果仍保留为历史，不代表本候选性能。
 
-当前本地验证状态在本轮交付中列明。API 21/35 与云端完整 CI 未执行时不得视为发布就绪；本地 API 36 不能替代最低版本设备证据。
+正式版本的 API 21/35 与完整云端 CI 已取得独立结果，见下节；历史本地 API 36 结果仍不能替代最低版本设备证据。
+
+## 正式发布验收（2026-11-10）
+
+三个正式坐标为 `io.github.logan0817:flowbus-core:1.3.0`、`io.github.logan0817:flowbus:1.3.0`、`io.github.logan0817:flowbus-compose:1.3.0`。源码固定为 `299f6a7b9720aca884be3d85f7cf122c803a6e73`，采用 [main CI 42781622177](https://github.com/logan0817/FlowBus/actions/runs/42781622177) attempt 1 的受测 Maven 文件；后续安装文档提交不替换已发布制品。该轮九项检查全部成功，候选 manifest SHA-256 为 `71ae0e1a6def4fa8195be6473ec525280a5c5217a8214000662fc412052a8bee`。
+
+本机复用现有 GPG keyring / agent 和用户级 Central token，不导出私钥或配置 GitHub 发布 secrets。签名主钥完整指纹为 `8BB25F160F45FD8919DC985A152B32281C3E9240`。固定 15 个文件及其签名和校验和生成 150 文件签名包，ZIP SHA-256 为 `1469985d5ef9097818ec81e455f7ec7d10d496f4cc2b0d280f45f43f1f0ef7b3`。批次名 `io.github.logan0817-FlowBus-1.3.0`，deployment ID `36326b76-36bb-4982-be4e-6b539478cee1`；以 `USER_MANAGED` 上传，在 `VALIDATED` 回下载 30 个制品/签名逐一核验后，对原 deployment 正式发布，最终状态为 **PUBLISHED**。
+
+| 验证范围 | 正式版本证据 |
+| --- | --- |
+| main CI | 257 项 JVM 测试、三库 API、Android/Compose/示例 Release Lint、metadata、Java 8、三版旧 core 同字节码及六份符号报告、消费者 R8、JMH smoke、发布 dry-run 全通过 |
+| 编译器 | Kotlin 1.8.22 / 1.9.22 / 2.0.21 / 2.1.0 消费者全通过 |
+| API 21 / Android 5.0.2 x86 | 库 3 项 instrumentation；Android 7、Compose effect 11、policy 8、Navigation 7、NavHost 8 阶段通过；旧 Android runtime 另 1 项通过 |
+| API 35 / Android 15 x86_64 | 库 3 项、示例 Release 19 项 instrumentation；Android 7、Compose effect 11、policy 8 阶段通过；旧 Android runtime 另 1 项通过 |
+| 公开 Maven 文件 | 三坐标 150 个文件逐字节 SHA-256 与签名包一致；15 份 GPG 签名和 120 份校验和全部通过 |
+| 公开 core 消费者 | 仅从 Maven Central 解析 1.3.0，真实 Kotlin/Java 调用在 Java 8 运行通过；实际加载 JAR 摘要与固定 CI 文件一致 |
+| 公开 Android / Compose 消费者 | 仅从 Maven Central 解析 FlowBus 三坐标，实际依赖版本和 JAR/AAR 摘要匹配；Release R8 通过 |
+| 公开依赖真机自检 | 一加 IN2020 / API 33 的 Android 7、Compose effect 11、policy 8 阶段通过；日志、同包 UI 与各自本次 runId 一致 |
+
+| 公开主制品 | SHA-256 |
+| --- | --- |
+| flowbus-core-1.3.0.jar | `3e15654a40e3a071d2ca2df51efa1288587d96f407de690c30369092ad2149b4` |
+| flowbus-1.3.0.aar | `729ad9a00caf20d50b659fa355f91288e247a3f2caab989730b69d6e3e56a564` |
+| flowbus-compose-1.3.0.aar | `5a3cc9c7284fa54fb8ed78d543a5b433eff2b9b32016545ca5080993fcf06e2f` |
+
+本地证据位于 `build/release-1.3.0/public-acceptance.json`、`signed-manifest.json` 及相邻回执/设备报告，均在版本发布目录中保留。真机 runId：Android `26f92615-a859-473c-84c7-fef15f7da07f`，effect `9a4890df-e12a-4e96-b71c-2f6fda03de9e`，policy `285f4fe0-ab3b-413c-8602-8d63a7ed1d8d`。APK 仅使用本地测试签名，Maven 使用上述 GPG 发布签名。
+
+PR 验证首轮 API 35 曾有十三项窗口失焦失败，同一提交第二轮全通过；最终 main 首轮全通过。具体失焦原因未确认，原失败报告保留。静态符号检查不是完整 ABI 认证，JMH smoke 不证明性能无回退或提速；下文性能数据继续保留历史边界。
 
 ## 正式版本候选准备（2026-11-10）
 
-当前源码版本为 `1.3.0`，示例为 `versionName=1.3.0` / `versionCode=11`，测试 APK 为版本 `2 / 1.3.0`。三个坐标仍只在隔离 Maven 仓库准备，尚未签名上传或公开发布；正式安装示例继续使用 1.2.0。
+准备阶段源码版本为 `1.3.0`，示例为 `versionName=1.3.0` / `versionCode=11`，测试 APK 为版本 `2 / 1.3.0`。该阶段三个坐标只在隔离 Maven 仓库准备，尚未签名上传；当时公开安装仍为 1.2.0。正式发布结果另见本轮记录。
 
 前一开发版已随 [PR #12](https://github.com/logan0817/FlowBus/pull/12) 合并为 `311c30f249631371877e25c0cb714a5ccc4917a8`，[main CI](https://github.com/logan0817/FlowBus/actions/runs/42771676046) 九项检查全部通过。它验证的是 `1.3.0-SNAPSHOT`；以下本地性能和设备记录也保留原始版本含义，不能作为 `1.3.0` 新制品摘要或本轮设备结果。
 
 本地已通过 257 项 JVM 测试、三个库模块的 API 检查、Android／Compose／示例应用的 Release Lint、三个坐标的 metadata、core 消费者的 Java 8 运行，以及 Android／Compose 的真实 Maven Release R8 验证。云端编译器与 API 21/35 结果以本轮 PR 及合并后的 CI 为准。
 
-本轮发布准备 PR 须重新生成 `1.3.0` 候选，完成 API、JVM、Lint、metadata、Java 8、真实 Maven/R8、旧二进制与符号、编译器矩阵及 API 21/35 门禁；合并后继续核对最终 main CI。正式发布还须单独授权签名、上传、标签和 Release，发布成功后再同步公开安装示例。
+发布准备 [PR #13](https://github.com/logan0817/FlowBus/pull/13) 已合并，最终 main 提交 `299f6a7b9720aca884be3d85f7cf122c803a6e73` 的 [CI 42781622177](https://github.com/logan0817/FlowBus/actions/runs/42781622177) 九项检查全部通过。正式发布采用该轮 attempt 1 的固定文件，不在本机重新编译替换。
 
 ## 开发版历史验证（2026-10-30）
 

@@ -9,7 +9,7 @@ Gradle 模块目录名是 `library-android`，对外发布的依赖坐标是：
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.2.0")
+implementation("io.github.logan0817:flowbus:1.3.0")
 ```
 
 如果你是 Android 项目接入 FlowBus，通常就从这个模块开始，不需要先研究 `flowbus-core`。
@@ -18,7 +18,7 @@ implementation("io.github.logan0817:flowbus:1.2.0")
 
 - [快速开始](#3-分钟上手) · [API 选择](#api-选择矩阵)
 - [owner 配置](#android-owner-configuration) · [挂起回调与实例接入](#suspend-callbacks)
-- [1.3.0 开发版：Java、订阅建立与诊断](#development-130)
+- [1.3.0：Java、订阅建立与诊断](#development-130)
 - [sticky](#sticky-与-replay) · [全局默认配置](#可选配置)
 - [兼容性](../docs/compatibility.md) · [排障](../TROUBLESHOOTING.md)
 
@@ -41,7 +41,7 @@ FlowBus 适合“某个地方发出通知，多个地方可能关心”的异步
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.2.0")
+implementation("io.github.logan0817:flowbus:1.3.0")
 ```
 
 ### 2. 定义一个事件类型
@@ -501,7 +501,7 @@ viewLifecycleOwner.onEvent<MainUiEvent> { event ->
 
 ## 按通道配置
 
-从已发布的 1.2.0 起提供，1.1.0 不包含这些 API。通过 Maven Central 使用 `io.github.logan0817:flowbus-core:1.2.0` 或 `io.github.logan0817:flowbus:1.2.0`；变化与验收记录见[发布说明](../docs/release-notes-1.2.0.md)。
+从已发布的 1.2.0 起提供，1.1.0 不包含这些 API。通过 Maven Central 使用 `io.github.logan0817:flowbus-core:1.3.0` 或 `io.github.logan0817:flowbus:1.3.0`；变化与验收记录见[发布说明](../docs/release-notes-1.2.0.md)。
 
 <a id="android-owner-configuration"></a>
 
@@ -608,9 +608,9 @@ viewLifecycleOwner.collectEventSuspending(eventFlow<RefreshHomeEvent>()) { event
 
 <a id="development-130"></a>
 
-## 1.3.0 开发版：Java、订阅建立与诊断
+## 1.3.0：Java、订阅建立与诊断
 
-以下入口仅存在于当前源码及本地 **1.3.0** 候选，尚未正式发布。上方 Maven Central 的 **1.2.0** 安装坐标保持不变，不能用它编译本节新增 API。候选生成与验证见[普通 Android 消费者](../compatibility/android-consumer/README.md)，原有 Kotlin 入口继续保留。
+以下入口自 **1.3.0** 起正式提供，可通过上方 Maven Central 坐标使用。真实 Maven/R8 验证入口见[普通 Android 消费者](../compatibility/android-consumer/README.md)，原有 Kotlin 入口继续保留。
 
 ### Java 最短路径
 

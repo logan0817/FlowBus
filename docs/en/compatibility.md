@@ -2,15 +2,15 @@
 
 [中文](../compatibility.md) · [Documentation](README.md)
 
-Published 1.2.0 provides a Kotlin/JVM core and an Android adapter; the 1.3.0 release candidate adds an optional Compose coordinate. Android and Compose coordinates depend transitively on the matching core version. There are no Kotlin Multiplatform, cross-process, or Navigation artifacts.
+Published 1.3.0 provides Kotlin/JVM core, Android adapter and optional Compose coordinates. Android and Compose coordinates depend transitively on the matching core version. There are no Kotlin Multiplatform, cross-process, or Navigation artifacts.
 
-## 1.3.0 release candidate verification
+## 1.3.0 release verification
 
-Current sources target unpublished 1.3.0. Base minSdk 21, Java 8, Kotlin 1.9.25, Coroutines 1.8.1 and Lifecycle 2.6.2 remain. Optional Compose uses runtime 1.5.4/compiler 1.5.15 and does not enter the existing base coordinates. Published 1.2.0 is added as a fixed core bytecode / Android symbol baseline. The real Java/Compose consumers resolve this candidate; API 21/35 and final CI still require their own results. See [development notes](release-notes-1.3.0.md).
+The stable version is published 1.3.0. Base minSdk 21, Java 8, Kotlin 1.9.25, Coroutines 1.8.1 and Lifecycle 2.6.2 remain. Optional Compose uses runtime 1.5.4/compiler 1.5.15 and does not enter the existing base coordinates. Published 1.2.0 is added as a fixed core bytecode / Android symbol baseline. All nine final main CI checks passed, covering Kotlin 1.8.22 / 1.9.22 / 2.0.21 / 2.1.0, Java 8, real Maven/R8 and API 21/35 devices. See the [release notes](release-notes-1.3.0.md) for public-file and consumer acceptance.
 
 ## Requirements and defaults
 
-Android minSdk is 21. Both coordinates target Java 8 bytecode; the repository build requires JDK 17 and the Gradle wrapper. Build versions describe the library build, not the minimum version of every consumer toolchain. Gradle may raise resolved transitive versions; inspect the consumer dependency graph when diagnosing compatibility.
+Android minSdk is 21. All three coordinates target Java 8 bytecode; the repository build requires JDK 17 and the Gradle wrapper. Build versions describe the library build, not the minimum version of every consumer toolchain. Gradle may raise resolved transitive versions; inspect the consumer dependency graph when diagnosing compatibility.
 
 ## Historical 1.1.0 matrix
 

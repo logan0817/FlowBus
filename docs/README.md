@@ -2,7 +2,7 @@
 
 [English](en/README.md) · [项目首页](../README.md)
 
-最新正式版本为 **1.2.0**，已于 2026-10-15 发布到 Maven Central。标注“1.2.0 起”的 API 可直接使用正式坐标；发布与公开制品验证见[发布说明](release-notes-1.2.0.md)。
+最新正式版本为 **1.3.0**，已于 2026-11-10 发布到 Maven Central，包含 core、Android 和可选 Compose 三个坐标。公开制品、签名与独立消费者验收见[发布说明](release-notes-1.3.0.md)。
 
 ## 使用指南
 
@@ -15,16 +15,13 @@
 | [排障](../TROUBLESHOOTING.md) | 来源、key、订阅就绪、溢出、构建与清理 |
 | [JVM 性能基准](../benchmarks/jvm/README.md) | 复现方法、结果及测量限制 |
 
-示例应用位于 [app](../app)。[Compose](../compatibility/compose-consumer/README.md)、[Navigation](../compatibility/navigation-consumer/README.md) 和 [NavHost](../compatibility/navhost-consumer/README.md) 是独立消费者，不是发布模块。
-
-## 开发中的版本
-
-[1.3.0](release-notes-1.3.0.md) 尚未发布：具体订阅建立通知、Java 接入、[可选 Compose 模块](../library-compose/README.md)和通道诊断。源码候选与正式 1.2.0 安装分开说明，不继承历史验证结果。
+示例应用位于 [app](../app)。[flowbus-compose](../library-compose/README.md) 是可选发布模块；[Compose](../compatibility/compose-consumer/README.md)、[Navigation](../compatibility/navigation-consumer/README.md) 和 [NavHost](../compatibility/navhost-consumer/README.md) 是独立验证消费者。
 
 ## 版本记录
 
 | 版本 | 状态 | 说明 |
 | --- | --- | --- |
+| [1.3.0](release-notes-1.3.0.md) | 已发布 | 订阅建立通知、Java、可选 Compose、通道诊断 |
 | [1.2.0](release-notes-1.2.0.md) | 已发布 | 按通道配置、投递契约、性能基线 |
 | [1.1.0](release-notes-1.1.0.md) | 已发布 | API 21 兼容、关闭可靠性、挂起订阅和实例接入 |
 | [1.0.7](release-notes-1.0.7.md) | 历史版本 | scope 关闭与移除竞态修复 |

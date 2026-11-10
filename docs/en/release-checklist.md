@@ -1,6 +1,6 @@
-# 1.3.0 development and release checklist
+# 1.3.0 release checklist
 
-Current sources target the **1.3.0 release candidate**, which is unpublished. Public installation remains 1.2.0. See [development notes](release-notes-1.3.0.md) for new behavior; the 1.2.0 evidence below is historical and does not validate this candidate. Local publication now prepares core, Android and optional Compose artifacts. API 35 additionally verifies the same sealed Android/Compose candidates as API 21, using separate APK/report paths before serial device execution.
+The stable version is **1.3.0, published to Maven Central**. See the [release notes](release-notes-1.3.0.md) for final main CI, public files and consumer acceptance. Historical evidence below describes its original version. Local publication now prepares core, Android and optional Compose artifacts. API 35 additionally verifies the same sealed Android/Compose candidates as API 21, using separate APK/report paths before serial device execution.
 
 [中文](../release-checklist.md)
 
@@ -105,6 +105,19 @@ Inspect git status and working/staged diffs. Exclude generated artifacts, signin
 
 Remote actions require separate authorization. Configure Central token/GPG signing only after all gates pass; never commit credentials.
 
+### Default local publication from a fixed CI candidate
+
+Use the existing local Central Portal token, GPG keyring and GPG agent. GitHub release environments, Actions secrets and private-key export are not prerequisites. Version 1.3.0 used this workflow; its commit, run/attempt, fingerprint, deployment ID and public acceptance are recorded in the [release notes](release-notes-1.3.0.md#formal-publication-acceptance-2026-11-10).
+
+1. Select successful main push CI for a final version. Verify the commit, run ID, attempt, all nine checks, artifact ZIP digest, candidate manifest and every file SHA-256. Sign and upload these exact tested files without rebuilding replacements.
+2. Include matching core, Android and Compose coordinates: primary artifact, POM, module metadata, sources and javadoc for each, totaling 15 files. Exclude `maven-metadata-local.xml`. Sign with the verified full local GPG fingerprint; generate MD5/SHA-1/SHA-256/SHA-512 for payloads and signatures. Check signature identity, checksums and ZIP contents.
+3. Upload the signed bundle via the [Central Publisher API](https://central.sonatype.org/publish/publish-portal-api/) or Portal using `USER_MANAGED` and the project batch name. Send credentials only to official Sonatype HTTPS endpoints; never expose tokens in logs, command arguments, Git or bundles.
+4. Save the returned deployment ID immediately. At `VALIDATED`, verify that ID and all three coordinates, then download payloads/signatures and compare them with the fixed bundle. If an upload response is lost, inspect the original deployment before any retry.
+5. With publication authorization, publish that same verified deployment and wait for `PUBLISHED`. Continue querying its ID while `PUBLISHING`; do not upload or publish again.
+6. Download public Maven Central payloads, signatures and checksums; compare every file and verify signatures. Use independent core/Android/Compose consumers resolving FlowBus exclusively from public Central, checking resolved versions and file hashes, Java 8, Release R8 and devices. Update installation/release records before publishing the tag and GitHub Release for the tested source commit.
+
+Ignored local release files support recovery, not a portable repository command. Recheck current entry points and official APIs for each version. Other projects' `prepareCentralBundle` is not a task in this repository. The Gradle upload entries below build or rebuild artifacts and do not directly replace publication of fixed CI files.
+
 ### GPG signing and upload credentials
 
 All three publication modules use `signing { useGpgCmd() }`, delegating signing to the local GPG executable and existing keyring. In Gradle 8.7, this implementation reads `signing.gnupg.*`; it does not automatically use or translate the traditional PGP properties `signing.keyId`, `signing.password`, or `signing.secretKeyRingFile`. Without `signing.gnupg.keyName`, key selection follows GPG configuration and defaults. Verify the actual signing key before publication rather than relying on an ineffective `signing.keyId`.
@@ -124,7 +137,7 @@ By default, GPG / `gpg-agent` manages private-key unlocking. Manual and automate
 
 ### Upload, verification, and rollback
 
-Upload batches use `GROUP-root project name-VERSION_NAME`; the current release candidate derives `io.github.logan0817-FlowBus-1.3.0`. This establishes neither upload nor public availability. Regenerate and verify the candidate, including dry-run, after changing versions. Coordinates are `io.github.logan0817:flowbus-core:1.3.0`, `io.github.logan0817:flowbus:1.3.0` and `io.github.logan0817:flowbus-compose:1.3.0`. Names identify batches to humans; queries, release and drop use the upload's unique deployment ID after checking its contents.
+Upload batches use `GROUP-root project name-VERSION_NAME`; the 1.3.0 batch is `io.github.logan0817-FlowBus-1.3.0`. Its actual publication state is recorded in the version notes; a batch name alone proves neither upload nor public availability. Regenerate and verify the candidate, including dry-run, after changing versions. Coordinates are `io.github.logan0817:flowbus-core:1.3.0`, `io.github.logan0817:flowbus:1.3.0` and `io.github.logan0817:flowbus-compose:1.3.0`. Names identify batches to humans; queries, release and drop use the upload's unique deployment ID after checking its contents.
 
 Publication plugin 0.33.0 has no public deployment-name setting. The root publication script sets only the staging artifact identity of all three `createStagingRepository` tasks to the root project name, allowing the plugin to derive a name from one shared staging identity. It does not change `MavenPublication` or publication file paths. Single-module uploads use the same project name; actual coordinates distinguish module contents. `verifyCentralDeploymentName` checks all three staging identities and actual publication coordinates locally and in CI, before staging tasks. It performs no signing or network upload. After upgrading the plugin, review its naming algorithm/task properties, then repeat this check and remote dry-run.
 

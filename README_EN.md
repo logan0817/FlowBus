@@ -25,7 +25,7 @@ Android projects should usually start with `flowbus`:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.2.0")
+implementation("io.github.logan0817:flowbus:1.3.0")
 ```
 
 Pure Kotlin / Coroutines / non-Android projects should use `flowbus-core`:
@@ -33,7 +33,7 @@ Pure Kotlin / Coroutines / non-Android projects should use `flowbus-core`:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.2.0")
+implementation("io.github.logan0817:flowbus-core:1.3.0")
 ```
 
 Module choice:
@@ -171,23 +171,19 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 
 <a id="120-candidate"></a>
 
-## Version 1.2.0
+## Version 1.3.0
 
-The latest stable version is **1.2.0**, published to Maven Central on 2026-10-15. It adds per-channel buffer and overflow configuration.
+The latest stable version is **1.3.0**, published to Maven Central on 2026-11-10. It adds per-collection registration notification, Java convenience APIs, effective channel diagnostics and an optional [Compose module](library-compose/README_EN.md), while preserving existing Kotlin APIs, delivery and source ownership.
 
-- [Channel configuration](flowbus-core/README_EN.md#channel-configuration) and [Android owner configuration](library-android/README_EN.md#android-owner-configuration)
-- Maven Central coordinates: `io.github.logan0817:flowbus:1.2.0` or `io.github.logan0817:flowbus-core:1.2.0`
-- [Changes, migration, verification, and performance limits](docs/en/release-notes-1.2.0.md)
-
-## 1.3.0 release candidate
-
-Current sources target the **1.3.0 release candidate**, not a public release. New capabilities include per-collection registration notification, Java convenience APIs, effective channel diagnostics and an optional [Compose module](library-compose/README_EN.md). Public installation remains 1.2.0; see the [development notes](docs/en/release-notes-1.3.0.md) for local candidate usage and verification boundaries.
+- Android: `io.github.logan0817:flowbus:1.3.0`; JVM: `io.github.logan0817:flowbus-core:1.3.0`.
+- Compose consumers optionally add `implementation("io.github.logan0817:flowbus-compose:1.3.0")`; the two base coordinates do not pull in Compose.
+- [1.3.0 changes, usage, verification and rollback](docs/en/release-notes-1.3.0.md); [historical 1.2.0 notes](docs/en/release-notes-1.2.0.md).
 
 ## Compatibility and release status
 
 Android supports API 21+. Published bytecode targets Java 8. The library is built with Kotlin 1.9.25, Coroutines 1.8.1, Lifecycle 2.6.2, AGP 8.6.1, Gradle 8.7, JDK 17, and compileSdk/targetSdk 35. Consumer toolchain requirements and tested combinations are described in the [compatibility guide](docs/en/compatibility.md).
 
-Use `mavenCentral()` in your dependency repositories. The Android coordinate includes core transitively. There is no published Compose or Navigation module; independent [Compose](compatibility/compose-consumer/README_EN.md), [Navigation](compatibility/navigation-consumer/README_EN.md), and [NavHost](compatibility/navhost-consumer/README_EN.md) consumers demonstrate integration.
+Use `mavenCentral()` in your dependency repositories. The Android coordinate includes core transitively. Compose uses the optional published [flowbus-compose module](library-compose/README_EN.md). Navigation and NavHost have no separate published coordinates; independent [Compose](compatibility/compose-consumer/README_EN.md), [Navigation](compatibility/navigation-consumer/README_EN.md), and [NavHost](compatibility/navhost-consumer/README_EN.md) consumers demonstrate integration.
 
 ## Documentation map
 
@@ -208,6 +204,7 @@ Use `mavenCentral()` in your dependency repositories. The Android coordinate inc
 | --- | --- |
 | `flowbus-core` | Kotlin/JVM core, published as `io.github.logan0817:flowbus-core` |
 | `library-android` | Android adapter, published as `io.github.logan0817:flowbus` |
+| `library-compose` | Optional Compose adapter, published as `io.github.logan0817:flowbus-compose` |
 | `app` | Sample app and release instrumentation |
 | `compatibility` | Independent consumer fixtures and device verification drivers |
 | `benchmarks/jvm` | JVM benchmarks and measured results |

@@ -21,7 +21,7 @@ release 使用 R8，未配置签名。预期输出为：
 - APK：`build/maven-local-consumer/app/build/outputs/apk/release/app-release-unsigned.apk`
 - mapping：`build/maven-local-consumer/app/build/outputs/mapping/release/mapping.txt`
 
-此目录验证本地源码生成的 **1.3.0** 发布候选，尚未正式发布；Maven Central 当前正式安装仍使用 **1.2.0**。兼容基线包含 1.0.7、1.1.0 和正式 1.2.0；本 APK 的旧版实际调用 fixture 仍单独固定为 1.1.0，其他基线按相应静态符号或 core 二进制入口验证，不混称本 APK 已运行全部旧 Android 字节码。本地候选验收不能替代公开仓库验证。
+此目录默认验证本地源码生成的 **1.3.0** 候选；该版本的三个坐标现已正式发布到 Maven Central。隔离候选验证与公开依赖验证分别记录，见[发布说明](../../docs/release-notes-1.3.0.md)。兼容基线包含 1.0.7、1.1.0 和正式 1.2.0；本 APK 的旧版实际调用 fixture 仍单独固定为 1.1.0，其他基线按相应静态符号或 core 二进制入口验证，不混称本 APK 已运行全部旧 Android 字节码。本地候选验收不能替代公开仓库验证。
 
 ## 本地测试签名
 

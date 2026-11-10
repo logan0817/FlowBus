@@ -44,7 +44,7 @@ Device tests and UI drivers must run sequentially against the selected device. B
 
 ## Local development artifacts
 
-1.2.0 is available from Maven Central for normal installation. To verify local source changes, publish development artifacts from the repository root:
+The 1.3.0 core, Android and optional Compose coordinates are available from Maven Central for normal installation. To verify local source changes, publish development artifacts from the repository root:
 
 ```bash
 ./gradlew publishToMavenLocal "-Dmaven.repo.local=$PWD/build/candidate-maven"
@@ -67,4 +67,4 @@ repositories {
 
 For centralized repository management, put this in `dependencyResolutionManagement.repositories` in the consumer's `settings.gradle.kts`. Use `implementation("io.github.logan0817:flowbus:1.3.0")` on Android, or `implementation("io.github.logan0817:flowbus-core:1.3.0")` on JVM. Local consumption does not establish publication or complete device acceptance.
 
-Current sources are 1.3.0 and are not published. Compose consumers additionally use `io.github.logan0817:flowbus-compose:1.3.0`; ordinary users keep public 1.2.0. Local verification must not be described as a public release.
+Current sources use the published version 1.3.0. Compose consumers optionally add `io.github.logan0817:flowbus-compose:1.3.0`. Building a local candidate does not publish local modifications; never overwrite a released version.
