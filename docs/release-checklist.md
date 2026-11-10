@@ -47,7 +47,7 @@ CI 的根 JVM `Test` 任务禁用历史结果复用（本地可用 `-Pflowbus.ve
 ./gradlew verifyMavenLocalArtifacts verifyMavenLocalCoreConsumer verifyMavenLocalBinaryCoreConsumer verifyMavenLocalConsumer verifyMavenLocalComposeConsumer "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8 --warning-mode=all
 ./gradlew verifyMavenLocalBinaryCoreConsumer -Pflowbus.consumer.baselineVersion=1.1.0 "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8
 ./gradlew verifyCentralDeploymentName --warning-mode=all
-./gradlew releaseToMavenCentral --dry-run --warning-mode=all
+./gradlew releaseToMavenCentral --dry-run --warning-mode=all -PmavenCentralUsername=dry-run-unused -PmavenCentralPassword=dry-run-unused
 git diff --check HEAD -- . ':(exclude)flowbus-core/api/*.api' ':(exclude)library-android/api/*.api' ':(exclude)library-compose/api/*.api' ':(exclude)compatibility/android-consumer/api/*.api' ':(exclude)compatibility/core-binary-consumer/api/*.api'
 ```
 
@@ -78,7 +78,7 @@ bash compatibility/run-api35.sh
 - AAR 包含 classes.jar、proguard.txt；三个坐标均为 Java 8 字节码，不含消费者 fixture、Navigation 或本地配置。core/Android 不引入 Compose，Compose 依赖仅位于可选 flowbus-compose。
 - 真实 Maven core 消费者在 JDK 8 运行；旧 core 消费者分别用 Central 固定原版 1.0.7、1.1.0、1.2.0 编译，相同字节码分别运行原版与候选；Android / Compose 消费者经过 release R8，Android Java 互通路径来自真实 .java 编译。
 - core 与 Android 的 1.0.7、1.1.0、1.2.0 JVM 符号按各消费者 README 核对。1.2.0 core 采用固定原版 API 快照限定受支持符号，同时保留 raw internal 差异；不把静态符号检查当作完整 ABI 或旧 Android 设备运行认证。
-- remote dry-run 确认统一发布与清理顺序；它不执行 clean，也不代表上传或签名成功。
+- remote dry-run 确认统一发布与清理顺序；它不执行 clean，也不代表上传或签名成功。Gradle 在 dry-run 配置阶段仍检查凭据是否存在，因此此命令显式传入无效占位值，普通验证无需真实 Central token。
 
 ## 设备与最低系统门禁
 

@@ -40,7 +40,7 @@ Use the existing JDK 17, Android SDK, and wrapper from the repository root. Root
 ./gradlew verifyMavenLocalArtifacts verifyMavenLocalCoreConsumer verifyMavenLocalBinaryCoreConsumer verifyMavenLocalConsumer verifyMavenLocalComposeConsumer "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8 --warning-mode=all
 ./gradlew verifyMavenLocalBinaryCoreConsumer -Pflowbus.consumer.baselineVersion=1.1.0 "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8
 ./gradlew verifyCentralDeploymentName --warning-mode=all
-./gradlew releaseToMavenCentral --dry-run --warning-mode=all
+./gradlew releaseToMavenCentral --dry-run --warning-mode=all -PmavenCentralUsername=dry-run-unused -PmavenCentralPassword=dry-run-unused
 git diff --check HEAD -- . ':(exclude)flowbus-core/api/*.api' ':(exclude)library-android/api/*.api' ':(exclude)library-compose/api/*.api' ':(exclude)compatibility/android-consumer/api/*.api' ':(exclude)compatibility/core-binary-consumer/api/*.api'
 ```
 
@@ -54,7 +54,7 @@ Repository documentation and release configuration are explicit JVM test inputs.
 - AARs include classes.jar and proguard.txt; all three coordinates use Java 8 bytecode without fixtures, Navigation, or local configuration. Core/Android remain free of Compose; only the optional Compose coordinate adds that dependency.
 - Run the Maven core consumer on JDK 8. Compile binary consumers separately against pinned Central 1.0.7, 1.1.0 and 1.2.0 and run identical bytecode against original and candidate. Android/Compose consumers pass release R8; Android interoperability compiles actual Java source.
 - Verify published 1.0.7, 1.1.0 and 1.2.0 core/Android JVM symbols using consumer READMEs. The 1.2.0 core supported-symbol gate uses its original API snapshot and preserves raw internal differences; static symbols are neither full ABI certification nor old Android bytecode device evidence.
-- Remote dry-run verifies the unified graph and cleanup order; it executes neither clean nor upload/signature verification.
+- Remote dry-run verifies the unified graph and cleanup order; it executes neither clean nor upload/signature verification. Gradle still checks credential presence during dry-run configuration, so the command supplies invalid placeholders. Ordinary verification needs no real Central token.
 
 ## Device and minimum API gates
 

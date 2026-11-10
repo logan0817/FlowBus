@@ -185,7 +185,9 @@ jobs:
       - name: Verify Maven Central release task graph
         run: |
           ./gradlew verifyCentralDeploymentName --warning-mode=all
-          ./gradlew releaseToMavenCentral --dry-run --warning-mode=all
+          # dry-run 也会校验凭据是否存在；这里只提供无效占位值，不引入发布 secrets。
+          ./gradlew releaseToMavenCentral --dry-run --warning-mode=all \
+            -PmavenCentralUsername=dry-run-unused -PmavenCentralPassword=dry-run-unused
       - name: Check candidate remains unchanged
         if: always()
         run: python3 -B compatibility/candidate_bundle.py check
