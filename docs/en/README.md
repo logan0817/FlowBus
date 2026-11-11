@@ -2,7 +2,7 @@
 
 [中文](../README.md) · [Project home](../../README_EN.md)
 
-The latest stable version is **1.3.0**, published to Maven Central on 2026-11-10 with core, Android and optional Compose coordinates. Public artifacts, signatures and independent consumers are verified in the [release notes](release-notes-1.3.0.md).
+The latest stable version is **1.3.1**, published to Maven Central on 2026-11-11 with core, Android and optional Compose coordinates. Public artifacts, signatures and independent consumers are verified in the [release notes](release-notes-1.3.1.md).
 
 ## User guides
 
@@ -21,7 +21,7 @@ The sample app is in [app](../../app). [flowbus-compose](../../library-compose/R
 
 | Version | Status | Changes |
 | --- | --- | --- |
-| [1.3.1](release-notes-1.3.1.md) | Unpublished candidate | Sticky ordering, scope creation failure and lifecycle threshold fixes |
+| [1.3.1](release-notes-1.3.1.md) | Published | Sticky ordering, scope creation failure and lifecycle threshold fixes |
 | [1.3.0](release-notes-1.3.0.md) | Published | Subscription notification, Java, optional Compose, channel diagnostics |
 | [1.2.0](release-notes-1.2.0.md) | Published | Channel configuration, delivery contracts, performance baseline |
 | [1.1.0](release-notes-1.1.0.md) | Published | API 21, scope closure, suspend callbacks, instance integration |
@@ -32,7 +32,7 @@ See the [changelog](../../CHANGELOG.md) for a summary. Historical notes describe
 
 ## Contributing and maintenance
 
-- [1.3.1 detailed implementation plan](../implementation-plan-1.3.1.md) (Chinese): reproduced defects, W0–W8 tasks, regression matrices, verification commands, release gates and AI handoff templates; implementation and pre-release validation in progress; not released.
+- [1.3.1 detailed implementation plan](../implementation-plan-1.3.1.md) (Chinese): reproduced defects, W0–W8 tasks, regression matrices, verification commands, release gates and AI handoff templates; W0–W8 implementation, pre-release validation and public artifact acceptance completed.
 - [Contributing](contributing.md): environment, verification, naming, and documentation.
 - [Support](support.md), [security policy](security.md), and [code of conduct](code-of-conduct.md).
 - [Release checklist](release-checklist.md): candidate artifacts, publication, and rollback.

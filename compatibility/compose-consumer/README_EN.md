@@ -2,7 +2,7 @@
 
 [中文](README.md)
 
-This directory is an isolated consumer template for evaluating Compose compilation and release R8 on the existing Kotlin 1.9.25 baseline. It now resolves candidate Maven artifacts and calls [FlowBusEffect](../../library-compose/README_EN.md) from the production module source. `flowbus-compose:1.3.0` is published to Maven Central. This entry still verifies isolated local source candidates by default; see the [release notes](../../docs/en/release-notes-1.3.0.md) for public dependency verification. Repository verification tasks generate and build the consumer; this template has no publication task.
+This directory is an isolated consumer template for evaluating Compose compilation and release R8 on the existing Kotlin 1.9.25 baseline. It now resolves candidate Maven artifacts and calls [FlowBusEffect](../../library-compose/README_EN.md) from the production module source. `flowbus-compose:1.3.1` is published to Maven Central. This entry still verifies isolated local source candidates by default; see the [release notes](../../docs/en/release-notes-1.3.1.md) for public dependency verification. Repository verification tasks generate and build the consumer; this template has no publication task.
 
 The default consumer uses activity-compose `1.8.2`, Compose runtime/ui `1.5.4`, compiler `1.5.15`, and a direct Lifecycle `2.6.2` declaration with the current candidate FlowBus artifact. Runtime/ui `1.7.8` is a separate optional experiment. These dependencies apply only to the consumer; the base library does not add Compose or change its dependency, SDK, or Kotlin requirements. Keep evidence for the two combinations separate: declared versions do not establish resolved dependencies or device compatibility.
 
@@ -16,7 +16,7 @@ The launcher `ConsumerActivity` actually invokes the effects and uses AndroidVie
 
 StateFlow independently expresses the business counter and restores the latest in-memory value after lifecycle re-entry. Events express transient Toast notifications. The ViewModel preserves state through configuration changes, but the template has no persistent storage or SavedStateHandle and does not guarantee recovery after process death.
 
-Historical 1.2.0 fixture results: default 1.5.4 and optional 1.7.8 each passed ten API 24 interaction stages, nine controlled-effect stages, and eight policy stages. Public 1.3.0 consumes the optional module and passed its then-current eleven effect/eight policy stages. The unpublished 1.3.1 development candidate extends this to twelve effect/eleven policy stages. Historical results do not replace this candidate's build and device verification. Process-death recovery, deep links, and other NavHost configurations still require independent checks.
+Historical 1.2.0 fixture results: default 1.5.4 and optional 1.7.8 each passed ten API 24 interaction stages, nine controlled-effect stages, and eight policy stages. Public 1.3.0 consumes the optional module and passed its then-current eleven effect/eight policy stages. Published 1.3.1 passed twelve effect/eleven policy stages on final main API21/35 and public-dependency API33. Historical results do not replace verification of subsequent source changes. Process-death recovery, deep links, and other NavHost configurations still require independent checks.
 
 ## Generation and build
 

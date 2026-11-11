@@ -25,7 +25,7 @@ Android projects should usually start with `flowbus`:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.3.0")
+implementation("io.github.logan0817:flowbus:1.3.1")
 ```
 
 Pure Kotlin / Coroutines / non-Android projects should use `flowbus-core`:
@@ -33,7 +33,7 @@ Pure Kotlin / Coroutines / non-Android projects should use `flowbus-core`:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.3.0")
+implementation("io.github.logan0817:flowbus-core:1.3.1")
 ```
 
 Module choice:
@@ -171,13 +171,15 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 
 <a id="120-candidate"></a>
 
-## Version 1.3.0
+<a id="version-130"></a>
 
-The latest stable version is **1.3.0**, published to Maven Central on 2026-11-10. It adds per-collection registration notification, Java convenience APIs, effective channel diagnostics and an optional [Compose module](library-compose/README_EN.md), while preserving existing Kotlin APIs, delivery and source ownership.
+## Version 1.3.1
 
-- Android: `io.github.logan0817:flowbus:1.3.0`; JVM: `io.github.logan0817:flowbus-core:1.3.0`.
-- Compose consumers optionally add `implementation("io.github.logan0817:flowbus-compose:1.3.0")`; the two base coordinates do not pull in Compose.
-- [1.3.0 changes, usage, verification and rollback](docs/en/release-notes-1.3.0.md); [historical 1.2.0 notes](docs/en/release-notes-1.2.0.md).
+The latest stable version is **1.3.1**, published to Maven Central on 2026-11-11. It fixes sticky reentrant replay ordering, failed scope registration and invalid lifecycle thresholds, retaining public APIs, dependencies and minimum supported versions.
+
+- Android: `io.github.logan0817:flowbus:1.3.1`; JVM: `io.github.logan0817:flowbus-core:1.3.1`.
+- Compose consumers optionally add `implementation("io.github.logan0817:flowbus-compose:1.3.1")`; the two base coordinates do not pull in Compose.
+- [1.3.1 fixes, upgrade guidance, verification and rollback](docs/en/release-notes-1.3.1.md); [1.3.0 features](docs/en/release-notes-1.3.0.md); [historical 1.2.0 notes](docs/en/release-notes-1.2.0.md).
 
 ## Compatibility and release status
 

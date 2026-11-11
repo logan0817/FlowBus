@@ -1,82 +1,64 @@
-# FlowBus 1.3.1 development notes (unpublished)
+# FlowBus 1.3.1 release notes
 
 [中文](../release-notes-1.3.1.md) · [Implementation plan](../implementation-plan-1.3.1.md) (Chinese) · [Documentation](README.md)
 
-**1.3.1** is not published. The public stable version remains **1.3.0**. These notes describe candidate work and intermediate evidence, not a completed release. Consumers should use public 1.3.0 unless explicitly verifying local changes through the [isolated candidate workflow](../../CONTRIBUTING.md#candidate-builds).
+**1.3.1** was published to Maven Central on 2026-11-11 with core, Android and optional Compose coordinates. [GitHub Release v1.3.1](https://github.com/logan0817/FlowBus/releases/tag/v1.3.1) is public and its tag points to the tested source below.
 
-Local validation uses `130c4aa375155917fdd296e312d4dfab14acee66` plus the candidate changes. That base commit does not identify these fixes. Final tested commits, artifact hashes and complete CI results must be recorded before release.
+```kotlin
+implementation("io.github.logan0817:flowbus:1.3.1")
+// Optional for JVM-only consumers
+implementation("io.github.logan0817:flowbus-core:1.3.1")
+// Optional for Compose consumers
+implementation("io.github.logan0817:flowbus-compose:1.3.1")
+```
 
-## Scope and status
+## Fixes and upgrade guidance
 
-| Change | Problem | Current status |
-| --- | --- | --- |
-| Sticky reentrant publication | Receiving `1` and immediately publishing `2` yields live `[1, 2]` but latest replay `1` | Behavior, formal CI performance and API21/35 pass |
-| Scope binding failure safety | A CoroutineScope without a Job makes openScope throw after registering an unreachable handle | Validation before registration is implemented; local targeted tests passed |
-| Lifecycle thresholds and lookup side effects | DESTROYED silently never subscribes; invalid calls may obtain a global/owner source first | L01–L07 and real Compose API21/35 stages pass |
-| Published 1.3.0 consumer baseline | Newly released APIs lack original-bytecode execution against a replacement candidate | Core unchanged bytecode on Java8 and Android/Compose R8, identity and device execution pass |
+| Fix | Trigger and resulting behavior |
+| --- | --- |
+| Sticky reentrant ordering | When a callback receives `1` and immediately publishes `2`, replay remains `2` even if the outer publication resumes later |
+| Scope binding exception safety | `openScope(name, closeWhen)` validates the CoroutineScope Job before registration; invalid parameters still throw without leaving a new handle or changing an existing shared store |
+| Lifecycle thresholds and source access | Only `CREATED`, `STARTED`, and `RESUMED` are valid minima; Android/Compose reject `INITIALIZED` and `DESTROYED` synchronously with `IllegalArgumentException`, before convenience APIs obtain their global/owner source |
 
-The target keeps the three coordinates, Java 8 bytecode, Android API 21, and existing base toolchain/dependency versions. It adds no public API, production dependency, durable queue, or reliable-delivery guarantee. Final public-symbol compatibility still requires candidate API and binary gates.
+Public APIs, coordinates, Java 8 bytecode, minSdk 21 and base dependencies remain: Kotlin 1.9.25, Coroutines 1.8.1, Lifecycle 2.6.2. Optional Compose retains runtime 1.5.4 / compiler 1.5.15; the two base artifacts do not transitively introduce Compose.
 
-## Scope creation failure
+**Recompile consumers when upgrading.** Old inline `collectEvent` calls may embed earlier validation; old reified wrappers may embed the source-access order. Replacing only the AAR cannot update these call sites. Default STARTED, callback dispatcher, sticky selection and source ownership retain their contract. An already destroyed owner with a valid threshold still completes without subscribing.
 
-`openScope(name, closeWhen: CoroutineScope)` and the owner overload check for a Job before registering a handle. A missing Job still produces a clear exception, without retaining a new scope name or removing/changing an existing shared store. Pass a caller-managed structured scope containing a Job.
+Sticky changes preserve rejection/cancellation rules, clear/consume generations, backpressure, DROP policies and notification-before-replay ordering. `accepted=true` does not mean business processing completed. Existing live/replay differences under `DROP_LATEST` remain, and unsynchronized concurrent calls do not gain a global order. Invalid `bindTo` arguments on a held handle do not destroy that handle.
 
-Invalid arguments to `bindTo` on an already held handle do not destroy that handle. Valid, completed and cancelled Jobs retain the existing lifecycle-close protocol. Previously acquired Flow references are not actively cancelled by this fix.
+## Fixed publication source
 
-## Lifecycle thresholds and upgrading
+| Identity | Verified value |
+| --- | --- |
+| Source / tag target | `2dbd9581af58ae376141d8ada62d4f26e6507754`, merge commit of [PR #16](https://github.com/logan0817/FlowBus/pull/16) |
+| main CI | [42975281531, attempt 2](https://github.com/logan0817/FlowBus/actions/runs/42975281531/attempts/2), all nine checks successful |
+| CI candidate manifest SHA-256 | `d2e6409b5a2b89441da087eb2d7a08411dd71fbfa7d3ec177cc485f5147347b5` |
+| Full GPG fingerprint | `8BB25F160F45FD8919DC985A152B32281C3E9240` |
+| Central deployment | `00ac090a-26b4-430c-820b-455fae6a4189`, `PUBLISHED` |
+| Signed bundle SHA-256 | `da4bff803a47a4798f4c801f09ea73266817a3f9d4a50ad644822e7431ceabf2` |
 
-Only `CREATED`, `STARTED`, and `RESUMED` are valid collection thresholds. `INITIALIZED` and `DESTROYED` synchronously throw `IllegalArgumentException`, identifying the supplied and valid values. Generic Flow collectors, direct buses, explicit root/shared/owned sources and Compose effects use the same rule.
+The original main CI files were signed locally without rebuilding the libraries. After uploading 15 payloads and their signatures, all 30 were downloaded and compared in `VALIDATED` state before publishing that same deployment. Public Maven Central verification then matched **150 files, 15 signatures and 120 checksums** against the fixed signed bundle.
 
-Global and owner convenience entry points validate before obtaining the source. Invalid calls therefore do not lock default configuration or access an owner's ViewModelStore. An already destroyed owner with a valid threshold still completes without subscribing; that differs from choosing DESTROYED as the threshold.
+| Main artifact | SHA-256 |
+| --- | --- |
+| flowbus-core-1.3.1.jar | `c28674aac6e420fc31ee04c6baddccd9371c12087fe421ac686a9f86791d0df4` |
+| flowbus-1.3.1.aar | `bb3db06162d21f4c4f12fb797f40c89522c34d27a1c4a2acca131fc8a8940615` |
+| flowbus-compose-1.3.1.aar | `a6a6f2a38aec6c8cee1bcbfdc935f50b74f5add57cc302e0b912fc4f60a91ef3` |
 
-Recompile consumers to obtain the complete fix. Public inline `collectEvent` may contain old validation in consumer bytecode. An old reified wrapper may also contain source lookup even if it calls an updated non-inline method. Replacing the AAR alone cannot update those instructions. Defaults for valid thresholds, dispatcher, sticky selection and source ownership retain their established contract. Java's default STARTED entry points add no state parameter.
+Subsequent documentation commits and their CI candidates do not replace these public artifacts. The version tag targets the tested source above. The final documentation PR Checks and resulting main CI establish the later documentation state.
 
-## Sticky verification boundary
+## Verification and limits
 
-The final fix must preserve rejected/cancelled sends not polluting replay, generation isolation for clear/consume, existing backpressure and DROP policies, and subscription notification before historical replay. Moving replay commit before a potentially rejected send, delaying a reentrant send, or weakening assertions is not an acceptable substitute.
+- Final main: 284 JVM tests (core 201 / Android 81 / sample 2), three-module API checks, three release lint reports with zero issues, Kotlin 1.8.22 / 1.9.22 / 2.0.21 / 2.1.0, Java 8 and release R8 passed.
+- The same original-compiled core bytecode from 1.0.7 / 1.1.0 / 1.2.0 / 1.3.0 ran on the candidate. Frozen 1.3.0 Android/Compose consumers and public symbols passed; nine symbol reports and ten binary/identity reports were audited. Raw private implementation differences remain in `otherJvmRemovals`; static symbols are not complete ABI certification.
+- API 21/35: Android **8**, Compose effect **12**, policy **11** stages passed, with current run IDs, matching-package UI, logs and candidate identities. API 21 also retained Navigation/NavHost 7/8 stages; API 35 passed 3 library and 20 sample release instrumentation tests.
+- Independent public consumers resolved FlowBus exclusively from Maven Central, and actual Gradle runtime artifact hashes matched the table above. Core ran on Java 8; Android/Compose passed release R8 and OnePlus API 33 device checks with **8 / 12 / 11** stages.
+- The formal [directed performance report](../../benchmarks/jvm/results/1.3.1/report.md) uses a same-runner comparison from [CI 42971579052](https://github.com/logan0817/FlowBus/actions/runs/42971579052). noSubscribers / stickySend / active1 throughput ratios were approximately 1.003 / 1.018 / 0.998 with overlapping error intervals; sticky allocation decreased by about 22%. This does not promise stable speedups or Android ART performance.
 
-Candidate sticky behavior regressions pass locally and in the first PR CI. Final pre-release acceptance remains pending. `accepted=true` still does not guarantee live delivery without drops or completed business work. Existing DROP_LATEST differences between live delivery and replay remain, and no total order is promised for otherwise unordered concurrent calls.
+The first main CI attempt encountered API 35 emulator ColorBuffer/texture errors, a black screen and InputDispatcher `NO_WINDOW`, followed by an Espresso window-focus timeout. Failure evidence was retained; a complete rerun of the same source passed all nine checks in attempt 2 without weakening assertions or coverage. The emulator root cause remains unresolved.
 
-## Local evidence so far
-
-- W1's three formal behavioral regressions failed for the expected reasons before fixes. Local reports are under `build/verification-1.3.1/w1-red-results/`.
-- Scope creation-failure tests passed; the execution log is `build/verification-1.3.1/w3-scope.log`.
-- Android `LifecycleThresholdTest` passed 5 tests and `InstanceCollectEventTest` passed 12, covering invalid thresholds, mutable global defaults, untouched owner stores, supported thresholds and destroyed receivers. The corresponding `w2-w4-integration.log` still contained a core failure, so the overall run was not green.
-- The Compose policy fixture now has 11 stages, up from 8, adding `invalid-lifecycle-thresholds-rejected`, `supported-lifecycle-thresholds`, and `destroyed-owner-does-not-subscribe`. An isolated Recomposer checks synchronous parameter failures at an ordinary Kotlin boundary and releases test resources in finally; production Composables do not swallow the failures.
-- Both Compose driver test methods passed, including rejection when any individual phase is missing. Mock results do not establish real Composition, release R8, or API 21/35 execution.
-
-- `w7-local-quality-final.log`: 201 core, 81 Android and 2 sample JVM tests pass, along with all three API checks, Android/Compose/sample release lint, sample debug/release R8 builds and 1.3.1 deployment-name validation. Lint XML reports zero errors and warnings.
-- `w5-core130-fixed.log`: unchanged 1.3.0 consumer bytecode runs against original and candidate on Java 8.
-- `w5-identity-final.log`: Android/Compose frozen fixture, release R8 and candidate runtime digest checks pass; device execution is still required.
-- `w5-negative-results.json`: five negative cases reject changed fixture/JAR, class and baseline hashes, original input leaking into runtime, and missing reports. Stale success reports are removed; normal input passes again after restoration.
-- All three 1.3.0 public-symbol snapshots have no missing descriptors. Four raw JVM changes belong to implementation classes explicitly marked private in the original InnerClasses metadata. They remain in otherJvmRemovals; public/protected/internal class descriptor removals still fail. Nine script regressions pass.
-
-These are intermediate results and must be reassessed when their inputs change. First PR/device evidence follows below; main CI and public release acceptance remain pending.
-
-## First PR acceptance
-
-[PR #16](https://github.com/logan0817/FlowBus/pull/16), head `c90cb55`, passed all nine checks in [CI 42969426491](https://github.com/logan0817/FlowBus/actions/runs/42969426491), attempt 1, checkout `475c0f141c2b40b2288e7cc79952044143160546`. Coverage includes 284 JVM tests, APIs/release lint, four Kotlin versions, Java 8, four original core bytecode baselines, public symbols, release R8 and API21/35. API35 library instrumentation passed 3 tests and sample release instrumentation passed 20, without failures or skips.
-
-Downloaded Android/effect/policy reports pass 8/12/11 phases respectively on both APIs, including original-compiled 1.3.0 Java/Kotlin/Composable calls. Current run IDs, same-package UI, every phase and candidate manifests match. API21 retains Navigation/NavHost 7/8 phases. All 98 class files and 100 runtime file contents in the CI core JAR match the local measured candidate; container hashes differ and remain separately identified.
-
-Workstation timing data remains disturbed by background load; see the [directed performance report](../../benchmarks/jvm/results/1.3.1/report.md). The PR remains draft, with an explicit formal comparison in the existing consumers runner next. Final performance and subsequent PR/main CI acceptance remain pending; the first pass does not cover later edits automatically.
-
-## Required before release
-
-1. Pass final sticky regressions, all affected unit tests, API checks and release lint.
-2. Run original 1.3.0 core/Android/Compose compiled consumers against the candidate, verify hashes and symbols, and retain older baseline coverage.
-3. Complete the existing Kotlin matrix, Java 8, API 21/35 instrumentation and Maven release R8 consumers. The new 11 Compose policy stages need actual logs, same-package UI and the current run ID.
-4. Record directed performance comparisons between public 1.3.0 and the final candidate. Smoke does not establish speedup or absence of regressions.
-5. Add final candidate commit/hashes, complete CI runs, unresolved limits and rollback details here. Publication follows the applicable authorization and [release checklist](release-checklist.md); these notes do not authorize publication.
-
-## Formal performance and second CI acceptance
-
-Initial measurements found approximately 48 additional bytes per sticky event. JFR motivated direct single-value replay and size reads, preserving ordering, generations and cancellation. Reversed resumption covers replay=1/2; APIs, 284 JVM tests and lint pass. Workstation timing remained disturbed and is retained with its limitations.
-
-[CI 42971579052](https://github.com/logan0817/FlowBus/actions/runs/42971579052), head `7dd6bdf`, attempt 1, checkout `1380cf166d7519be2b015e131eeaa43aff120938`, passed all nine checks. A formal same-runner comparison yields throughput ratios approximately 1.003/1.018/0.998 with overlapping error intervals; no material timing regression was observed, while sticky allocation drops about 22%. The [formal report](../../benchmarks/jvm/results/1.3.1/report.md) retains settings, iterations, identities and limits, without promising stable speedups or ART performance.
-
-Both APIs again pass 8/12/11 consumer stages, alongside four Kotlin versions, Java8, historical bytecode/symbols and R8. Logs/UI/manifests were audited. The final documentation commit must still pass full CI before merge and main CI verification. Production and benchmark inputs stay unchanged, so formal measurement is reused. Final head, merge commit and main checks are identified by [PR #16](https://github.com/logan0817/FlowBus/pull/16) merge/Checks records and final delivery, avoiding recursive commits solely to reference their own run IDs.
+Development red tests, negative identity tests and two PR validation rounds are documented in the [implementation plan](../implementation-plan-1.3.1.md) and [PR #16](https://github.com/logan0817/FlowBus/pull/16). The identity table above is authoritative for publication.
 
 ## Rollback
 
-Public 1.3.0 artifacts and tags remain intact. Returning from a local candidate to 1.3.0 restores the original sticky reentrancy, failed scope registration and DESTROYED-threshold issues. Recompile and verify the affected integration. Revert development fixes through separate commits rather than replacing published artifacts or rewriting shared history.
+Restore 1.3.0 dependencies, recompile and revalidate the entry points you use. The sticky reentrancy, failed scope registration and DESTROYED threshold defects also return. Public 1.3.0/1.3.1 artifacts and tags must not be overwritten; further fixes require a new version.

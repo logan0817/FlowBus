@@ -2,7 +2,7 @@
 
 [English](README_EN.md)
 
-此目录是独立消费者模板，用于评估当前 Kotlin 1.9.25 基线的 Compose 编译和 release R8 接入，现通过候选 Maven 坐标调用正式模块源码中的 [FlowBusEffect](../../library-compose/README.md)。`flowbus-compose:1.3.0` 已发布到 Maven Central；本入口默认仍验证本地源码修改生成的隔离候选，公开依赖验证见[发布说明](../../docs/release-notes-1.3.0.md)。模板的生成、构建和验证由主仓验证任务负责，本目录没有独立发布任务。
+此目录是独立消费者模板，用于评估当前 Kotlin 1.9.25 基线的 Compose 编译和 release R8 接入，现通过候选 Maven 坐标调用正式模块源码中的 [FlowBusEffect](../../library-compose/README.md)。`flowbus-compose:1.3.1` 已发布到 Maven Central；本入口默认仍验证本地源码修改生成的隔离候选，公开依赖验证见[发布说明](../../docs/release-notes-1.3.1.md)。模板的生成、构建和验证由主仓验证任务负责，本目录没有独立发布任务。
 
 消费者默认使用 activity-compose `1.8.2`、Compose runtime/ui `1.5.4`、Compose compiler `1.5.15`，直接声明 Lifecycle `2.6.2`，消费当前候选 FlowBus 产物。另可选择 runtime/ui `1.7.8` 进行新版实验。全部仅作用于此消费者；基础库不传递引入 Compose，也不改变基础依赖、SDK 或 Kotlin 要求。两种组合的结果必须分开记录，声明版本不能代替实际解析或设备证据。
 
@@ -16,7 +16,7 @@
 
 独立 StateFlow 表达业务计数，生命周期恢复后重新读取当前值；事件用于临时 Toast，不替代状态。ViewModel 保留配置变化中的状态，当前示例没有持久化存储或 SavedStateHandle，不能保证进程死亡后恢复。
 
-历史 1.2.0 fixture 的设备结果：默认 1.5.4 与可选 1.7.8 各自曾在 API 24 串行通过十阶段交互、受控 effect 九阶段及错误策略八阶段。1.3.0 正式版已消费可选模块并通过当时十一阶段 effect / 八阶段 policy；当前 1.3.1 开发候选扩展为十二阶段 effect / 十一阶段 policy，尚未发布；历史结果不能替代本轮候选构建及设备验收。进程死亡恢复、深链接及其他 NavHost 配置仍需独立验证。
+历史 1.2.0 fixture 的设备结果：默认 1.5.4 与可选 1.7.8 各自曾在 API 24 串行通过十阶段交互、受控 effect 九阶段及错误策略八阶段。1.3.0 正式版已消费可选模块并通过当时十一阶段 effect / 八阶段 policy；1.3.1 已发布，最终 main 的 API21/35 与公开依赖 API33 通过十二阶段 effect / 十一阶段 policy；历史结果不能替代后续源码候选的构建及设备验收。进程死亡恢复、深链接及其他 NavHost 配置仍需独立验证。
 
 ## 生成与构建
 

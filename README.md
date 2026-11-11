@@ -25,7 +25,7 @@ Android 项目优先使用 `flowbus`：
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.3.0")
+implementation("io.github.logan0817:flowbus:1.3.1")
 ```
 
 纯 Kotlin / Coroutines / 非 Android 场景使用 `flowbus-core`：
@@ -33,7 +33,7 @@ implementation("io.github.logan0817:flowbus:1.3.0")
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.3.0")
+implementation("io.github.logan0817:flowbus-core:1.3.1")
 ```
 
 模块选择：
@@ -171,13 +171,15 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 
 <a id="120-候选版本"></a>
 
-## 1.3.0 版本
+<a id="130-版本"></a>
 
-最新正式版本为 **1.3.0**，已于 2026-11-10 发布到 Maven Central。新增具体订阅建立通知、Java 友好入口、通道实际配置诊断和可选 [Compose 模块](library-compose/README.md)，保留既有 Kotlin API 与投递、所有权语义。
+## 1.3.1 版本
 
-- Android：`io.github.logan0817:flowbus:1.3.0`；纯 JVM：`io.github.logan0817:flowbus-core:1.3.0`。
-- Compose 按需添加 `implementation("io.github.logan0817:flowbus-compose:1.3.0")`，基础两个坐标不传递 Compose。
-- [1.3.0 变化、接入、验证证据与回退](docs/release-notes-1.3.0.md)；[1.2.0 历史说明](docs/release-notes-1.2.0.md)。
+最新正式版本为 **1.3.1**，已于 2026-11-11 发布到 Maven Central。修复 sticky 重入最近值顺序、scope 创建失败残留登记和无效生命周期阈值；保持公共 API、依赖和最低支持版本。
+
+- Android：`io.github.logan0817:flowbus:1.3.1`；纯 JVM：`io.github.logan0817:flowbus-core:1.3.1`。
+- Compose 按需添加 `implementation("io.github.logan0817:flowbus-compose:1.3.1")`，基础两个坐标不传递 Compose。
+- [1.3.1 修复、升级、验证证据与回退](docs/release-notes-1.3.1.md)；[1.3.0 功能说明](docs/release-notes-1.3.0.md)；[1.2.0 历史说明](docs/release-notes-1.2.0.md)。
 
 ## 兼容与发布状态
 

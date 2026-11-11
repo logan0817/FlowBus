@@ -6,15 +6,15 @@
 
 ## Installation
 
-The stable version is **1.3.0**, published to Maven Central. This coordinate is available since 1.3.0; 1.2.0 does not contain this module.
+The stable version is **1.3.1**, published to Maven Central. This coordinate is available since 1.3.0; 1.2.0 does not contain this module.
 
 Configure `mavenCentral()` in the consumer repositories, then declare:
 
 ```kotlin
-implementation("io.github.logan0817:flowbus-compose:1.3.0")
+implementation("io.github.logan0817:flowbus-compose:1.3.1")
 ```
 
-**1.3.1 is not published**. The candidate adds minimum-lifecycle-state validation, with real PR API21/35 stages passing. Final candidate/main acceptance records are linked from the [1.3.1 development notes](../docs/en/release-notes-1.3.1.md).
+**1.3.1 is published to Maven Central.** Sticky reentrancy, scope creation and lifecycle threshold fixes passed final main CI, public artifact checks and independent consumers. See the [1.3.1 release notes](../docs/en/release-notes-1.3.1.md) for upgrades and verification.
 
 Use the isolated [local candidate workflow](../CONTRIBUTING.md#candidate-builds) only when verifying local source changes; candidate verification does not establish public publication.
 
@@ -45,7 +45,7 @@ fun RefreshEvents(
 
 The caller owns and injects the source. The owner may be an Activity, a Fragment's viewLifecycleOwner, or a navigation back-stack entry. The module does not locate a global bus or navigation owner automatically.
 
-Defaults are `minState = STARTED` and `isSticky = false`. Choose `RESUMED` explicitly for side effects restricted to the currently interactive page. Choose only `CREATED`, `STARTED`, or `RESUMED` as the threshold. Public 1.3.0 rejects `INITIALIZED` during composition; the 1.3.1 candidate also rejects `DESTROYED` synchronously before effect creation, with an `IllegalArgumentException` identifying the supplied and supported states. An already destroyed owner with a valid threshold still completes without subscribing. Remaining in the Composition does not imply an active owner lifecycle.
+Defaults are `minState = STARTED` and `isSticky = false`. Choose `RESUMED` explicitly for side effects restricted to the currently interactive page. Choose only `CREATED`, `STARTED`, or `RESUMED` as the threshold. Public 1.3.0 rejects `INITIALIZED` during composition; the 1.3.1 release also rejects `DESTROYED` synchronously before effect creation, with an `IllegalArgumentException` identifying the supplied and supported states. An already destroyed owner with a valid threshold still completes without subscribing. Remaining in the Composition does not imply an active owner lifecycle.
 
 ## Subscriptions, callbacks, and cancellation
 
@@ -75,6 +75,6 @@ The module uses Kotlin 1.9.25, Compose compiler 1.5.15, runtime 1.5.4, Lifecycle
 
 The [Compose consumer](../compatibility/compose-consumer/README_EN.md) resolves candidate Maven artifacts and invokes this module after release R8. It reuses lifecycle, replacement, cancellation, error-policy, and non-cooperative callback checks, adding subscription notifications and callback-update assertions. Record dependency resolution, builds, and device evidence separately for default runtime/ui 1.5.4 and optional 1.7.8.
 
-The 1.3.1 candidate expands the policy consumer from 8 to **11 stages**, adding real-composition checks for invalid thresholds, all three supported thresholds, and an already destroyed owner. Invalid-parameter checks use an isolated Recomposer and release the Composition, runner, and coroutine resources after synchronous failure. Real API21/35 policy stages pass in both PR runs; the development notes identify commits and runs. The historical 1.3.0 eight-stage result applies only to that artifact.
+The 1.3.1 release expands the policy consumer from 8 to **11 stages**, adding real-composition checks for invalid thresholds, all three supported thresholds, and an already destroyed owner. Invalid-parameter checks use an isolated Recomposer and release the Composition, runner, and coroutine resources after synchronous failure. Final main API21/35 and public-dependency API33 policy stages passed; the release notes identify commits and runs. The historical 1.3.0 eight-stage result applies only to that artifact.
 
 See the [release checklist](../docs/en/release-checklist.md) for complete gates. Compilation, R8, and driver unit tests do not replace API 21/35 device execution. Historical passing results for the 1.2.0 fixture do not establish that this module's candidate has passed.

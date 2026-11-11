@@ -60,16 +60,16 @@ Cleanup APIs have 2 extra rules:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.3.0")
+implementation("io.github.logan0817:flowbus-core:1.3.1")
 ```
 
-The latest released version is **1.3.0**, available from Maven Central. Features marked “since 1.3” below are available through the dependency above. See the [release notes](../docs/en/release-notes-1.3.0.md) for publication evidence and the [release checklist](../docs/en/release-checklist.md) for local candidate verification.
+The latest released version is **1.3.1**, available from Maven Central. Features marked “since 1.3” below are available through the dependency above. See the [release notes](../docs/en/release-notes-1.3.1.md) for publication evidence and the [release checklist](../docs/en/release-checklist.md) for local candidate verification.
 
 <a id="start-with-the-shortest-path"></a>
 
-**1.3.1 is not published**. The candidate implements scope validation before registration and sticky reentrant publication ordering. Behavior, formal CI directed performance and API21/35 regressions pass. Final candidate/main acceptance records are linked from the [1.3.1 development notes](../docs/en/release-notes-1.3.1.md).
+**1.3.1 is published to Maven Central.** Sticky reentrancy, scope creation and lifecycle threshold fixes passed final main CI, public artifact checks and independent consumers. See the [1.3.1 release notes](../docs/en/release-notes-1.3.1.md) for upgrades and verification.
 
-When a callback receives sticky `1` and immediately publishes `2`, candidate replay keeps `2`. After successful publications complete, replay retains the tail in publication order. Cancelling a suspended sender before successful resumption does not commit replay or retract existing live delivery; cancelling its Job after success does not roll back history. Concurrent live delivery and replay snapshots do not form a cross-coroutine transaction, and `accepted` does not mean business processing completed.
+When a callback receives sticky `1` and immediately publishes `2`, replay keeps `2`. After successful publications complete, replay retains the tail in publication order. Cancelling a suspended sender before successful resumption does not commit replay or retract existing live delivery; cancelling its Job after success does not roll back history. Concurrent live delivery and replay snapshots do not form a cross-coroutine transaction, and `accepted` does not mean business processing completed.
 
 ## Quick start
 
@@ -262,7 +262,7 @@ scope.launch(start = CoroutineStart.UNDISPATCHED) {
 syncScope.post(SyncProgress(percent = 10))
 ```
 
-`closeWhen` must be a `CoroutineScope` whose context contains a `Job`, such as a caller-owned structured scope, rather than a custom context without a Job or `GlobalScope`. The 1.3.1 candidate validates this before registering a handle: failure throws without reserving a new name or changing an existing shared store. A failed `bindTo` on an already held handle does not destroy that handle. See the [troubleshooting notes](../TROUBLESHOOTING.md#131-candidate-boundaries) (Chinese) for the public 1.3.0 registration issue.
+`closeWhen` must be a `CoroutineScope` whose context contains a `Job`, such as a caller-owned structured scope, rather than a custom context without a Job or `GlobalScope`. The 1.3.1 release validates this before registering a handle: failure throws without reserving a new name or changing an existing shared store. A failed `bindTo` on an already held handle does not destroy that handle. See the [troubleshooting notes](../TROUBLESHOOTING.md#131-candidate-boundaries) (Chinese) for the public 1.3.0 registration issue.
 
 If you want to finish it manually:
 
@@ -395,7 +395,7 @@ It does not mean subscribers already handled the event. `DROP_OLDEST` / `DROP_LA
 
 ## Channel configuration
 
-Available in the published 1.2.0 release; 1.1.0 does not provide these APIs. Use Maven Central with `io.github.logan0817:flowbus-core:1.3.0` or `io.github.logan0817:flowbus:1.3.0`, and [release notes](../docs/en/release-notes-1.2.0.md) for changes and evidence.
+Available in the published 1.2.0 release; 1.1.0 does not provide these APIs. Use Maven Central with `io.github.logan0817:flowbus-core:1.3.1` or `io.github.logan0817:flowbus:1.3.1`, and [release notes](../docs/en/release-notes-1.2.0.md) for changes and evidence.
 
 ### Core, scopes, and explicit instances
 

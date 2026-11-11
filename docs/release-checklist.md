@@ -1,8 +1,8 @@
 # 1.3.1 发布前清单
 
-**1.3.1 为未发布候选。** 源码目标：VERSION_NAME=1.3.1、APP_VERSION_NAME=1.3.1、APP_VERSION_CODE=12；测试 APK versionCode=3。当前公开正式版仍为 1.3.0。最终候选证据记录于 [1.3.1 发布说明](release-notes-1.3.1.md)，下文已有 1.3.0 记录保留为历史。当前 Android/effect/policy 消费者分别要求 8/12/11 阶段，以实际 PHASES 和本轮运行身份为准。正式发布不属于本次发布前验证目标。
+**1.3.1 已发布到 Maven Central。** 源码/发布版本：VERSION_NAME=1.3.1、APP_VERSION_NAME=1.3.1、APP_VERSION_CODE=12；测试 APK versionCode=3。最终 main CI、公开文件及独立消费者已验收，见 [1.3.1 发布说明](release-notes-1.3.1.md)。Android/effect/policy 分别要求 8/12/11 阶段；下文 1.3.0 记录保留为历史。
 
-当前正式版本为 **1.3.0，已发布到 Maven Central**。新增能力、最终 main CI、公开文件与消费者验收见 [1.3.0 发布说明](release-notes-1.3.0.md)。下文保留的历史证据只对应各自版本。根本地发布现生成 core、Android、可选 Compose 三个坐标；基础两个坐标不增加 Compose 依赖。API 35 另在模拟器启动前从同一封存候选准备 Android/Compose 独立 APK，随后与原 instrumentation 串行运行八阶段 Java/Android、十二阶段 effect 与十一阶段 policy，并保留自身报告。
+当前正式版本为 **1.3.1，已发布到 Maven Central**。固定源码、最终 main CI 和公开验收见 [1.3.1 发布说明](release-notes-1.3.1.md)。下文复用流程准备 core、Android、可选 Compose 三个坐标；各版本历史证据分别保留。
 
 [English](en/release-checklist.md)
 

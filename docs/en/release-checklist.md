@@ -1,8 +1,8 @@
 # 1.3.1 pre-release checklist
 
-**1.3.1 is an unpublished candidate.** Source target: VERSION_NAME=1.3.1, APP_VERSION_NAME=1.3.1, APP_VERSION_CODE=12; test APKs use versionCode=3. The latest public release remains 1.3.0. Final candidate evidence belongs in [1.3.1 release notes](release-notes-1.3.1.md); prior 1.3.0 evidence below remains historical. Android/effect/policy consumers now require 8/12/11 stages respectively; verify the actual PHASES and run identity. Publication is outside the current pre-release validation goal.
+**1.3.1 is published to Maven Central.** Source/release version: VERSION_NAME=1.3.1, APP_VERSION_NAME=1.3.1, APP_VERSION_CODE=12; test APKs use versionCode=3. Final main CI and public files/consumers passed; see [1.3.1 release notes](release-notes-1.3.1.md). Android/effect/policy require 8/12/11 stages. Prior 1.3.0 evidence below remains historical.
 
-The stable version is **1.3.0, published to Maven Central**. See the [release notes](release-notes-1.3.0.md) for final main CI, public files and consumer acceptance. Historical evidence below describes its original version. Local publication now prepares core, Android and optional Compose artifacts. API 35 additionally verifies the same sealed Android/Compose candidates as API 21, using separate APK/report paths before serial device execution.
+The stable version is **1.3.1, published to Maven Central**. See the [release notes](release-notes-1.3.1.md) for fixed source, final main CI and public acceptance. The reusable procedure below prepares core, Android and optional Compose artifacts; keep each version’s evidence distinct.
 
 [中文](../release-checklist.md)
 
