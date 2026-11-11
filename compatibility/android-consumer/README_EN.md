@@ -4,7 +4,7 @@
 
 This directory holds source fixtures for an independent consumer of the real candidate Maven artifacts after release R8. It is not a standalone Gradle project or a published library. It does not add production dependencies, raise minSdk, or configure production signing.
 
-This entry verifies the local source version from `gradle.properties`; the development target is **1.3.1, unpublished**. Public 1.3.0 remains the stable release. The current APK includes original-compiled 1.1.0 and 1.3.0 fixtures; candidate and public dependency verification remain separate. See the [development notes](../../docs/en/release-notes-1.3.1.md).
+This entry verifies the local source version from `gradle.properties`; both sources and the stable public release use **1.3.1**. The current APK includes original-compiled 1.1.0 and 1.3.0 fixtures; candidate and public dependency verification remain separate. See the [release notes](../../docs/en/release-notes-1.3.1.md).
 
 ## Generate and build
 

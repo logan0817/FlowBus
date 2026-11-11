@@ -21,7 +21,7 @@ release 使用 R8，未配置签名。预期输出为：
 - APK：`build/maven-local-consumer/app/build/outputs/apk/release/app-release-unsigned.apk`
 - mapping：`build/maven-local-consumer/app/build/outputs/mapping/release/mapping.txt`
 
-此目录验证 `gradle.properties` 指定的本地源码候选，当前开发目标为 **1.3.1，尚未发布**；公开正式版本仍为 1.3.0。当前 APK 同时包含原版 1.1.0 和 1.3.0 编译 fixture；1.0.7 / 1.2.0 Android 仍以静态符号检查为主，不混称本 APK 已执行这些旧版 Android 字节码。隔离候选、原版编译与公开依赖验证分别记录，当前状态见[开发说明](../../docs/release-notes-1.3.1.md)。
+此目录验证 `gradle.properties` 指定的本地源码候选，当前源码和公开正式版本均为 **1.3.1**。当前 APK 同时包含原版 1.1.0 和 1.3.0 编译 fixture；1.0.7 / 1.2.0 Android 仍以静态符号检查为主，不混称本 APK 已执行这些旧版 Android 字节码。隔离候选、原版编译与公开依赖验证分别记录，当前状态见[发布说明](../../docs/release-notes-1.3.1.md)。
 
 ## 本地测试签名
 

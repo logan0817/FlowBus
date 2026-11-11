@@ -9,12 +9,12 @@ Gradle 模块目录名是 `library-android`，对外发布的依赖坐标是：
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.3.0")
+implementation("io.github.logan0817:flowbus:1.3.1")
 ```
 
 如果你是 Android 项目接入 FlowBus，通常就从这个模块开始，不需要先研究 `flowbus-core`。
 
-当前公开版本仍为 **1.3.0**。**1.3.1 尚未发布**，本地候选正在修复生命周期阈值和 core 边界问题；候选行为、升级注意事项与验证状态见 [1.3.1 开发说明](../docs/release-notes-1.3.1.md)。
+**1.3.1 已发布到 Maven Central。** sticky 重入、scope 创建和生命周期阈值修复已通过最终 main CI、公开制品与独立消费者验收；升级和验证见 [1.3.1 发布说明](../docs/release-notes-1.3.1.md)。
 
 ## 阅读导航
 
@@ -43,7 +43,7 @@ FlowBus 适合“某个地方发出通知，多个地方可能关心”的异步
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.3.0")
+implementation("io.github.logan0817:flowbus:1.3.1")
 ```
 
 ### 2. 定义一个事件类型
@@ -503,7 +503,7 @@ viewLifecycleOwner.onEvent<MainUiEvent> { event ->
 
 ## 按通道配置
 
-从已发布的 1.2.0 起提供，1.1.0 不包含这些 API。通过 Maven Central 使用 `io.github.logan0817:flowbus-core:1.3.0` 或 `io.github.logan0817:flowbus:1.3.0`；变化与验收记录见[发布说明](../docs/release-notes-1.2.0.md)。
+从已发布的 1.2.0 起提供，1.1.0 不包含这些 API。通过 Maven Central 使用 `io.github.logan0817:flowbus-core:1.3.1` 或 `io.github.logan0817:flowbus:1.3.1`；变化与验收记录见[发布说明](../docs/release-notes-1.2.0.md)。
 
 <a id="android-owner-configuration"></a>
 
@@ -559,7 +559,7 @@ viewLifecycleOwner.onEventSuspending<RefreshHomeEvent>(from = requireActivity())
 
 `refreshSuspending` 由业务提供。全局和 owner 来源都支持 reified 类型或 Android `EventChannel<T>`；channel 写法为 `onEventSuspending(channel)`，owner 写法为 `onEventSuspending(from = owner, channel = channel)`。`from` 决定来源，接收方决定收集生命周期，两个示例是来源选择，不应为同一需求重复注册。
 
-`LifecycleOwner` 入口默认在 `STARTED` 收集，支持 `dispatcher`、`minLifecycleState` 和 `isSticky`；须在主线程注册。最低状态应选择 `CREATED`、`STARTED` 或 `RESUMED`。公开 1.3.0 会立即拒绝 `INITIALIZED`；1.3.1 候选还会同步拒绝 `DESTROYED`，并在便捷入口自己获取全局/owner 总线前校验。降到收集阈值以下会请求取消当前处理；同一次 repeatOnLifecycle 再次活跃时，等待旧回调结束后重新订阅。阻塞或 NonCancellable 工作不能被强制停止，也不回滚已发生的副作用；普通事件不补收，sticky 显式开启后可重放最近值。
+`LifecycleOwner` 入口默认在 `STARTED` 收集，支持 `dispatcher`、`minLifecycleState` 和 `isSticky`；须在主线程注册。最低状态应选择 `CREATED`、`STARTED` 或 `RESUMED`。公开 1.3.0 会立即拒绝 `INITIALIZED`；1.3.1 还会同步拒绝 `DESTROYED`，并在便捷入口自己获取全局/owner 总线前校验。降到收集阈值以下会请求取消当前处理；同一次 repeatOnLifecycle 再次活跃时，等待旧回调结束后重新订阅。阻塞或 NonCancellable 工作不能被强制停止，也不回滚已发生的副作用；普通事件不补收，sticky 显式开启后可重放最近值。
 
 `CoroutineScope.onEventSuspending` 提供相同的全局/owner、类型/channel 来源选择，由调用方 scope 管理订阅，不自动绑定 UI 生命周期；owner 来源须在主线程获取。它不提供 dispatcher 参数，回调沿用收集协程上下文。返回的 `Job` 可主动取消。自建 `FlowEventBus` 可以使用 `subscribeEventSuspending`：生命周期版本返回 `Job`，协程内的挂起版本由调用方管理收集。
 
@@ -590,9 +590,9 @@ viewLifecycleOwner.collectEventFromSuspending(from = featureBus, key = refreshKe
 // 订阅实际活跃后，在业务操作中调用：notifier.notifyRefresh("login")。
 ```
 
-1.3.1 候选中，无效阈值抛出的 `IllegalArgumentException` 会列出实际值与合法值。owner 本身已经销毁且阈值合法时仍正常不订阅，不应改传 `DESTROYED`。相关 Android 单元回归已通过，候选设备与完整 CI 验证状态以开发说明为准。
+1.3.1 中，无效阈值抛出的 `IllegalArgumentException` 会列出实际值与合法值。owner 本身已经销毁且阈值合法时仍正常不订阅，不应改传 `DESTROYED`。相关 Android 单元回归已通过，完整 CI、公开制品和设备验证见发布说明。
 
-升级到候选测试时请重新编译消费者：公开 inline `collectEvent` 可能已被内嵌到调用方字节码，旧 reified wrapper 的来源获取顺序也可能被内嵌。只替换 AAR 不能保证获得完整校验修复；非 inline API 的既有方法签名和默认参数保持。
+升级到 1.3.1 时请重新编译消费者：公开 inline `collectEvent` 可能已被内嵌到调用方字节码，旧 reified wrapper 的来源获取顺序也可能被内嵌。只替换 AAR 不能保证获得完整校验修复；非 inline API 的既有方法签名和默认参数保持。
 
 `collectEventFrom` 使用普通回调，`collectEventFromSuspending` 使用挂起回调；两者接收显式 `FlowBus`、`ScopedFlowBus` 或 `FlowBusScope` 与 core `EventKey<T>`。可用 `coreChannel.asEventKey()` 转换 core 通道。默认 `Dispatchers.Main.immediate`、`STARTED`、`isSticky=false`，复用传入实例的错误策略。注册不等于底层订阅就绪。
 

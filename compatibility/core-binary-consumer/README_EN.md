@@ -2,7 +2,7 @@
 
 [中文](README.md)
 
-The fixture compiles Kotlin and Java consumers against a selected original Maven Central core JAR, then runs the same compiled classes against original and candidate JARs. Baselines are 1.0.7 (default), 1.1.0, 1.2.0 and 1.3.0. This complements recompilation against the candidate by exercising existing inline, default-argument, and direct Java JVM references. Current sources target unpublished **1.3.1**; public installation remains **1.3.0**. This entry verifies isolated local candidates by default and does not replace public dependency verification.
+The fixture compiles Kotlin and Java consumers against a selected original Maven Central core JAR, then runs the same compiled classes against original and candidate JARs. Baselines are 1.0.7 (default), 1.1.0, 1.2.0 and 1.3.0. This complements recompilation against the candidate by exercising existing inline, default-argument, and direct Java JVM references. Current sources and the public release both use **1.3.1**. This entry verifies isolated local candidates by default and does not replace public dependency verification.
 
 ## Run
 

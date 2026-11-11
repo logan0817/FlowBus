@@ -2,7 +2,7 @@
 
 [English](en/README.md) · [项目首页](../README.md)
 
-最新正式版本为 **1.3.0**，已于 2026-11-10 发布到 Maven Central，包含 core、Android 和可选 Compose 三个坐标。公开制品、签名与独立消费者验收见[发布说明](release-notes-1.3.0.md)。
+最新正式版本为 **1.3.1**，已于 2026-11-11 发布到 Maven Central，包含 core、Android 和可选 Compose 三个坐标。公开制品、签名与独立消费者验收见[发布说明](release-notes-1.3.1.md)。
 
 ## 使用指南
 
@@ -21,7 +21,7 @@
 
 | 版本 | 状态 | 说明 |
 | --- | --- | --- |
-| [1.3.1](release-notes-1.3.1.md) | 未发布候选 | sticky 顺序、scope 创建失败和生命周期阈值修复 |
+| [1.3.1](release-notes-1.3.1.md) | 已发布 | sticky 顺序、scope 创建失败和生命周期阈值修复 |
 | [1.3.0](release-notes-1.3.0.md) | 已发布 | 订阅建立通知、Java、可选 Compose、通道诊断 |
 | [1.2.0](release-notes-1.2.0.md) | 已发布 | 按通道配置、投递契约、性能基线 |
 | [1.1.0](release-notes-1.1.0.md) | 已发布 | API 21 兼容、关闭可靠性、挂起订阅和实例接入 |
@@ -32,7 +32,7 @@
 
 ## 贡献与维护
 
-- [1.3.1 详细实施方案](implementation-plan-1.3.1.md)：已复现缺陷、W0–W8 任务、回归矩阵、验证命令、发布门禁及 AI 交接模板；实施与发布前验证进行中，尚未发布。
+- [1.3.1 详细实施方案](implementation-plan-1.3.1.md)：已复现缺陷、W0–W8 任务、回归矩阵、验证命令、发布门禁及 AI 交接模板；W0–W8 实施、发布前验证和公开制品验收已完成。
 - [贡献指南](../CONTRIBUTING.md)：环境、验证、分支/提交命名、文档维护。
 - [支持与提问](../SUPPORT.md)、[安全策略](../SECURITY.md)、[行为准则](../CODE_OF_CONDUCT.md)。
 - [发布清单](release-checklist.md)：从候选制品验证到正式发布和回退。
