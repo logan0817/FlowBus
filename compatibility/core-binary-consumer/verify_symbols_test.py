@@ -2,9 +2,13 @@ import hashlib
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
 
-from verify_symbols import classes_jar, compare, parse_members, public_api_members, verify_artifact_hashes
+from verify_symbols import (
+    classes_jar, compare, main, parse_members, partition_changes, private_nested_classes,
+    public_api_members, verify_artifact_hashes,
+)
 
 
 class JvmSymbolVerificationTest(unittest.TestCase):
@@ -48,6 +52,27 @@ InnerClasses:
         with self.assertRaises(ValueError):
             parse_members("unrecognized output")
 
+    def test_private_nested_changes_remain_visible_without_hiding_public_or_internal_api(self):
+        metadata = """
+InnerClasses:
+  private static final #65= #2 of #64; // Hidden=class sample/Bus$Hidden of class sample/Bus
+  public static final #66= #3 of #64; // Public=class sample/Bus$Public of class sample/Bus
+  protected static #67= #4 of #64; // Protected=class sample/Bus$Protected of class sample/Bus
+"""
+        private = private_nested_classes(metadata)
+        self.assertEqual(private, {"sample.Bus$Hidden"})
+        send = ("send$default", "(I)V", True)
+        old = {name: {send} for name in [
+            "sample.Bus", "sample.Bus$Hidden", "sample.Bus$Public", "sample.Bus$Protected", "sample.InternalBus"
+        ]}
+        candidate = {name: set() for name in old}
+        missing, other = partition_changes(old, candidate, private)
+        self.assertEqual(other, [["sample.Bus$Hidden", *send]])
+        self.assertEqual({change[0] for change in missing}, set(old) - private)
+        missing, other = partition_changes(old, {}, private)
+        self.assertIn(["sample.Bus", "<class>"], missing)
+        self.assertIn(["sample.Bus$Hidden", "<class>"], other)
+
     def test_aar_reads_only_classes_jar_and_cleans_temporary_file(self):
         with tempfile.TemporaryDirectory() as directory:
             artifact = Path(directory) / "library.aar"
@@ -82,6 +107,17 @@ InnerClasses:
             jar.write_bytes(b"changed")
             with self.assertRaisesRegex(ValueError, "Artifact changed"):
                 verify_artifact_hashes(evidence)
+
+    def test_missing_input_removes_stale_success_report(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            report = root / "symbols.json"
+            report.write_text('{"missingDescriptors": []}')
+            with patch("sys.argv", ["verify_symbols.py", "--baseline-artifact", str(root / "missing.jar"),
+                                    "--candidate-artifact", str(root / "candidate.jar"), "--output", str(report)]):
+                with self.assertRaises(FileNotFoundError):
+                    main()
+            self.assertFalse(report.exists())
 
     def test_public_api_snapshot_must_match_original_bytecode(self):
         with tempfile.TemporaryDirectory() as directory:

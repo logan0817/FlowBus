@@ -99,3 +99,9 @@ tasks.withType<JavaExec>().configureEach {
     timeout.set(Duration.ofSeconds(30))
 }
 tasks.register("verifyBinaryCompatibility") { dependsOn(runCandidate) }
+
+gradle.taskGraph.whenReady {
+    if (hasTask(runReleased.get()) || hasTask(runCandidate.get())) {
+        layout.buildDirectory.file("reports/binary-compatibility.json").get().asFile.delete()
+    }
+}

@@ -23,9 +23,10 @@ Real artifact gates use an isolated Maven directory and an existing JDK 8 for co
 ./gradlew verifyMavenLocalArtifacts verifyMavenLocalCoreConsumer verifyMavenLocalBinaryCoreConsumer verifyMavenLocalConsumer verifyMavenLocalComposeConsumer "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8
 ./gradlew verifyMavenLocalBinaryCoreConsumer "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.baselineVersion=1.1.0 -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8
 ./gradlew verifyMavenLocalBinaryCoreConsumer "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.baselineVersion=1.2.0 -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8
+./gradlew verifyMavenLocalBinaryCoreConsumer "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.baselineVersion=1.3.0 -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8
 ```
 
-Root `publishToMavenLocal` deletes the selected repository's current-version directories for core, Android, and optional Compose before republishing. Do not point candidate checks at a personal Maven repository. Generated consumers use `exclusiveContent` to prevent fallback to remote artifacts. The binary task defaults to 1.0.7; repeat it for 1.1.0 and 1.2.0 as above. Android has seven device stages including actual Java source, and Compose has eleven effect/eight policy stages against its optional published-format AAR.
+Root `publishToMavenLocal` deletes the selected repository's current-version directories for core, Android, and optional Compose before republishing. Do not point candidate checks at a personal Maven repository. Generated consumers use `exclusiveContent` to prevent fallback to remote artifacts. The binary task defaults to 1.0.7; repeat it for 1.1.0, 1.2.0 and 1.3.0. Android has eight device stages including Java/Kotlin bytecode compiled against published 1.3.0, and Compose has twelve effect/eleven policy stages against its optional published-format AAR.
 
 Device tests and UI drivers must run sequentially against the selected device. Both API 21 and API 35 verify candidate Android/Compose APKs. Before API 35 emulator startup run `bash compatibility/run-api35.sh --prepare`, then invoke the same script without arguments after boot. Follow candidate sealing and environment setup in the [release checklist](release-checklist.md). Mocks or local results on another API do not replace API 21/35/cloud evidence. Consumer compiler parameters change the generated fixture, not the base library. Keep Kotlin/Compose compiler pairings compatible; see the [compatibility guide](compatibility.md).
 
@@ -65,6 +66,6 @@ repositories {
 }
 ```
 
-For centralized repository management, put this in `dependencyResolutionManagement.repositories` in the consumer's `settings.gradle.kts`. Use `implementation("io.github.logan0817:flowbus:1.3.0")` on Android, or `implementation("io.github.logan0817:flowbus-core:1.3.0")` on JVM. Local consumption does not establish publication or complete device acceptance.
+For centralized repository management, put this in `dependencyResolutionManagement.repositories` in the consumer's `settings.gradle.kts`. For the local candidate, use `implementation("io.github.logan0817:flowbus:1.3.1")` on Android, or `implementation("io.github.logan0817:flowbus-core:1.3.1")` on JVM. Local consumption does not establish publication or complete device acceptance.
 
-Current sources use the published version 1.3.0. Compose consumers optionally add `io.github.logan0817:flowbus-compose:1.3.0`. Building a local candidate does not publish local modifications; never overwrite a released version.
+Current sources use unpublished version 1.3.1. Compose candidate consumers optionally add `io.github.logan0817:flowbus-compose:1.3.1`. Building a local candidate does not publish local modifications; never overwrite a released version.

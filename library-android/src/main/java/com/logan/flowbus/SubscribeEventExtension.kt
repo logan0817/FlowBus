@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
  * 订阅全局总线中的事件，并由当前 [LifecycleOwner] 管理订阅生命周期。
  *
  * @param dispatcher 回调执行所在的协程调度器。
- * @param minLifecycleState 开始收集的最小生命周期状态。
+ * @param minLifecycleState 开始收集的最小生命周期状态，只允许 CREATED、STARTED、RESUMED；无效值在获取总线前拒绝。
  * @param isSticky 是否订阅粘性事件。
  * @param eventName 事件通道名；默认使用事件类型全名。
  * @param onReceived 收到事件后的回调。
@@ -29,6 +29,9 @@ inline fun <reified T : Any> LifecycleOwner.subscribeEvent(
     eventName: String = defaultEventName<T>(),
     noinline onReceived: (T) -> Unit
 ): Job {
+    require(minLifecycleState.isAtLeast(Lifecycle.State.CREATED)) {
+        "Invalid lifecycle threshold $minLifecycleState. Use CREATED, STARTED, or RESUMED."
+    }
     return GlobalViewModelStore.get(FlowEventBus::class.java)
         .subscribeEvent(
             lifecycleOwner = this,
@@ -52,6 +55,9 @@ fun <T : Any> LifecycleOwner.subscribeEvent(
     isSticky: Boolean = false,
     onReceived: (T) -> Unit
 ): Job {
+    require(minLifecycleState.isAtLeast(Lifecycle.State.CREATED)) {
+        "Invalid lifecycle threshold $minLifecycleState. Use CREATED, STARTED, or RESUMED."
+    }
     return GlobalViewModelStore.get(FlowEventBus::class.java)
         .subscribeEvent(
             lifecycleOwner = this,
@@ -82,6 +88,9 @@ inline fun <reified T : Any> LifecycleOwner.subscribeEvent(
     eventName: String = defaultEventName<T>(),
     noinline onReceived: (T) -> Unit
 ): Job {
+    require(minLifecycleState.isAtLeast(Lifecycle.State.CREATED)) {
+        "Invalid lifecycle threshold $minLifecycleState. Use CREATED, STARTED, or RESUMED."
+    }
     return (if (owner === GlobalViewModelStore) {
         GlobalViewModelStore.get(FlowEventBus::class.java)
     } else {
@@ -110,6 +119,9 @@ fun <T : Any> LifecycleOwner.subscribeEvent(
     isSticky: Boolean = false,
     onReceived: (T) -> Unit
 ): Job {
+    require(minLifecycleState.isAtLeast(Lifecycle.State.CREATED)) {
+        "Invalid lifecycle threshold $minLifecycleState. Use CREATED, STARTED, or RESUMED."
+    }
     return flowEventBusFor(owner)
         .subscribeEvent(
             lifecycleOwner = this,

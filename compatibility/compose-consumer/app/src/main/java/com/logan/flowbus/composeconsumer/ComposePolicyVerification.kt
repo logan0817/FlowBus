@@ -40,11 +40,11 @@ import kotlinx.coroutines.withTimeout
 import java.util.concurrent.CountDownLatch
 import kotlin.coroutines.CoroutineContext
 
-private class PolicyOwner : LifecycleOwner {
+private class PolicyOwner(initialState: Lifecycle.State = Lifecycle.State.RESUMED) : LifecycleOwner {
     val registry = LifecycleRegistry(this)
     override val lifecycle: Lifecycle get() = registry
 
-    init { registry.currentState = Lifecycle.State.RESUMED }
+    init { registry.currentState = initialState }
 }
 
 private class PolicyProbe(val failure: Exception? = null) {
@@ -72,13 +72,10 @@ private class EffectOnlyApplier : AbstractApplier<Unit>(Unit) {
  */
 private class PolicyComposition(
     context: CoroutineContext,
-    source: FlowBus,
-    key: EventKey<PolicyProbe>,
-    val owner: PolicyOwner = PolicyOwner(),
-    sticky: Boolean = false,
-    callback: suspend (PolicyProbe) -> Unit = { it.failure?.let { failure -> throw failure } }
+    val owner: PolicyOwner = PolicyOwner()
 ) {
     val failure = CompletableDeferred<Throwable>()
+    val started = CompletableDeferred<Unit>()
     private val supervisor = SupervisorJob(context[Job])
     private val scope = CoroutineScope(context + supervisor + CoroutineExceptionHandler { _, error ->
         failure.complete(error)
@@ -94,16 +91,28 @@ private class PolicyComposition(
     }
     private val composition = Composition(EffectOnlyApplier(), recomposer)
 
-    init {
+    // 先由调用方登记资源，再组合内容，保证同步参数异常也能进入 finally 清理。
+    fun start(
+        source: FlowBus,
+        key: EventKey<PolicyProbe>,
+        sticky: Boolean = false,
+        minState: Lifecycle.State = Lifecycle.State.STARTED,
+        onSubscribed: (() -> Unit)? = null,
+        callback: suspend (PolicyProbe) -> Unit = { it.failure?.let { failure -> throw failure } }
+    ) {
         composition.setContent {
-            FlowBusEffect(source, key, owner, isSticky = sticky) { probe ->
+            FlowBusEffect(source, key, owner, minState, sticky, onSubscribed) { probe ->
                 probe.entered.complete(Unit)
                 try { callback(probe) } finally { probe.finished.complete(Unit) }
             }
+            LaunchedEffect(Unit) { started.complete(Unit) }
         }
     }
 
     suspend fun close() {
+        if (owner.registry.currentState == Lifecycle.State.INITIALIZED) {
+            owner.registry.currentState = Lifecycle.State.CREATED
+        }
         owner.registry.currentState = Lifecycle.State.DESTROYED
         composition.dispose()
         recomposer.cancel()
@@ -158,9 +167,96 @@ internal fun ComposePolicyVerification(runId: String) {
                 suspend fun session(source: FlowBus, sticky: Boolean = false,
                                     callback: suspend (PolicyProbe) -> Unit = {
                                         it.failure?.let { failure -> throw failure }
-                                    }): PolicyComposition = PolicyComposition(
-                    currentCoroutineContext(), source, key, sticky = sticky, callback = callback
-                ).also { sessions.add(it) }
+                                    }): PolicyComposition = PolicyComposition(currentCoroutineContext()).also {
+                    sessions.add(it)
+                    it.start(source, key, sticky = sticky, callback = callback)
+                }
+
+                for (state in listOf(Lifecycle.State.INITIALIZED, Lifecycle.State.DESTROYED)) {
+                    val source = FlowBus()
+                    val composition = PolicyComposition(currentCoroutineContext()).also { sessions.add(it) }
+                    var subscriptions = 0
+                    var callbacks = 0
+                    try {
+                        val rejection = try {
+                            composition.start(source, key, minState = state,
+                                onSubscribed = { subscriptions++ }, callback = { callbacks++ })
+                            null
+                        } catch (error: IllegalArgumentException) {
+                            error
+                        }
+                        check(rejection != null && rejection.message.orEmpty().contains(state.name)) {
+                            "Expected synchronous threshold rejection for $state"
+                        }
+                        check(source.inspectChannel(key) == null && subscriptions == 0 && callbacks == 0)
+                        check(!composition.started.isCompleted)
+                    } finally {
+                        composition.close()
+                    }
+                }
+                passed("invalid-lifecycle-thresholds-rejected")
+
+                for (state in listOf(Lifecycle.State.CREATED, Lifecycle.State.STARTED, Lifecycle.State.RESUMED)) {
+                    val source = FlowBus()
+                    val owner = PolicyOwner(Lifecycle.State.INITIALIZED)
+                    val composition = PolicyComposition(currentCoroutineContext(), owner).also { sessions.add(it) }
+                    var notifications = 0
+                    try {
+                        val below = when (state) {
+                            Lifecycle.State.CREATED -> Lifecycle.State.INITIALIZED
+                            Lifecycle.State.STARTED -> Lifecycle.State.CREATED
+                            else -> Lifecycle.State.STARTED
+                        }
+                        owner.registry.currentState = below
+                        composition.start(source, key, minState = state, onSubscribed = { notifications++ })
+                        composition.started.await()
+                        check(notifications == 0 && source.inspectChannel(key) == null)
+                        owner.registry.currentState = state
+                        subscribers(source, 1)
+                        check(notifications == 1)
+                        receive(source)
+                        if (state == Lifecycle.State.CREATED) {
+                            owner.registry.currentState = Lifecycle.State.STARTED
+                            owner.registry.currentState = Lifecycle.State.RESUMED
+                            withFrameNanos { }
+                            check(notifications == 1)
+                        } else {
+                            owner.registry.currentState = below
+                            subscribers(source, 0)
+                            val missed = PolicyProbe()
+                            check(source.post(key, missed))
+                            owner.registry.currentState = state
+                            subscribers(source, 1)
+                            check(notifications == 2)
+                            receive(source)
+                            check(!missed.entered.isCompleted)
+                        }
+                        owner.registry.currentState = Lifecycle.State.DESTROYED
+                        subscribers(source, 0)
+                        check(!composition.failure.isCompleted)
+                    } finally {
+                        composition.close()
+                    }
+                }
+                passed("supported-lifecycle-thresholds")
+
+                for (state in listOf(Lifecycle.State.CREATED, Lifecycle.State.STARTED, Lifecycle.State.RESUMED)) {
+                    val source = FlowBus()
+                    val owner = PolicyOwner(Lifecycle.State.CREATED)
+                    owner.registry.currentState = Lifecycle.State.DESTROYED
+                    val composition = PolicyComposition(currentCoroutineContext(), owner).also { sessions.add(it) }
+                    var callbacks = 0
+                    try {
+                        composition.start(source, key, minState = state,
+                            onSubscribed = { callbacks++ }, callback = { callbacks++ })
+                        composition.started.await()
+                        check(callbacks == 0 && source.inspectChannel(key) == null)
+                        check(!composition.failure.isCompleted)
+                    } finally {
+                        composition.close()
+                    }
+                }
+                passed("destroyed-owner-does-not-subscribe")
 
                 // 不覆盖默认 errorHandler；最外层测试 Recomposer 观察传播后的同一异常。
                 val defaultLogger = PolicyLogger()

@@ -14,6 +14,8 @@
 implementation("io.github.logan0817:flowbus-compose:1.3.0")
 ```
 
+**1.3.1 尚未发布**。当前候选补充了最低生命周期状态校验，PR 的 API21/35 真实阶段已通过；最终候选与 main 验收记录见 [1.3.1 开发说明](../docs/release-notes-1.3.1.md)。
+
 仅在验证本地源码修改时，使用[本地候选安装流程](../CONTRIBUTING.md#candidate-builds)和隔离仓库；候选验收不能代替公开发布。
 
 ## 推荐入口
@@ -43,7 +45,7 @@ fun RefreshEvents(
 
 来源由调用方持有和注入；owner 可以是 Activity、Fragment 的 viewLifecycleOwner 或 Navigation 返回栈条目。模块不自动查找全局总线，也不自动获取导航 owner。
 
-默认 `minState = STARTED`、`isSticky = false`。只应由当前交互页面处理的副作用可显式选择 `RESUMED`；`INITIALIZED` 会在组合时被拒绝。是否仍处于 Composition 不等于 owner 处于活跃生命周期。
+默认 `minState = STARTED`、`isSticky = false`。只应由当前交互页面处理的副作用可显式选择 `RESUMED`；最低状态只应选择 `CREATED`、`STARTED`、`RESUMED`。公开 1.3.0 会在组合时拒绝 `INITIALIZED`；1.3.1 候选还会同步拒绝 `DESTROYED`，在创建 effect 前抛出带实际值和合法值的 `IllegalArgumentException`。owner 本身已销毁且阈值合法时仍正常不订阅。是否仍处于 Composition 不等于 owner 处于活跃生命周期。
 
 ## 订阅、回调与取消
 
@@ -72,5 +74,7 @@ fun RefreshEvents(
 模块沿用 Kotlin 1.9.25、Compose compiler 1.5.15、runtime 1.5.4、Lifecycle 2.6.2、Coroutines 1.8.1、minSdk 21 与 Java 8 字节码目标。消费者可以选择经过独立验证的较新 runtime；直接声明不等于最终解析版本，也不代表任意工具链组合兼容。
 
 [Compose 消费者](../compatibility/compose-consumer/README.md)通过候选 Maven 坐标和 release R8 调用此模块，复用 effect 生命周期、替换、取消、错误策略与非协作回调验证，并检查订阅建立通知及回调更新。其默认 runtime/ui 1.5.4 与可选 1.7.8 的依赖解析、构建和设备证据必须分开记录。
+
+1.3.1 候选的 policy 消费者从 8 个阶段扩展为 **11 个阶段**，新增非法阈值、三个合法阈值和已销毁 owner 的真实组合检查；非法参数测试使用独立 Recomposer，并在同步异常后释放 Composition、runner 和协程资源。两轮 PR 的 API21/35 真实 policy 阶段已通过，具体提交与运行见开发说明。原 1.3.0 的 8 阶段结果只证明当时制品。
 
 完整门禁见[发布清单](../docs/release-checklist.md)。编译、R8 和 driver 单测不能替代 API 21/35 设备运行；历史 1.2.0 fixture 的通过结果也不能替代本模块当前版本的验收。

@@ -164,9 +164,9 @@ class FlowBusReleaseReadinessTest {
     @Test
     fun `published versions and installation examples remain consistent`() {
         val releaseVersion = "1.3.0"
-        val sourceVersion = "1.3.0"
-        val versionNotes = File("../docs/release-notes-1.3.0.md").readText()
-        val englishVersionNotes = File("../docs/en/release-notes-1.3.0.md").readText()
+        val sourceVersion = "1.3.1"
+        val versionNotes = File("../docs/release-notes-1.3.1.md").readText()
+        val englishVersionNotes = File("../docs/en/release-notes-1.3.1.md").readText()
         val gradleProperties = File("../gradle.properties").readText()
         val versionCatalog = File("../gradle/libs.versions.toml").readText()
         val rootReadme = File("../README.md").readText()
@@ -184,7 +184,7 @@ class FlowBusReleaseReadinessTest {
         listOf(
             gradleProperties to "VERSION_NAME=$sourceVersion",
             gradleProperties to "APP_VERSION_NAME=$sourceVersion",
-            gradleProperties to "APP_VERSION_CODE=11",
+            gradleProperties to "APP_VERSION_CODE=12",
             versionCatalog to "flowbus_version = \"$sourceVersion\"",
             rootReadme to "flowbus:$releaseVersion",
             rootReadme to "flowbus-core:$releaseVersion",
@@ -210,7 +210,7 @@ class FlowBusReleaseReadinessTest {
             .forEach { path ->
                 val manifest = File(path).readText()
                 assertTrue(manifest.contains("android:versionName=\"$sourceVersion\""))
-                assertTrue(manifest.contains("android:versionCode=\"2\""))
+                assertTrue(manifest.contains("android:versionCode=\"3\""))
             }
     }
 

@@ -36,10 +36,10 @@ class VerifyDeviceTest(unittest.TestCase):
             if args[0] == "logcat":
                 self.assertFalse(any(value.startswith("--pid") for value in args))
                 if scenario == "stale":
-                    return "PASS API=21 checks=7 runId=previous-run"
+                    return "PASS API=21 checks=8 runId=previous-run"
                 if scenario == "failed":
                     return f"FAIL runId={run_id} completed=legacy-android"
-                return f"PASS API=21 checks=7 runId={run_id}"
+                return f"PASS API=21 checks=8 runId={run_id}"
             if args[:3] == ["shell", "uiautomator", "dump"]:
                 self.assertEqual(args[-1], f"/data/local/tmp/flowbus-flowbusconsumer-{run_id}.xml")
                 if scenario == "dump-command-failed":
@@ -53,11 +53,13 @@ class VerifyDeviceTest(unittest.TestCase):
                     return "cat: No such file or directory"
                 root = ET.Element("hierarchy")
                 phases = [
-                    f"PASS API=21 checks=7 runId={run_id}", "normal-sticky-scope",
-                    "legacy-android", "owner-suspending", "explicit-lifecycle", "channel-config", "binary-1.1.0-android", "java-interop",
+                    f"PASS API=21 checks=8 runId={run_id}", "normal-sticky-scope",
+                    "legacy-android", "owner-suspending", "explicit-lifecycle", "channel-config", "binary-1.1.0-android", "java-interop", "binary-1.3.0-android",
                 ]
                 if scenario == "missing-java-phase":
                     phases.remove("java-interop")
+                if scenario == "missing-binary-phase":
+                    phases.remove("binary-1.3.0-android")
                 text = chr(10).join(phases)
                 package = "another.application" if scenario == "wrong-ui" else "com.logan.flowbus.consumer"
                 ET.SubElement(root, "node", package=package, text=text)
@@ -87,6 +89,9 @@ class VerifyDeviceTest(unittest.TestCase):
             if scenario in ("dump-failed", "dump-command-failed"):
                 self.assertFalse(any("cat" in command for command in commands))
                 self.assertEqual(len(list((root / "reports").glob("*/ui-dump.txt"))), 1)
+
+    def test_missing_130_binary_phase_is_rejected(self):
+        self.run_driver("missing-binary-phase")
 
     def test_current_pass_requires_matching_ui(self):
         self.run_driver("passed")

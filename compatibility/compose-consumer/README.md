@@ -6,7 +6,7 @@
 
 消费者默认使用 activity-compose `1.8.2`、Compose runtime/ui `1.5.4`、Compose compiler `1.5.15`，直接声明 Lifecycle `2.6.2`，消费当前候选 FlowBus 产物。另可选择 runtime/ui `1.7.8` 进行新版实验。全部仅作用于此消费者；基础库不传递引入 Compose，也不改变基础依赖、SDK 或 Kotlin 要求。两种组合的结果必须分开记录，声明版本不能代替实际解析或设备证据。
 
-`FlowBusEffect` 接收显式 `FlowBus`、`EventKey<T>`、调用方提供的 `LifecycleOwner`，默认从 STARTED 收集。可以由导航调用方传入 `NavBackStackEntry`，示例不依赖导航库或 LocalLifecycleOwner。事件回调和可选 `onSubscribed` 通知通过 rememberUpdatedState 更新，更新它们不重建订阅；来源、事件名称/类型、owner、最低状态、sticky 选择变化都会重建 effect。INITIALIZED 在组合时直接被拒绝。
+`FlowBusEffect` 接收显式 `FlowBus`、`EventKey<T>`、调用方提供的 `LifecycleOwner`，默认从 STARTED 收集。可以由导航调用方传入 `NavBackStackEntry`，示例不依赖导航库或 LocalLifecycleOwner。事件回调和可选 `onSubscribed` 通知通过 rememberUpdatedState 更新，更新它们不重建订阅；来源、事件名称/类型、owner、最低状态、sticky 选择变化都会重建 effect。1.3.1 候选在组合时同步拒绝 INITIALIZED 和 DESTROYED 阈值；合法值为 CREATED、STARTED、RESUMED，owner 本身已销毁且阈值合法时正常不订阅。
 
 [实际 NavHost 验证](../navhost-consumer/README.md) 通过可选 navHost 参数加入 navigation-compose，记录标准 ComposeNavigator、默认动画阈值及 Activity 重建。转场中的新页面可能已 STARTED 而尚未 RESUMED；只有当前交互页应处理的副作用可显式选择 RESUMED。旧页面仍处于 Composition 或退出动画不代表其 owner 活跃；按实际 entry 生命周期收集，不按“是否还画在屏幕上”推断。
 
@@ -16,7 +16,7 @@
 
 独立 StateFlow 表达业务计数，生命周期恢复后重新读取当前值；事件用于临时 Toast，不替代状态。ViewModel 保留配置变化中的状态，当前示例没有持久化存储或 SavedStateHandle，不能保证进程死亡后恢复。
 
-历史 1.2.0 fixture 的设备结果：默认 1.5.4 与可选 1.7.8 各自曾在 API 24 串行通过十阶段交互、受控 effect 九阶段及错误策略八阶段。当前 1.3.0 候选已改为消费新模块，effect 自检扩展为十一阶段；历史结果不能替代本轮候选构建及设备验收。进程死亡恢复、深链接及其他 NavHost 配置仍需独立验证。
+历史 1.2.0 fixture 的设备结果：默认 1.5.4 与可选 1.7.8 各自曾在 API 24 串行通过十阶段交互、受控 effect 九阶段及错误策略八阶段。1.3.0 正式版已消费可选模块并通过当时十一阶段 effect / 八阶段 policy；当前 1.3.1 开发候选扩展为十二阶段 effect / 十一阶段 policy，尚未发布；历史结果不能替代本轮候选构建及设备验收。进程死亡恢复、深链接及其他 NavHost 配置仍需独立验证。
 
 ## 生成与构建
 
@@ -49,7 +49,7 @@
 | 默认 1.5.4 | 2.6.2 | 1.10.0 |
 | 可选 1.7.8 | 2.8.3 | 1.12.0 |
 
-两组继续使用 Kotlin 1.9.25、compiler 1.5.15、activity-compose 1.8.2、Coroutines 1.8.1、AGP 8.6.1 和 Java 8 字节码。本轮仍须保存完整 releaseRuntimeClasspath 图；直接声明与 APK META-INF 标记不代表解析版本。当前十一阶段 effect 与既有八阶段错误/取消验证须使用本轮候选重新运行，API 21/35 按实际设备报告验收，入口见[发布清单](../../docs/release-checklist.md)。完整范围见[兼容性评估](../../docs/compatibility.md)。
+两组继续使用 Kotlin 1.9.25、compiler 1.5.15、activity-compose 1.8.2、Coroutines 1.8.1、AGP 8.6.1 和 Java 8 字节码。本轮仍须保存完整 releaseRuntimeClasspath 图；直接声明与 APK META-INF 标记不代表解析版本。当前十二阶段 effect 与十一阶段参数/错误/取消验证须使用本轮候选重新运行，API 21/35 按实际设备报告验收，入口见[发布清单](../../docs/release-checklist.md)。完整范围见[兼容性评估](../../docs/compatibility.md)。
 
 ## 受控 Composition 自检入口
 
@@ -68,7 +68,7 @@ FLOWBUS_COMPOSE_SIGNED_APK="/path/to/test-signed-compose-release.apk"
 python3 -B compatibility/compose-consumer/verify-effects-device.py --adb /path/to/android-sdk/platform-tools/adb --serial device-serial --expected-api 24 --apk "$FLOWBUS_COMPOSE_SIGNED_APK" --report-dir build/compose-effects-device
 ```
 
-驱动校验实际 API 和 boot_completed，安装 APK、force-stop 自己的包，携带 `flowbus.compose.verifyEffects=true` 和本次 `flowbus.consumer.runId` 冷启动。fixture 整体超时 30 秒，驱动最多轮询 40 秒；只有本次 `FlowBusCompose` 日志和当前 `com.logan.flowbus.composeconsumer` UI 同时匹配 `PASS API=<实际 API> checks=11 runId=<本次 UUID>` 与以下全部阶段才成功。FAIL、旧 runId、错误前台包、缺阶段或超时均不能通过；证据保存为 report-dir 下本次 UUID 的 start.txt、current.log、ui-dump.txt、current-ui.xml 和最终 result.txt。请与 instrumentation 串行运行，避免争用 UiAutomation。
+驱动校验实际 API 和 boot_completed，安装 APK、force-stop 自己的包，携带 `flowbus.compose.verifyEffects=true` 和本次 `flowbus.consumer.runId` 冷启动。fixture 整体超时 30 秒，驱动最多轮询 40 秒；只有本次 `FlowBusCompose` 日志和当前 `com.logan.flowbus.composeconsumer` UI 同时匹配 `PASS API=<实际 API> checks=12 runId=<本次 UUID>` 与以下全部阶段才成功。FAIL、旧 runId、错误前台包、缺阶段或超时均不能通过；证据保存为 report-dir 下本次 UUID 的 start.txt、current.log、ui-dump.txt、current-ui.xml 和最终 result.txt。请与 instrumentation 串行运行，避免争用 UiAutomation。
 
 | 阶段 | 覆盖行为 |
 | --- | --- |
@@ -83,6 +83,7 @@ python3 -B compatibility/compose-consumer/verify-effects-device.py --adb /path/t
 | `lifecycle-stopped-restarted` | 生命周期停止取消旧回调，恢复后接收最新 sticky |
 | `callback-error-continued` | 普通异常交给配置的继续型 handler，随后仍接收 |
 | `destroyed-source-retained` | DESTROYED 取消；source 仍可发布，并由新 owner 接收；取消不交给普通异常 handler |
+| `binary-1.3.0-composable` | 原版 1.3.0 编译的 Composable 在候选运行；验证订阅通知、回调更新不重订阅、停止/恢复及移除组合取消 |
 
 驱动判断回归可独立复现：
 
@@ -90,7 +91,7 @@ python3 -B compatibility/compose-consumer/verify-effects-device.py --adb /path/t
 python3 -B compatibility/compose-consumer/verify_effects_test.py
 ```
 
-当前 effect 与 policy 协议各有 1 个 unittest、7 个 mocked-ADB subtests，合计 2 tests/14 subtests，覆盖本次 PASS、旧 PASS、当前 FAIL、其他前台包、缺阶段、错误检查数与安装前错误 API。mock 只验证 driver 判定，不等于真实设备通过。effect 的替换与生命周期阶段还断言通知总次数：初始一次，来源、key、owner、阈值恢复、组合恢复、生命周期恢复及销毁后新 owner 各增加一次，最终八次；回调更新和错误继续均不能增加订阅。进程死亡恢复、深链接及其他 NavHost 配置仍需独立验证；勿将此前十阶段临时 driver 作为仓库入口。
+当前 effect 与 policy 协议各有 1 个 unittest，分别对每一个阶段缺失进行拒绝验证，并覆盖本次 PASS、旧 PASS、当前 FAIL、其他前台包、缺阶段、错误检查数与安装前错误 API。mock 只验证 driver 判定，不等于真实设备通过。effect 的替换与生命周期阶段还断言通知总次数：初始一次，来源、key、owner、阈值恢复、组合恢复、生命周期恢复及销毁后新 owner 各增加一次，最终八次；回调更新和错误继续均不能增加订阅。进程死亡恢复、深链接及其他 NavHost 配置仍需独立验证；勿将此前十阶段临时 driver 作为仓库入口。
 
 ## 错误策略与非协作回调自检
 
@@ -98,8 +99,11 @@ python3 -B compatibility/compose-consumer/verify_effects_test.py
 
 测试重组器隔离预期异常，避免终止外层结果页面。默认错误处理器未被替换，FlowBusEffect 内没有新增捕获；自检同时观察 CoroutineExceptionHandler 和 runner 的终止原因，要求异常场景的重组器关闭、订阅归零并保留原始异常身份。这是测试基础设施，不是建议业务通过监督作用域忽略失败。
 
-| 八阶段 | 断言 |
+| 十一阶段 | 断言 |
 | --- | --- |
+| `invalid-lifecycle-thresholds-rejected` | INITIALIZED/DESTROYED 在组合时同步抛参数异常，无订阅/回调/通道登记；finally 释放重组资源 |
+| `supported-lifecycle-thresholds` | CREATED/STARTED/RESUMED 各自按阈值启动；停止恢复行为符合生命周期，最终销毁取消 |
+| `destroyed-owner-does-not-subscribe` | 已销毁 owner 配合合法阈值正常不订阅，不产生异常 |
 | `default-rethrow-terminates-source-retained` | 默认策略传播原始回调异常、终止收集，但同一来源仍能供新组合订阅 |
 | `ignore-logs-and-continues` | Ignore 保留 logger 告警并继续下一条 |
 | `custom-handler-context-and-continue` | 自定义处理器收到事件名、类型、phase、scope/sticky/dispatcher 上下文，返回后继续 |
@@ -119,4 +123,21 @@ python3 -B compatibility/compose-consumer/verify-policies-device.py --adb /path/
 python3 -B compatibility/compose-consumer/verify_effects_test.py
 ```
 
-驱动要求本次 runId 的 FlowBusComposePolicy 日志、同包 UI 与全部八阶段；fixture 超时 30 秒，driver 40 秒。mock 共 2 tests / 14 subtests，验证协议与错误边界，不代替设备。本轮 API 21/35 与其他设备结果按最终候选核对，入口见[发布清单](../../docs/release-checklist.md)。
+驱动要求本次 runId 的 FlowBusComposePolicy 日志、同包 UI 与全部十一阶段；fixture 超时 30 秒，driver 40 秒。mock 共 2 个测试方法，逐项检查 effect / policy 阶段缺失与其他协议错误边界，不代替设备。本轮 API 21/35 与其他设备结果按最终候选核对，入口见[发布清单](../../docs/release-checklist.md)。
+
+## 正式 1.3.0 Composable 字节码基线
+
+[Legacy130FlowBusEffect.kt](legacy130/src/main/java/com/logan/flowbus/composeconsumer/Legacy130FlowBusEffect.kt) 只针对正式 1.3.0 core / flowbus-compose 编译，使用固定 Compose compiler 1.5.15 和 runtime 1.5.4。生成阶段核对 [baselines.json](../core-binary-consumer/baselines.json) 中的原版摘要；原版只进入 compileOnly，当前应用运行图使用候选坐标。
+
+`:legacy130:freezeLegacy130` 保留原版编译 class/JAR 身份，app 引用 `legacy130/build/frozen/legacy130-compose.jar` 再经过 release R8。`:legacy130:verifyLegacy130Identity` 在 APK 构建后核验旧 class/JAR 未改变，以及实际运行依赖的版本和摘要均来自隔离候选，报告为 `build/maven-local-compose-consumer/legacy130/build/reports/binary-compatibility.json`。`deviceExecution=required-separately` 表明仍需本次十二阶段 effect 设备结果；冻结、编译或 R8 成功都不是旧 Composable 在设备运行的证明。公开符号基线位于 [api/flowbus-compose-1.3.0.api](api/flowbus-compose-1.3.0.api)。
+
+```bash
+# Download and verify the published baseline as specified in docs/implementation-plan-1.3.1.md first.
+FLOWBUS_VERSION=$(sed -n 's/^VERSION_NAME=//p' gradle.properties)
+python3 -B compatibility/core-binary-consumer/verify_symbols.py \
+  --baseline-artifact build/published-baseline/flowbus-compose-1.3.0.aar \
+  --candidate-artifact "build/candidate-maven/io/github/logan0817/flowbus-compose/$FLOWBUS_VERSION/flowbus-compose-$FLOWBUS_VERSION.aar" \
+  --baseline-api-snapshot compatibility/compose-consumer/api/flowbus-compose-1.3.0.api \
+  --javap /path/to/jdk17/bin/javap \
+  --output build/compose-1.3.0-jvm-symbol-verification.json
+```

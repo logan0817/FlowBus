@@ -19,9 +19,14 @@ inline fun <reified T : Any> LifecycleOwner.onEventSuspending(
     isSticky: Boolean = false,
     eventName: String = defaultEventName<T>(),
     noinline onReceived: suspend (T) -> Unit
-): Job = GlobalViewModelStore.get(FlowEventBus::class.java).subscribeEventSuspending(
-    this, eventName, T::class, minLifecycleState, dispatcher, isSticky, onReceived
-)
+): Job {
+    require(minLifecycleState.isAtLeast(Lifecycle.State.CREATED)) {
+        "Invalid lifecycle threshold $minLifecycleState. Use CREATED, STARTED, or RESUMED."
+    }
+    return GlobalViewModelStore.get(FlowEventBus::class.java).subscribeEventSuspending(
+        this, eventName, T::class, minLifecycleState, dispatcher, isSticky, onReceived
+    )
+}
 
 /** 监听 Android 全局命名通道，生命周期停止时请求取消当前挂起处理，回调须遵循协作式取消。 */
 @MainThread
@@ -31,9 +36,14 @@ fun <T : Any> LifecycleOwner.onEventSuspending(
     minLifecycleState: Lifecycle.State = Lifecycle.State.STARTED,
     isSticky: Boolean = false,
     onReceived: suspend (T) -> Unit
-): Job = GlobalViewModelStore.get(FlowEventBus::class.java).subscribeEventSuspending(
-    this, channel.name, channel.valueType, minLifecycleState, dispatcher, isSticky, onReceived
-)
+): Job {
+    require(minLifecycleState.isAtLeast(Lifecycle.State.CREATED)) {
+        "Invalid lifecycle threshold $minLifecycleState. Use CREATED, STARTED, or RESUMED."
+    }
+    return GlobalViewModelStore.get(FlowEventBus::class.java).subscribeEventSuspending(
+        this, channel.name, channel.valueType, minLifecycleState, dispatcher, isSticky, onReceived
+    )
+}
 
 /** 接收者决定订阅生命周期，[from] 决定事件来源；不改变 owner 的生命周期。 */
 @MainThread
@@ -57,9 +67,14 @@ fun <T : Any> LifecycleOwner.onEventSuspending(
     minLifecycleState: Lifecycle.State = Lifecycle.State.STARTED,
     isSticky: Boolean = false,
     onReceived: suspend (T) -> Unit
-): Job = flowEventBusFor(from).subscribeEventSuspending(
-    this, channel.name, channel.valueType, minLifecycleState, dispatcher, isSticky, onReceived
-)
+): Job {
+    require(minLifecycleState.isAtLeast(Lifecycle.State.CREATED)) {
+        "Invalid lifecycle threshold $minLifecycleState. Use CREATED, STARTED, or RESUMED."
+    }
+    return flowEventBusFor(from).subscribeEventSuspending(
+        this, channel.name, channel.valueType, minLifecycleState, dispatcher, isSticky, onReceived
+    )
+}
 
 /** 在调用方 scope 中顺序处理全局事件；取消会传播，不吞掉挂起回调的取消。 */
 inline fun <reified T : Any> CoroutineScope.onEventSuspending(

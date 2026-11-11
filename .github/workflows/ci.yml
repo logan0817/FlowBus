@@ -34,7 +34,7 @@ jobs:
           BASE_REF: ${{ github.base_ref }}
         run: |
           # 冻结基线按原版字节保留，包括生成器的文件末尾空行。
-          API_SNAPSHOT_EXCLUDES=(-- . ':(exclude)flowbus-core/api/*.api' ':(exclude)library-android/api/*.api' ':(exclude)library-compose/api/*.api' ':(exclude)compatibility/android-consumer/api/*.api' ':(exclude)compatibility/core-binary-consumer/api/*.api')
+          API_SNAPSHOT_EXCLUDES=(-- . ':(exclude)flowbus-core/api/*.api' ':(exclude)library-android/api/*.api' ':(exclude)library-compose/api/*.api' ':(exclude)compatibility/android-consumer/api/*.api' ':(exclude)compatibility/core-binary-consumer/api/*.api' ':(exclude)compatibility/compose-consumer/api/*.api')
           if [ "$EVENT_NAME" = "pull_request" ]; then
             git diff --check "origin/$BASE_REF"...HEAD "${API_SNAPSHOT_EXCLUDES[@]}"
           elif git rev-parse HEAD~1 >/dev/null 2>&1; then
@@ -114,6 +114,21 @@ jobs:
           done
           ./gradlew -p benchmarks/jvm jmh -Pbenchmark.target=candidate -Pbenchmark.smoke \
             '-Pbenchmark.filter=.*SubscriptionBenchmark.*' -Pbenchmark.report=subscription-smoke --warning-mode=all
+      - name: Measure directed formal performance when requested by the PR
+        if: github.event_name == 'pull_request' && contains(github.event.pull_request.body, '<!-- flowbus-formal-performance -->')
+        run: |
+          # PR 显式启用，同一 runner 串行正式测量；保留原 smoke，不以共享机器读数设硬阈值。
+          date -u > benchmarks/jvm/build/reports/formal-environment.txt
+          uname -sm >> benchmarks/jvm/build/reports/formal-environment.txt
+          lscpu >> benchmarks/jvm/build/reports/formal-environment.txt
+          free -m >> benchmarks/jvm/build/reports/formal-environment.txt
+          for benchmark_target in baseline candidate; do
+            uptime >> benchmarks/jvm/build/reports/formal-environment.txt
+            ./gradlew -p benchmarks/jvm jmh "-Pbenchmark.target=$benchmark_target" \
+              '-Pbenchmark.filter=.*BusBenchmark.*' -Pbenchmark.scenarios=noSubscribers,stickySend,active1 \
+              "-Pbenchmark.report=$benchmark_target-formal" --warning-mode=all
+          done
+          uptime >> benchmarks/jvm/build/reports/formal-environment.txt
       - name: Verify unchanged 1.0.7 core consumer bytecode
         run: |
           ./gradlew verifyMavenLocalBinaryCoreConsumer \
@@ -176,6 +191,33 @@ jobs:
             --candidate-artifact "build/candidate-maven/io/github/logan0817/flowbus/$FLOWBUS_VERSION/flowbus-$FLOWBUS_VERSION.aar" \
             --baseline-api-snapshot compatibility/android-consumer/api/flowbus-1.2.0.api \
             --output build/android-1.2.0-jvm-symbol-verification.json
+      - name: Verify unchanged 1.3.0 consumer and all published module symbols
+        run: |
+          ./gradlew verifyMavenLocalBinaryCoreConsumer \
+            "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.verification.reuseCandidate=true \
+            -Pflowbus.consumer.baselineVersion=1.3.0 \
+            "-Pflowbus.consumer.java=$JAVA_HOME_8_X64/bin/java" -Pflowbus.consumer.expectedJava=1.8 --warning-mode=all
+          python3 -B compatibility/core-binary-consumer/verify_symbols.py \
+            --runtime-report build/maven-local-binary-core-consumer-1.3.0/build/reports/binary-compatibility.json \
+            --baseline-api-snapshot compatibility/core-binary-consumer/api/flowbus-core-1.3.0.api \
+            --output build/core-1.3.0-jvm-symbol-verification.json
+          FLOWBUS_VERSION=$(sed -n 's/^VERSION_NAME=//p' gradle.properties)
+          for module in flowbus flowbus-compose; do
+            curl --fail --location --silent --show-error \
+              --output "build/published-baseline/$module-1.3.0.aar" \
+              "https://repo.maven.apache.org/maven2/io/github/logan0817/$module/1.3.0/$module-1.3.0.aar"
+          done
+          python3 -c 'import hashlib,json,pathlib; meta=json.loads(pathlib.Path("compatibility/core-binary-consumer/baselines.json").read_text())["1.3.0"]; pairs=[("flowbus","androidSha256"),("flowbus-compose","composeSha256")]; assert all(hashlib.sha256(pathlib.Path(f"build/published-baseline/{module}-1.3.0.aar").read_bytes()).hexdigest()==meta[key] for module,key in pairs)'
+          python3 -B compatibility/core-binary-consumer/verify_symbols.py \
+            --baseline-artifact build/published-baseline/flowbus-1.3.0.aar \
+            --candidate-artifact "build/candidate-maven/io/github/logan0817/flowbus/$FLOWBUS_VERSION/flowbus-$FLOWBUS_VERSION.aar" \
+            --baseline-api-snapshot compatibility/android-consumer/api/flowbus-1.3.0.api \
+            --output build/android-1.3.0-jvm-symbol-verification.json
+          python3 -B compatibility/core-binary-consumer/verify_symbols.py \
+            --baseline-artifact build/published-baseline/flowbus-compose-1.3.0.aar \
+            --candidate-artifact "build/candidate-maven/io/github/logan0817/flowbus-compose/$FLOWBUS_VERSION/flowbus-compose-$FLOWBUS_VERSION.aar" \
+            --baseline-api-snapshot compatibility/compose-consumer/api/flowbus-compose-1.3.0.api \
+            --output build/compose-1.3.0-jvm-symbol-verification.json
       - name: Verify newer optional Navigation consumer
         run: |
           ./gradlew verifyMavenLocalComposeConsumer \
@@ -202,6 +244,8 @@ jobs:
             build/maven-local-binary-core-consumer*/build/reports/
             build/*jvm-symbol-verification.json
             build/maven-local-consumer/legacy/build/reports/
+            build/maven-local-consumer/legacy130/build/reports/
+            build/maven-local-compose-consumer/legacy130/build/reports/
             build/maven-local-consumer/legacy/build/test-results/
             benchmarks/jvm/build/reports/
             build/candidate-manifest.json
@@ -247,6 +291,8 @@ jobs:
           retention-days: 14
           path: |
             build/maven-local-consumer/legacy/build/reports/
+            build/maven-local-consumer/legacy130/build/reports/
+            build/maven-local-compose-consumer/legacy130/build/reports/
             build/maven-local-consumer/legacy/build/test-results/
             build/candidate-manifest.json
 
@@ -294,6 +340,8 @@ jobs:
           retention-days: 14
           path: |
             build/maven-local-consumer/legacy/build/reports/
+            build/maven-local-consumer/legacy130/build/reports/
+            build/maven-local-compose-consumer/legacy130/build/reports/
             build/maven-local-consumer/legacy/build/test-results/
             build/android-consumer-device/
             build/compose-effects-device/
@@ -356,6 +404,8 @@ jobs:
             build/api35-environment/
             build/api35-consumers/
             build/maven-local-consumer/legacy/build/reports/
+            build/maven-local-consumer/legacy130/build/reports/
+            build/maven-local-compose-consumer/legacy130/build/reports/
             build/maven-local-consumer/legacy/build/test-results/
             build/candidate-manifest.json
 

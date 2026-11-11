@@ -1,8 +1,8 @@
-# Core 1.0.7 / 1.1.0 / 1.2.0 binary consumer regression
+# Core 1.0.7 / 1.1.0 / 1.2.0 / 1.3.0 binary consumer regression
 
 [中文](README.md)
 
-The fixture compiles Kotlin and Java consumers against a selected original Maven Central core JAR, then runs the same compiled classes against original and candidate JARs. Baselines are 1.0.7 (default), 1.1.0 and 1.2.0. This complements recompilation against the candidate by exercising existing inline, default-argument, and direct Java JVM references. Current sources and public installation use **1.3.0**. This entry verifies isolated local candidates by default and does not replace public dependency verification.
+The fixture compiles Kotlin and Java consumers against a selected original Maven Central core JAR, then runs the same compiled classes against original and candidate JARs. Baselines are 1.0.7 (default), 1.1.0, 1.2.0 and 1.3.0. This complements recompilation against the candidate by exercising existing inline, default-argument, and direct Java JVM references. Current sources target unpublished **1.3.1**; public installation remains **1.3.0**. This entry verifies isolated local candidates by default and does not replace public dependency verification.
 
 ## Run
 
@@ -22,7 +22,7 @@ python3 -B compatibility/core-binary-consumer/verify_symbols.py \
 python3 -B -m unittest discover -s compatibility/core-binary-consumer -p '*_test.py' -v
 ```
 
-By default the task publishes the current 1.3.0 candidate to the selected local repository, without remote publication. `-Pflowbus.verification.reuseCandidate=true` instead checks/reuses a sealed candidate. The selected original version resolves non-transitively from Central, defaulting to io.github.logan0817:flowbus-core:1.0.7. Candidate execution uses an absolute JAR path; local artifacts must never be used as the published baseline.
+By default the task publishes the current 1.3.1 candidate to the selected local repository, without remote publication. `-Pflowbus.verification.reuseCandidate=true` instead checks/reuses a sealed candidate. The selected original version resolves non-transitively from Central, defaulting to io.github.logan0817:flowbus-core:1.0.7. Candidate execution uses an absolute JAR path; local artifacts must never be used as the published baseline.
 
 The generated build/maven-local-binary-core-consumer compiles only against the original core, baseline stdlib, and Coroutines. Candidate execution removes the original core from its classpath. Both executions verify the actual FlowBus codeSource. JAR hashes must differ, and consumer class hashes must remain unchanged across execution. A failed runtime verification does not retain an earlier successful runtime report.
 
@@ -30,7 +30,7 @@ The generated build/maven-local-binary-core-consumer compiles only against the o
 
 Coverage includes old reified collect defaults on root/Default/shared/owned sources; channel default and explicit sources; sticky replay/consume/clear; close/reopen; Job-bound close; removeScope; legacy error-handler continuation; and Java constructors, Class key factory, and scope calls. Readiness uses UNDISPATCHED, Deferred, and subscriptions rather than fixed delays.
 
-The separate verify_symbols.py uses javap to compare declared public/protected JVM member descriptors and static/instance form on stable named classes. Artifact hashes must match the runtime report. Default methods, bridges, and PublishedApi JVM symbols remain included; numbered compiler implementation classes and ACC_SYNTHETIC access$ private implementation accessors are excluded. The historical 1.0.7 comparison included 46 named classes and 631 descriptors; that does not certify the current candidate. Regression tests also cover safe classes.jar-only AAR reading and cleanup, missing classes.jar rejection, changed artifacts, and cross-checking a public API snapshot against original bytecode.
+The separate verify_symbols.py uses javap to compare declared public/protected JVM member descriptors and static/instance form on stable named classes. Artifact hashes must match the runtime report. Default methods, bridges, and PublishedApi JVM symbols remain included; numbered compiler implementation classes and ACC_SYNTHETIC access$ private implementation accessors are excluded. Classes explicitly marked private in the original InnerClasses attribute do not gate external API compatibility; their changes remain in otherJvmRemovals and their names in privateImplementationClasses. Public/protected nested classes and Kotlin internal public JVM members remain checked; visibility is never inferred from names. The historical 1.0.7 comparison included 46 named classes and 631 descriptors; that does not certify the current candidate. Regression tests also cover safe classes.jar-only AAR reading and cleanup, missing classes.jar rejection, changed artifacts, and cross-checking a public API snapshot against original bytecode.
 
 ### Static AAR mode
 
@@ -63,3 +63,9 @@ python3 -B compatibility/core-binary-consumer/verify_symbols.py \
 ```
 
 The original fixed API snapshot is first verified against the original JAR, then scopes the supported-symbol gate. Other JVM changes remain in `otherJvmRemovals` for review. Android 1.2.0 uses the original AAR and [fixed API snapshot](../android-consumer/api/flowbus-1.2.0.api) in static mode; see the [Android consumer](../android-consumer/README_EN.md#published-binary-baselines). Neither core unchanged-bytecode execution nor Android static symbols prove old Android 1.2.0 bytecode executing on a device.
+
+## 1.3.0 baseline
+
+Use `-Pflowbus.consumer.baselineVersion=1.3.0` for the pinned published artifact and `src-1.3.0/`. Additional calls cover normal/sticky subscription notifications, default arguments and inspectChannel/copy on root/shared/owned sources, plus Java key factories and notification overloads. DefaultFlowBus accesses complete APIs through its existing `raw()` method.
+
+Compile once against the original, then run identical classes on Java 8 against the original and 1.3.1 candidate. The report is `build/maven-local-binary-core-consumer-1.3.0/build/reports/binary-compatibility.json`. Pass `--baseline-api-snapshot compatibility/core-binary-consumer/api/flowbus-core-1.3.0.api` for symbol checks; this snapshot comes from the release commit and must not be replaced by candidate apiDump. Keep 1.0.7/1.1.0/1.2.0 checks independent.

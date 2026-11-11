@@ -19,6 +19,7 @@ import kotlinx.coroutines.launch
  *
  * 注册不表示订阅立即就绪；普通事件在非活跃阶段不留存。该订阅不会关闭传入实例。
  * 需要挂起处理时使用 [collectEventFromSuspending]，需要 Flow 操作符时使用 [collectEvent]。
+ * 最低状态只允许 CREATED、STARTED、RESUMED，无效值在启动协程前抛出异常。
  */
 @MainThread
 fun <T : Any> LifecycleOwner.collectEventFrom(
@@ -163,8 +164,8 @@ private fun LifecycleOwner.launchFlowBusCollection(
     minLifecycleState: Lifecycle.State,
     collect: suspend () -> Unit
 ): Job {
-    require(minLifecycleState != Lifecycle.State.INITIALIZED) {
-        "Lifecycle.State.INITIALIZED is not supported by repeatOnLifecycle. Use CREATED, STARTED, or RESUMED."
+    require(minLifecycleState.isAtLeast(Lifecycle.State.CREATED)) {
+        "Invalid lifecycle threshold $minLifecycleState. Use CREATED, STARTED, or RESUMED."
     }
     return lifecycleScope.launch {
         repeatOnLifecycle(minLifecycleState) { collect() }

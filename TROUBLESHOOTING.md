@@ -133,3 +133,29 @@ inspect().config 显示 bus 默认值；tryPostResult/tryPostStickyResult.overfl
 - Compose 新坐标为可选 `flowbus-compose`，不包含在正式 1.2.0 中。只更新回调不重订阅；来源、key、owner、阈值或 sticky 变化才重建。离开组合/停止取消收集，不关闭注入来源；需要当前交互页面才能执行的副作用应选择合适 owner 和 RESUMED 阈值。
 
 完整候选用法见 [core](flowbus-core/README.md#subscription-notification)、[Android](library-android/README.md#development-130) 和 [Compose](library-compose/README.md)。
+
+<a id="131-candidate-boundaries"></a>
+
+## 1.3.1 候选的边界修复与升级排查
+
+当前公开版本仍为 **1.3.0**，**1.3.1 尚未发布**。以下区分已复现问题和候选修复；当前验证进度见 [1.3.1 开发说明](docs/release-notes-1.3.1.md)。
+
+### sticky 回调再次发送后，最近值反而变旧
+
+1.3.0 已复现：订阅回调收到 sticky `1` 时立即再次发送 `2`，实时收到 `[1, 2]`，随后 `consumeStickyLatest` 却读到 `1`。这与 `DROP_LATEST` 下实时丢弃但保留 replay 的既有语义不同，是同步重入期间的缓存提交顺序问题。1.3.1 候选已实现修复，本地挂起发送、清理、取消、订阅交界和立即回调回归通过；完整设备、性能与最终 CI 验收仍待完成。
+
+定位时保存最小重入路径、实际 dispatcher、buffer/replay/overflow 配置及两侧收到的值。不要添加固定 delay 或重复发送来掩盖问题，也不要把 replay 当作业务完成确认；当前需要可恢复状态的业务仍应使用 `StateFlow` 或业务持久化状态。
+
+### openScope 抛出缺少 Job，但随后同名创建仍失败
+
+检查 `closeWhen.coroutineContext[Job]` 是否存在。无 Job 的自定义 `CoroutineScope` 和 `GlobalScope` 不能用于该生命周期绑定。1.3.0 会先登记句柄再抛错，可能留下调用者未拿到的句柄；1.3.1 候选改成登记前校验，定向本地回归已通过。
+
+先修正传入的 scope。如果正在排查 1.3.0，使用 inspector 确认残留登记的来源和所有权；不要直接对可能由其他业务共享的名称调用 `removeScope`，该操作会关闭句柄并清理当前 store。有效 Job、已完成/取消 Job 以及直接 `bindTo` 的关闭语义以 core 指南为准。
+
+### Job 看似活跃，但 onSubscribed 从未触发
+
+除检查来源、key 和实际 owner 生命周期外，还要检查最低收集状态。阈值只应为 `CREATED`、`STARTED` 或 `RESUMED`；`DESTROYED` 不是一种“销毁时收集”的模式。1.3.0 接受该参数时可能返回活跃 Job 而不订阅；1.3.1 候选会像拒绝 `INITIALIZED` 一样同步抛出 `IllegalArgumentException`，便捷入口也不会先获取全局/owner 总线。Android 参数与副作用回归、Compose 候选新增 API21/35 真实阶段均已通过，具体受测提交见开发说明。
+
+owner 本身已经销毁且阈值合法时，应正常不订阅并完成 Job。不要把这种情况改成非法阈值，也不要捕获所有异常后当作订阅成功。
+
+升级测试需要重新编译消费者：inline `collectEvent` 的校验和旧 reified wrapper 的来源获取顺序可能已内嵌到调用方，单纯替换 AAR 不会更新这些字节码。使用候选 release R8 包核对实际解析版本，再按对应入口验证；候选本地测试通过不等于公开发布或完整 API 21/35 验收。

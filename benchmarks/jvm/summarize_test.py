@@ -46,7 +46,7 @@ class IdentityValidationTest(unittest.TestCase):
             "benchmarks/jvm/src/main/Workload.kt": "class Workload",
             "benchmarks/jvm/build.gradle.kts": "build script",
             "benchmarks/jvm/settings.gradle.kts": "settings script",
-            "gradle.properties": "VERSION_NAME=1.3.0-SNAPSHOT\n",
+            "gradle.properties": "VERSION_NAME=1.3.1\n",
             "candidate.jar": "candidate bytes",
         }.items():
             path = self.root / name
@@ -60,7 +60,7 @@ class IdentityValidationTest(unittest.TestCase):
         self.report.parent.mkdir(parents=True)
         self.report.write_text('[{"measurement": "current"}]\n')
         self.candidate = self.root / "candidate.jar"
-        self.version = "1.3.0-SNAPSHOT"
+        self.version = "1.3.1"
         self.sidecar = self.report.with_name("candidate.identity.json")
         self.identity = {
             "schemaVersion": 1, "target": "candidate", "reportSha256": summarize.digest(self.report),

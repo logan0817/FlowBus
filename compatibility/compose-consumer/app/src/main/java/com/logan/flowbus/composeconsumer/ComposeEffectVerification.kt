@@ -23,6 +23,7 @@ import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.yield
 
 private class VerificationOwner : LifecycleOwner {
     val registry = LifecycleRegistry(this)
@@ -77,6 +78,32 @@ internal fun ComposeEffectVerification(runId: String) {
     var callbackRevision by remember { mutableStateOf(1) }
     var status by remember { mutableStateOf("RUNNING runId=$runId") }
     val phases = remember { mutableListOf<String>() }
+    val legacySource = remember { FlowBus() }
+    val legacyKey = remember { eventKey<EffectProbe>("consumer.binary.130.compose") }
+    val legacyOwner = remember { VerificationOwner() }
+    val legacySubscriptions = remember { Channel<Unit>(Channel.UNLIMITED) }
+    val legacyCallbackUpdated = remember { CompletableDeferred<Unit>() }
+    var legacyCallbackRevision by remember { mutableStateOf(1) }
+    var legacyVisible by remember { mutableStateOf(true) }
+    val legacyCallbackTag = legacyCallbackRevision
+    if (legacyVisible) {
+        Legacy130FlowBusEffect(legacySource, legacyKey, legacyOwner,
+            onSubscribed = { check(legacySubscriptions.trySend(Unit).isSuccess) }) { probe ->
+            probe.callbackRevision = legacyCallbackTag
+            probe.deliveryCount += 1
+            probe.entered.complete(Unit)
+            if (probe.hold) {
+                try {
+                    awaitCancellation()
+                } finally {
+                    probe.cancelled.complete(Unit)
+                }
+            }
+        }
+    }
+    SideEffect {
+        if (legacyCallbackTag == 2) legacyCallbackUpdated.complete(Unit)
+    }
 
     val callbackTag = callbackRevision
     val sourceAtComposition = source
@@ -240,6 +267,35 @@ internal fun ComposeEffectVerification(runId: String) {
                 afterDestroy.entered.await()
                 check(errors.size == 1) // 协作式取消不能交给普通异常策略。
                 passed("destroyed-source-retained")
+
+                legacySubscriptions.receive()
+                val legacyFirst = EffectProbe()
+                check(legacySource.post(legacyKey, legacyFirst))
+                legacyFirst.entered.await()
+                check(legacyFirst.callbackRevision == 1 && legacyFirst.deliveryCount == 1)
+                legacyCallbackRevision = 2
+                legacyCallbackUpdated.await()
+                check(legacySubscriptions.tryReceive().isFailure)
+                val legacyPending = EffectProbe(hold = true)
+                check(legacySource.post(legacyKey, legacyPending))
+                legacyPending.entered.await()
+                check(legacyPending.callbackRevision == 2 && legacyPending.deliveryCount == 1)
+                legacyOwner.registry.currentState = Lifecycle.State.CREATED
+                legacyPending.cancelled.await()
+                val legacyOffline = EffectProbe()
+                check(legacySource.post(legacyKey, legacyOffline))
+                check(!legacyOffline.entered.isCompleted)
+                legacyOwner.registry.currentState = Lifecycle.State.STARTED
+                legacySubscriptions.receive()
+                val legacyResumed = EffectProbe(hold = true)
+                check(legacySource.post(legacyKey, legacyResumed))
+                legacyResumed.entered.await()
+                check(legacyResumed.callbackRevision == 2 && legacyResumed.deliveryCount == 1)
+                legacyVisible = false
+                legacyResumed.cancelled.await()
+                while (legacySource.inspectChannel(legacyKey)?.normalSubscriptionCount != 0) yield()
+                check(!legacyOffline.entered.isCompleted)
+                passed("binary-1.3.0-composable")
                 status = "PASS API=${Build.VERSION.SDK_INT} checks=${phases.size} runId=$runId"
                 Log.i("FlowBusCompose", status)
             }
@@ -252,6 +308,9 @@ internal fun ComposeEffectVerification(runId: String) {
             Log.e("FlowBusCompose", status, error)
         } finally {
             visible = false
+            legacyVisible = false
+            legacyOwner.registry.currentState = Lifecycle.State.DESTROYED
+            legacySubscriptions.close()
             owners.forEach { it.registry.currentState = Lifecycle.State.DESTROYED }
             subscriptions.close()
         }

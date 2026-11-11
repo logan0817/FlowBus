@@ -14,6 +14,7 @@ import com.logan.flowbus.core.eventKey
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -391,7 +392,36 @@ class InstanceCollectEventTest {
     }
 
     @Test
-    fun `all instance entry points reject initialized before starting collection`() = runTest {
+    fun `destroyed threshold is rejected synchronously before creating a subscription`() = runTest {
+        val main = StandardTestDispatcher(testScheduler)
+        Dispatchers.setMain(main)
+        val owner = Owner()
+        val bus = FlowBus()
+        val key = eventKey<Int>("instance.destroyed.threshold")
+        var job: Job? = null
+        try {
+            owner.registry.currentState = Lifecycle.State.RESUMED
+            assertThrows(IllegalArgumentException::class.java) {
+                job = owner.collectEventFromSuspending(
+                    from = bus,
+                    key = key,
+                    onSubscribed = { fail("Invalid threshold must not subscribe") },
+                    dispatcher = main,
+                    minLifecycleState = Lifecycle.State.DESTROYED,
+                    onReceived = { fail("Invalid threshold must not receive") }
+                )
+            }
+            assertNull(bus.inspectChannel(key))
+        } finally {
+            job?.cancelAndJoin()
+            owner.registry.currentState = Lifecycle.State.DESTROYED
+            runCurrent()
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    fun `all instance entry points reject invalid thresholds before starting collection`() = runTest {
         val main = StandardTestDispatcher(testScheduler)
         Dispatchers.setMain(main)
         val owner = Owner()
@@ -399,21 +429,39 @@ class InstanceCollectEventTest {
         val key = eventKey<Int>("instance.invalid")
         val scoped = bus.scoped("invalid")
         val handle = bus.openScope("invalid.handle")
-        val calls = listOf<() -> Unit>(
-            { owner.collectEventFrom(bus, key, main, Lifecycle.State.INITIALIZED) {} },
-            { owner.collectEventFrom(scoped, key, main, Lifecycle.State.INITIALIZED) {} },
-            { owner.collectEventFrom(handle, key, main, Lifecycle.State.INITIALIZED) {} },
-            { owner.collectEventFromSuspending(bus, key, main, Lifecycle.State.INITIALIZED) {} },
-            { owner.collectEventFromSuspending(scoped, key, main, Lifecycle.State.INITIALIZED) {} },
-            { owner.collectEventFromSuspending(handle, key, main, Lifecycle.State.INITIALIZED) {} },
-            { owner.collectEventSuspending(flowOf(1), main, Lifecycle.State.INITIALIZED) {} }
-        )
+        val returnedJobs = mutableListOf<Job>()
+        var subscriptions = 0
+        var received = 0
         try {
-            calls.forEach { call ->
-                try { call(); fail("Must reject INITIALIZED") }
-                catch (expected: IllegalArgumentException) { assertTrue(expected.message.orEmpty().contains("INITIALIZED")) }
+            owner.registry.currentState = Lifecycle.State.RESUMED
+            for (state in listOf(Lifecycle.State.INITIALIZED, Lifecycle.State.DESTROYED)) {
+                val calls = listOf<() -> Job>(
+                    { owner.collectEventFrom(bus, key, main, state) { received++ } },
+                    { owner.collectEventFrom(scoped, key, main, state) { received++ } },
+                    { owner.collectEventFrom(handle, key, main, state) { received++ } },
+                    { owner.collectEventFromSuspending(bus, key, main, state) { received++ } },
+                    { owner.collectEventFromSuspending(scoped, key, main, state) { received++ } },
+                    { owner.collectEventFromSuspending(handle, key, main, state) { received++ } },
+                    { owner.collectEventFromSuspending(bus, key, { subscriptions++ }, main, state) { received++ } },
+                    { owner.collectEventFromSuspending(scoped, key, { subscriptions++ }, main, state) { received++ } },
+                    { owner.collectEventFromSuspending(handle, key, { subscriptions++ }, main, state) { received++ } }
+                )
+                calls.forEach { call ->
+                    val error = assertThrows(IllegalArgumentException::class.java) { returnedJobs += call() }
+                    assertTrue(error.message.orEmpty().contains(state.name))
+                }
             }
+            runCurrent()
+            assertEquals(0, subscriptions)
+            assertEquals(0, received)
+            assertNull(bus.inspectChannel(key))
+            assertNull(scoped.inspectChannel(key))
+            assertNull(handle.inspectChannel(key))
+            assertFalse(handle.isClosed)
         } finally {
+            returnedJobs.forEach { it.cancelAndJoin() }
+            owner.registry.currentState = Lifecycle.State.DESTROYED
+            runCurrent()
             handle.close()
             Dispatchers.resetMain()
         }

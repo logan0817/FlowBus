@@ -12,8 +12,8 @@ val candidateVersion = Properties().apply {
 val candidateJar = rootDir.resolve("../../build/candidate-maven/io/github/logan0817/flowbus-core/$candidateVersion/flowbus-core-$candidateVersion.jar")
 val target = providers.gradleProperty("benchmark.target").orElse("candidate").get()
 require(target in setOf("baseline", "candidate", "shared"))
-val baselineVersion = "1.2.0"
-val baselineSha256 = "525c10846d00e7a41f932ac0ce45dba47b7b8b1da58bc68266e33df4a4b974f2"
+val baselineVersion = "1.3.0"
+val baselineSha256 = "3e15654a40e3a071d2ca2df51efa1288587d96f407de690c30369092ad2149b4"
 val baseline by configurations.creating
 configurations.runtimeClasspath { exclude(group = "io.github.logan0817", module = "flowbus-core") }
 dependencies {

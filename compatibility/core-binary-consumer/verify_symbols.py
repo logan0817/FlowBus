@@ -56,6 +56,15 @@ def sha256(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def private_nested_classes(output):
+    """只识别原版 InnerClasses 属性明确标记 private 的实现类，不按命名猜测。"""
+    return {
+        match.group(1).replace("/", ".")
+        for line in output.splitlines()
+        if (match := re.match(r"\s+private\s+.*//\s+[^=]+=class\s+(\S+)\s+of class\s+", line))
+    }
+
+
 @contextmanager
 def classes_jar(artifact):
     artifact = Path(artifact)
@@ -72,11 +81,11 @@ def classes_jar(artifact):
 def inspect(javap, artifact):
     with classes_jar(artifact) as jar:
         process = subprocess.run(
-            [javap, "-protected", "-v", "-classpath", str(jar), *class_names(jar)],
+            [javap, "-p", "-v", "-classpath", str(jar), *class_names(jar)],
             text=True, capture_output=True, check=True
         )
         members, excluded = parse_members(process.stdout)
-        return members, excluded, sha256(jar)
+        return members, excluded, sha256(jar), private_nested_classes(process.stdout)
 
 
 def verify_artifact_hashes(evidence):
@@ -92,6 +101,12 @@ def compare(old, new):
             missing.append([name, "<class>"])
         missing.extend([name, *member] for member in sorted(members - new.get(name, set())))
     return missing
+
+
+def partition_changes(old, new, private_classes):
+    all_changes = compare(old, new)
+    missing = compare({name: members for name, members in old.items() if name not in private_classes}, new)
+    return missing, [change for change in all_changes if change not in missing]
 
 
 def public_api_members(snapshot):
@@ -125,6 +140,7 @@ def main():
     parser.add_argument("--javap", default="javap")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
+    args.output.unlink(missing_ok=True)
     if args.runtime_report:
         if args.candidate_artifact:
             parser.error("--candidate-artifact requires --baseline-artifact")
@@ -137,8 +153,8 @@ def main():
             evidence[role + "Jar"] = str(artifact.resolve())
             evidence[role + "Sha256"] = sha256(artifact)
     verify_artifact_hashes(evidence)
-    old, excluded, baseline_classes_sha = inspect(args.javap, evidence["baselineJar"])
-    new, _, candidate_classes_sha = inspect(args.javap, evidence["candidateJar"])
+    old, excluded, baseline_classes_sha, private_classes = inspect(args.javap, evidence["baselineJar"])
+    new, _, candidate_classes_sha, _ = inspect(args.javap, evidence["candidateJar"])
     verify_artifact_hashes(evidence)
     all_changes = compare(old, new)
     supported = public_api_members(args.baseline_api_snapshot) if args.baseline_api_snapshot else None
@@ -150,8 +166,7 @@ def main():
         # 原始 JVM 差异继续记录；公开快照之外的 internal 成员不作为受支持 API 门禁。
         other_changes = [change for change in all_changes if change not in missing]
     else:
-        missing = all_changes
-        other_changes = []
+        missing, other_changes = partition_changes(old, new, private_classes)
     summary = {
         "baselineSha256": evidence["baselineSha256"],
         "candidateSha256": evidence["candidateSha256"],
@@ -165,6 +180,7 @@ def main():
         "publicApiSnapshot": str(args.baseline_api_snapshot.resolve()) if supported is not None else None,
         "supportedPublicDescriptors": sum(map(len, supported.values())) if supported is not None else None,
         "excludedSyntheticAccessors": excluded,
+        "privateImplementationClasses": sorted(private_classes),
         "missingDescriptors": missing,
         "otherJvmRemovals": other_changes,
         "scope": "Stable named classes, declared public/protected JVM descriptors and static/instance form. Not full ABI or behavior certification; AAR checks inspect classes.jar only."

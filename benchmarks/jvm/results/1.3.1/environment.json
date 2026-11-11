@@ -1,0 +1,293 @@
+{
+  "generatedUtc": "2026-11-11T06:06:16.112349+00:00",
+  "commit": "c90cb55f68fe2f49ebb5cf02914dcde9370469b6",
+  "os": "macOS-26.5.2-arm64-arm-64bit",
+  "machine": "arm64",
+  "logicalCpus": 8,
+  "initialEnvironment": "Wed Nov 11 05:48:58 UTC 2026\nDarwin arm64\nMacBookPro17,1\n8\n17179869184\n13:48  up 2 days,  2:22, 1 user, load averages: 10.50 15.75 11.68\n  PID  %CPU\n70308   0.0\n95301   0.0\n",
+  "observations": [
+    {
+      "utc": "2026-11-11T06:03:01.293102+00:00",
+      "load": [
+        51.21875,
+        20.59716796875,
+        13.65869140625
+      ],
+      "machine": "arm64",
+      "sample": "reverse baseline active1",
+      "knownOtherProjectGradleCpu": "163.8",
+      "swap": "total = 16384.00M  used = 15370.38M  free = 1013.62M  (encrypted)",
+      "limitation": "Other workspace processes were left running; no process or global environment was modified."
+    }
+  ],
+  "archiveNote": "Rows retain raw iteration values and percentiles, but omit rawDataHistogram; originalReportSha256 and each identity refer to original unmodified JMH JSON. These are eight directed groups, not a complete three-adapter report.",
+  "status": "Directed formal CI comparison accepted: comparable timings, no material regression observed in measured scenarios; JVM only.",
+  "finalComparisonObservations": [
+    {
+      "utc": "2026-11-11T06:07:10.622547+00:00",
+      "load": [
+        17.986328125,
+        20.81005859375,
+        15.67431640625
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:07:25.637587+00:00",
+      "load": [
+        18.2255859375,
+        20.734375,
+        15.73681640625
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:07:40.644406+00:00",
+      "load": [
+        15.91162109375,
+        20.0947265625,
+        15.59521484375
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:07:55.653240+00:00",
+      "load": [
+        13.46337890625,
+        19.35302734375,
+        15.4091796875
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:08:10.664194+00:00",
+      "load": [
+        16.18359375,
+        19.66259765625,
+        15.587890625
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:08:25.681170+00:00",
+      "load": [
+        15.67529296875,
+        19.37060546875,
+        15.5537109375
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:08:40.692231+00:00",
+      "load": [
+        16.15380859375,
+        19.2880859375,
+        15.59033203125
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:08:55.717377+00:00",
+      "load": [
+        17.78662109375,
+        19.48779296875,
+        15.72509765625
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:09:10.783473+00:00",
+      "load": [
+        19.4423828125,
+        19.8251953125,
+        15.9140625
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:09:25.805189+00:00",
+      "load": [
+        22.08203125,
+        20.40185546875,
+        16.1884765625
+      ],
+      "otherProjectGradleCpu": "0.1"
+    },
+    {
+      "utc": "2026-11-11T06:09:40.841424+00:00",
+      "load": [
+        19.2568359375,
+        19.85888671875,
+        16.06787109375
+      ],
+      "otherProjectGradleCpu": "0.1"
+    },
+    {
+      "utc": "2026-11-11T06:09:55.867212+00:00",
+      "load": [
+        18.978515625,
+        19.7802734375,
+        16.1064453125
+      ],
+      "otherProjectGradleCpu": "1.3"
+    },
+    {
+      "utc": "2026-11-11T06:10:10.905277+00:00",
+      "load": [
+        20.40771484375,
+        20.0654296875,
+        16.2724609375
+      ],
+      "otherProjectGradleCpu": "0.3"
+    },
+    {
+      "utc": "2026-11-11T06:10:25.949694+00:00",
+      "load": [
+        19.39990234375,
+        19.87744140625,
+        16.2724609375
+      ],
+      "otherProjectGradleCpu": "1.7"
+    },
+    {
+      "utc": "2026-11-11T06:10:40.972401+00:00",
+      "load": [
+        18.66162109375,
+        19.6875,
+        16.26708984375
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:10:55.986256+00:00",
+      "load": [
+        18.00439453125,
+        19.47705078125,
+        16.25048828125
+      ],
+      "otherProjectGradleCpu": "1.5"
+    },
+    {
+      "utc": "2026-11-11T06:11:11.011333+00:00",
+      "load": [
+        16.6552734375,
+        19.095703125,
+        16.16943359375
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:11:26.021782+00:00",
+      "load": [
+        14.7490234375,
+        18.55224609375,
+        16.02587890625
+      ],
+      "otherProjectGradleCpu": "1.6"
+    },
+    {
+      "utc": "2026-11-11T06:11:41.043694+00:00",
+      "load": [
+        13.96533203125,
+        18.197265625,
+        15.94287109375
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:11:56.053096+00:00",
+      "load": [
+        11.69580078125,
+        17.4853515625,
+        15.7275390625
+      ],
+      "otherProjectGradleCpu": "1.2"
+    },
+    {
+      "utc": "2026-11-11T06:12:11.059125+00:00",
+      "load": [
+        10.4697265625,
+        16.923828125,
+        15.55712890625
+      ],
+      "otherProjectGradleCpu": "0.2"
+    },
+    {
+      "utc": "2026-11-11T06:12:26.066863+00:00",
+      "load": [
+        9.9521484375,
+        16.4873046875,
+        15.4248046875
+      ],
+      "otherProjectGradleCpu": "1.7"
+    },
+    {
+      "utc": "2026-11-11T06:12:41.087631+00:00",
+      "load": [
+        9.29052734375,
+        16.021484375,
+        15.2763671875
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:12:56.097658+00:00",
+      "load": [
+        8.86767578125,
+        15.595703125,
+        15.13671875
+      ],
+      "otherProjectGradleCpu": "1.6"
+    },
+    {
+      "utc": "2026-11-11T06:13:11.130334+00:00",
+      "load": [
+        9.28173828125,
+        15.35400390625,
+        15.05810546875
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:13:26.164954+00:00",
+      "load": [
+        10.451171875,
+        15.318359375,
+        15.05029296875
+      ],
+      "otherProjectGradleCpu": "1.5"
+    },
+    {
+      "utc": "2026-11-11T06:13:41.191039+00:00",
+      "load": [
+        15.34326171875,
+        16.14013671875,
+        15.3466796875
+      ],
+      "otherProjectGradleCpu": "0.3"
+    },
+    {
+      "utc": "2026-11-11T06:13:56.232397+00:00",
+      "load": [
+        16.58984375,
+        16.39013671875,
+        15.44970703125
+      ],
+      "otherProjectGradleCpu": "1.1"
+    }
+  ],
+  "ciFormal": {
+    "run": 42971579052,
+    "attempt": 1,
+    "head": "7dd6bdfb6eec1616565a760201b4b84e5e837fc7",
+    "checkout": "1380cf166d7519be2b015e131eeaa43aff120938",
+    "candidateManifestSha256": "073e921d6eb7615e1b59a9f511f4852308a1cf9fe9aec040ffa843d539098437",
+    "runnerEnvironment": "Wed Nov 11 06:25:31 UTC 2026\nLinux x86_64\nArchitecture:                            x86_64\nCPU op-mode(s):                          32-bit, 64-bit\nAddress sizes:                           48 bits physical, 48 bits virtual\nByte Order:                              Little Endian\nCPU(s):                                  4\nOn-line CPU(s) list:                     0-3\nVendor ID:                               AuthenticAMD\nModel name:                              AMD EPYC 9V74 80-Core Processor\nCPU family:                              25\nModel:                                   17\nThread(s) per core:                      2\nCore(s) per socket:                      2\nSocket(s):                               1\nStepping:                                1\nBogoMIPS:                                5192.29\nFlags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology tsc_reliable nonstop_tsc cpuid extd_apicid aperfmperf tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy svm cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext vmmcall fsgsbase bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves user_shstk avx512_bf16 clzero xsaveerptr rdpru arat npt nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm\nVirtualization:                          AMD-V\nHypervisor vendor:                       Microsoft\nVirtualization type:                     full\nL1d cache:                               64 KiB (2 instances)\nL1i cache:                               64 KiB (2 instances)\nL2 cache:                                2 MiB (2 instances)\nL3 cache:                                32 MiB (1 instance)\nNUMA node(s):                            1\nNUMA node0 CPU(s):                       0-3\nVulnerability Gather data sampling:      Not affected\nVulnerability Ghostwrite:                Not affected\nVulnerability Indirect target selection: Not affected\nVulnerability Itlb multihit:             Not affected\nVulnerability L1tf:                      Not affected\nVulnerability Mds:                       Not affected\nVulnerability Meltdown:                  Not affected\nVulnerability Mmio stale data:           Not affected\nVulnerability Old microcode:             Not affected\nVulnerability Reg file data sampling:    Not affected\nVulnerability Retbleed:                  Not affected\nVulnerability Spec rstack overflow:      Vulnerable: Safe RET, no microcode\nVulnerability Spec store bypass:         Vulnerable\nVulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization\nVulnerability Spectre v2:                Mitigation; Retpolines; STIBP disabled; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected\nVulnerability Srbds:                     Not affected\nVulnerability Tsa:                       Vulnerable: No microcode\nVulnerability Tsx async abort:           Not affected\nVulnerability Vmscape:                   Not affected\n               total        used        free      shared  buff/cache   available\nMem:           15983        4897        7607          49        3872       11085\nSwap:           3071           0        3071\n 06:25:31 up 3 min,  0 users,  load average: 3.63, 1.85, 0.73\n 06:28:38 up 6 min,  0 users,  load average: 1.94, 1.81, 0.92\n 06:31:46 up 9 min,  0 users,  load average: 2.06, 1.83, 1.09\n",
+    "order": [
+      "baseline",
+      "candidate"
+    ],
+    "candidateJarSha256": "7ee18320f698d9a5a4fb3e822e6ee12751564c70d361c94b2b7b2ef765382806",
+    "acceptance": "Throughput ratios for noSubscribers/stickySend/active1 are approximately 1.003/1.018/0.998 with overlapping scoreError intervals. Sticky allocation is lower; active1 allocation changes vary by mode/fork and remain below the investigation threshold."
+  }
+}
