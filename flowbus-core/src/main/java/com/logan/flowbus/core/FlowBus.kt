@@ -328,9 +328,15 @@ class FlowBus(
 
     /**
      * 打开一个会跟随 [CoroutineScope] 生命周期自动关闭的 scope。
+     *
+     * [closeWhen] 必须包含 [Job]；校验失败不会登记新句柄或修改同名共享 store。
      */
     fun openScope(scopeName: String, closeWhen: CoroutineScope): FlowBusScope {
-        return openScope(scopeName).bindTo(closeWhen)
+        require(scopeName.isNotBlank()) { "scopeName must not be blank" }
+        val job = requireNotNull(closeWhen.coroutineContext[Job]) {
+            "CoroutineScope must contain a Job to bind FlowBusScope '$scopeName'."
+        }
+        return openScope(scopeName, job)
     }
 
     /**
@@ -354,9 +360,18 @@ class FlowBus(
 
     /**
      * 基于已有 [FlowBusOwner] 的 [FlowBusOwner.busScopeName] 打开一个会跟随 [CoroutineScope] 生命周期自动关闭的 scope。
+     *
+     * owner 与 [closeWhen] 在登记前完成校验；校验失败不会取得或清理同名 scope 的所有权。
      */
     fun openScope(owner: FlowBusOwner, closeWhen: CoroutineScope): FlowBusScope {
-        return openScope(owner).bindTo(closeWhen)
+        require(owner !is FlowBusScope || !owner.isClosed) {
+            "FlowBusScope '${owner.busScopeName}' is already closed."
+        }
+        require(owner.busScopeName.isNotBlank()) { "scopeName must not be blank" }
+        val job = requireNotNull(closeWhen.coroutineContext[Job]) {
+            "CoroutineScope must contain a Job to bind FlowBusScope '${owner.busScopeName}'."
+        }
+        return openScope(owner, job)
     }
 
     /**

@@ -67,6 +67,10 @@ The latest released version is **1.3.0**, available from Maven Central. Features
 
 <a id="start-with-the-shortest-path"></a>
 
+**1.3.1 is not published**. The candidate implements scope validation before registration and sticky reentrant publication ordering, with local behavior regressions passing. Device, performance and final CI gates remain pending. See the [1.3.1 development notes](../docs/en/release-notes-1.3.1.md).
+
+When a callback receives sticky `1` and immediately publishes `2`, candidate replay keeps `2`. After successful publications complete, replay retains the tail in publication order. Cancelling a suspended sender before successful resumption does not commit replay or retract existing live delivery; cancelling its Job after success does not roll back history. Concurrent live delivery and replay snapshots do not form a cross-coroutine transaction, and `accepted` does not mean business processing completed.
+
 ## Quick start
 
 For a first pass, only remember these 4 patterns:
@@ -257,6 +261,8 @@ scope.launch(start = CoroutineStart.UNDISPATCHED) {
 
 syncScope.post(SyncProgress(percent = 10))
 ```
+
+`closeWhen` must be a `CoroutineScope` whose context contains a `Job`, such as a caller-owned structured scope, rather than a custom context without a Job or `GlobalScope`. The 1.3.1 candidate validates this before registering a handle: failure throws without reserving a new name or changing an existing shared store. A failed `bindTo` on an already held handle does not destroy that handle. See the [troubleshooting notes](../TROUBLESHOOTING.md#131-candidate-boundaries) (Chinese) for the public 1.3.0 registration issue.
 
 If you want to finish it manually:
 

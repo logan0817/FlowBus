@@ -77,6 +77,8 @@ class ConsumerActivity : Activity() {
                     passed += "binary-1.1.0-android"
                     verifyJavaInterop()
                     passed += "java-interop"
+                    Legacy130AndroidCalls.verify()
+                    passed += "binary-1.3.0-android"
                 }
                 val result = "PASS API=${Build.VERSION.SDK_INT} checks=${passed.size} runId=$runId"
                 Log.i(TAG, result)

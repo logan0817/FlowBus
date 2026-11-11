@@ -59,9 +59,9 @@ macOS / Linux：
 | --- | --- |
 | verifyMavenLocalArtifacts | JAR/AAR、POM/module metadata、公开依赖 scope、sources/javadoc、license/developer |
 | verifyMavenLocalCoreConsumer | 候选 core Kotlin/Java 编译与指定 JVM 运行 |
-| [verifyMavenLocalBinaryCoreConsumer](compatibility/core-binary-consumer/README.md) | 原版 1.0.7 / 1.1.0 / 1.2.0 编译、同一字节码在原版/候选运行、稳定 JVM 符号 |
-| [verifyMavenLocalConsumer](compatibility/android-consumer/README.md) | 普通 Android release R8、七阶段含真实 Java 互通、Android AAR 公开符号 |
-| [verifyMavenLocalComposeConsumer](compatibility/compose-consumer/README.md) | 消费可选 flowbus-compose AAR 的 release R8、十一阶段 effect 与八阶段错误/取消设备自检 |
+| [verifyMavenLocalBinaryCoreConsumer](compatibility/core-binary-consumer/README.md) | 原版 1.0.7 / 1.1.0 / 1.2.0 / 1.3.0 编译、同一字节码在原版/候选运行、稳定 JVM 符号 |
+| [verifyMavenLocalConsumer](compatibility/android-consumer/README.md) | 普通 Android release R8、八阶段含原版 1.3.0 Java/Kotlin 字节码互通、Android AAR 公开符号 |
+| [verifyMavenLocalComposeConsumer](compatibility/compose-consumer/README.md) | 消费可选 flowbus-compose AAR 的 release R8、十二阶段 effect 与十一阶段参数/错误/取消设备自检 |
 | [可选 Navigation](compatibility/navigation-consumer/README.md) / [实际 NavHost](compatibility/navhost-consumer/README.md) | 返回栈、动画生命周期阈值与 Activity 配置重建 |
 
 消费者参数不会修改基础库：
@@ -72,6 +72,7 @@ macOS / Linux：
 ./gradlew :flowbus-core:verifyCoreRuntime -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8
 ./gradlew verifyMavenLocalBinaryCoreConsumer "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.baselineVersion=1.1.0 -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8
 ./gradlew verifyMavenLocalBinaryCoreConsumer "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.baselineVersion=1.2.0 -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8
+./gradlew verifyMavenLocalBinaryCoreConsumer "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.baselineVersion=1.3.0 -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8
 ```
 
 Kotlin 参数只选择 core/普通 Android 消费者编译器，不用于 Compose compiler 配对。已测组合、实际依赖解析和未认证范围统一见[兼容性评估](docs/compatibility.md)。
@@ -129,6 +130,6 @@ repositories {
 }
 ```
 
-Android 使用 `implementation("io.github.logan0817:flowbus:1.3.0")`；纯 JVM 使用 `implementation("io.github.logan0817:flowbus-core:1.3.0")`。若使用集中仓库管理，将仓库配置放入消费者 `settings.gradle.kts` 的 `dependencyResolutionManagement.repositories`。不要把本地候选安装成功当作正式发布或完整设备验收。
+本地候选 Android 使用 `implementation("io.github.logan0817:flowbus:1.3.1")`；纯 JVM 使用 `implementation("io.github.logan0817:flowbus-core:1.3.1")`。若使用集中仓库管理，将仓库配置放入消费者 `settings.gradle.kts` 的 `dependencyResolutionManagement.repositories`。不要把本地候选安装成功当作正式发布或完整设备验收。
 
-当前源码版本为已发布的 1.3.0；Compose 消费者按需添加 `io.github.logan0817:flowbus-compose:1.3.0`。本地修改生成的候选不代表这些新修改已公开发布；不要覆盖已发布版本。
+当前源码版本为未发布的 1.3.1；Compose 候选消费者按需添加 `io.github.logan0817:flowbus-compose:1.3.1`。本地修改生成的候选不代表这些新修改已公开发布；不要覆盖已发布版本。

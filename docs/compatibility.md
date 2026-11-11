@@ -4,6 +4,12 @@
 
 正式 1.3.0 发布 Kotlin/JVM core、Android 适配和可选 Compose 三个坐标。Android 和 Compose 坐标传递依赖同版本 core，不提供 Kotlin Multiplatform、跨进程或 Navigation 制品。
 
+## 1.3.1 候选验证
+
+当前源码为未发布的 1.3.1；生产依赖、最低 SDK、Java 字节码与构建基线保持不变。新增原版 1.3.0 core/Android/Compose 公开符号和冻结消费者字节码验证；Android/effect/policy 分别要求 8/12/11 阶段。当前本地和远端验证状态统一记录在 [1.3.1 开发说明](release-notes-1.3.1.md)，以下历史通过不能替代本次候选验收。
+
+非法生命周期阈值现在同步拒绝；旧 inline/reified 调用可能内嵌旧行为，获得完整修复须重新编译消费者。合法阈值与现有公共签名保持兼容。
+
 ## 1.3.0 发布验收
 
 当前正式版本为已发布的 1.3.0。基础 minSdk 21、Java 8、Kotlin 1.9.25、Coroutines 1.8.1 与 Lifecycle 2.6.2 保持；可选 Compose 使用 runtime 1.5.4/compiler 1.5.15，不进入既有两个基础坐标。新增正式 1.2.0 core 同字节码和 Android 符号基线。最终 main CI 九项检查全部通过，包含 Kotlin 1.8.22 / 1.9.22 / 2.0.21 / 2.1.0、Java 8、真实 Maven/R8 及 API 21/35 设备验证。公开文件与消费者验收见[发布说明](release-notes-1.3.0.md)。

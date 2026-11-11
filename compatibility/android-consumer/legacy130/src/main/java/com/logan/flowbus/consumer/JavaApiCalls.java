@@ -8,7 +8,7 @@ import com.logan.flowbus.core.FlowBusChannelSnapshot;
 import com.logan.flowbus.core.FlowBusPostResult;
 import java.util.concurrent.atomic.AtomicReference;
 
-/** 真实 Java 编译及 R8 消费者；业务调用不引用 Kotlin Unit、KClass 或协程参数。 */
+/** 对正式 1.3.0 编译的 Java 调用，候选 APK 复用该 JAR 后执行完整互通自检。 */
 public final class JavaApiCalls {
     private JavaApiCalls() {}
 

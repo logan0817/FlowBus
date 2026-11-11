@@ -63,6 +63,10 @@
 implementation("io.github.logan0817:flowbus-core:1.3.0")
 ```
 
+**1.3.1 尚未发布**。当前候选已实现 scope 绑定参数的登记前校验和 sticky 回调重入顺序修复，本地行为回归通过；设备、性能和最终 CI 仍待验收。状态见 [1.3.1 开发说明](../docs/release-notes-1.3.1.md)。
+
+回调收到 sticky `1` 并立即发送 `2` 后，候选的最近 replay 保持 `2`；多个成功发布完成后，历史缓存保留发布顺序的尾部。挂起发送尚未成功恢复前取消时，不提交 replay；已实时交付不撤回，成功发送之后取消 Job 也不回滚历史。并发实时投递与 replay 快照不是跨协程事务，`accepted` 不代表业务处理完成。
+
 最新正式版本为 **1.3.0**，已发布到 Maven Central。下文标记“1.3 起”的能力可通过以上正式坐标使用；发布验证见[发布说明](../docs/release-notes-1.3.0.md)，本地修改的候选验证见[发布清单](../docs/release-checklist.md)。
 
 <a id="先看最短路径"></a>
@@ -254,6 +258,8 @@ scope.launch(start = CoroutineStart.UNDISPATCHED) {
 
 syncScope.post(SyncProgress(percent = 10))
 ```
+
+传给 `closeWhen` 的 `CoroutineScope` 必须包含 `Job`；例如调用方持有的结构化协程作用域，而不是无 Job 的自定义上下文或 `GlobalScope`。1.3.1 候选在登记句柄前校验：失败时抛错但不占用新名称，不修改已有同名共享 store。直接对已有句柄调用 `bindTo` 失败时，原句柄仍由调用方持有，不应一并销毁。公开 1.3.0 的创建失败登记问题见[排障说明](../TROUBLESHOOTING.md#131-candidate-boundaries)。
 
 如果你想手动结束：
 

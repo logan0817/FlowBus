@@ -1,0 +1,128 @@
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+import java.security.MessageDigest
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
+import org.gradle.api.artifacts.component.ProjectComponentIdentifier
+import org.gradle.api.tasks.bundling.Jar
+
+plugins {
+    id("com.android.library") version "@AGP@"
+    kotlin("android") version "@KOTLIN@"
+}
+
+android {
+    namespace = "com.logan.flowbus.@ROLE@.legacy130"
+    compileSdk = @COMPILE_SDK@
+    defaultConfig { minSdk = 21 }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+    kotlinOptions { jvmTarget = "1.8" }
+    @COMPOSE_CONFIG@
+}
+
+dependencies {
+    compileOnly(fileTree("baseline") { include("*.jar") })
+    compileOnly("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+    compileOnly("androidx.lifecycle:lifecycle-runtime-ktx:@LIFECYCLE@")
+    compileOnly("androidx.lifecycle:lifecycle-viewmodel-ktx:@LIFECYCLE@")
+    @COMPOSE_DEPENDENCY@
+}
+
+fun digest(file: File): String = MessageDigest.getInstance("SHA-256").digest(file.readBytes())
+    .joinToString("") { "%02x".format(it.toInt() and 255) }
+val classes = files(layout.buildDirectory.dir("tmp/kotlin-classes/release"),
+    layout.buildDirectory.dir("intermediates/javac/release/compileReleaseJavaWithJavac/classes"))
+fun compiledClasses(): Map<String, String> = classes.files.sortedBy { it.path }.flatMap { directory ->
+    directory.walkTopDown().filter { it.isFile && it.extension == "class" }.map {
+        directory.name + "/" + it.relativeTo(directory).invariantSeparatorsPath to digest(it)
+    }.toList()
+}.toMap().toSortedMap()
+val compileIdentity = layout.buildDirectory.file("reports/compile-identity.json")
+val runtimeIdentity = layout.buildDirectory.file("reports/binary-compatibility.json")
+val frozen = tasks.register<Jar>("freezeLegacy130") {
+    dependsOn("compileReleaseKotlin", "compileReleaseJavaWithJavac")
+    inputs.file("baseline/identity.json")
+    inputs.files(fileTree("baseline") { include("*.jar") })
+    from(classes)
+    archiveFileName.set("legacy130-@ROLE@.jar")
+    destinationDirectory.set(layout.buildDirectory.dir("frozen"))
+    outputs.file(compileIdentity)
+    doFirst {
+        compileIdentity.get().asFile.delete()
+        val allowed = fileTree("baseline") { include("*.jar") }.files.map { it.canonicalFile }.toSet()
+        val compileFiles = configurations.getByName("releaseCompileClasspath").files
+        check(compileFiles.none { it.name.startsWith("flowbus") && it.canonicalFile !in allowed }) {
+            "Candidate dependency leaked into original 1.3.0 fixture compilation"
+        }
+        val metadata = JsonSlurper().parse(file("baseline/identity.json")) as Map<*, *>
+        val expectedClasses = metadata["classesSha256"] as Map<*, *>
+        expectedClasses.forEach { (name, sha) ->
+            check(digest(file("baseline/$name")) == sha) { "Original 1.3.0 fixture input digest changed: $name" }
+        }
+        check(compiledClasses().isNotEmpty()) { "No original fixture classes were compiled" }
+    }
+    doLast {
+        val report = compileIdentity.get().asFile
+        report.parentFile.mkdirs()
+        report.writeText(JsonOutput.prettyPrint(JsonOutput.toJson(mapOf(
+            "baselineVersion" to "1.3.0", "role" to "@ROLE@",
+            "baseline" to JsonSlurper().parse(file("baseline/identity.json")),
+            "compiledClasses" to compiledClasses(), "fixtureJarSha256" to digest(archiveFile.get().asFile)
+        ))) + "\n")
+    }
+}
+
+val verifyLegacy130Identity = tasks.register("verifyLegacy130Identity") {
+    dependsOn(frozen)
+    mustRunAfter(":app:assembleRelease")
+    doLast {
+        runtimeIdentity.get().asFile.delete()
+        val recorded = JsonSlurper().parse(compileIdentity.get().asFile) as Map<*, *>
+        check(recorded["compiledClasses"] == compiledClasses()) { "Original fixture bytecode changed during candidate build" }
+        check(recorded["fixtureJarSha256"] == digest(frozen.get().archiveFile.get().asFile)) {
+            "Original fixture JAR changed during candidate build"
+        }
+        val dependencies = project(":app").configurations.getByName("releaseRuntimeClasspath")
+        // AGP 项目依赖同时暴露多种产物；这里只读取外部及本地文件，避免无类型地解析项目变体。
+        val resolved = dependencies.incoming.artifactView {
+            componentFilter { it !is ProjectComponentIdentifier }
+        }.artifacts.artifacts
+        val flowbus = resolved.filter {
+            (it.id.componentIdentifier as? ModuleComponentIdentifier)?.group == "@GROUP@"
+        }
+        check(flowbus.map { (it.id.componentIdentifier as ModuleComponentIdentifier).module }.toSet() ==
+            setOf(@RUNTIME_MODULES@)) { "Missing candidate runtime module" }
+        check(flowbus.all {
+            (it.id.componentIdentifier as ModuleComponentIdentifier).version == "@CANDIDATE_VERSION@"
+        }) { "Old FlowBus runtime leaked into candidate" }
+        check(resolved.none { it.file.canonicalPath.startsWith(file("baseline").canonicalPath + File.separator) }) {
+            "Original fixture input leaked into candidate runtime"
+        }
+        val expected = mapOf(@CANDIDATE_ARTIFACTS@)
+        flowbus.forEach { artifact ->
+            val name = (artifact.id.componentIdentifier as ModuleComponentIdentifier).module
+            check(digest(artifact.file) == digest(file(checkNotNull(expected[name])))) {
+                "Runtime artifact differs from sealed candidate: " + name
+            }
+        }
+        val report = runtimeIdentity.get().asFile
+        report.parentFile.mkdirs()
+        report.writeText(JsonOutput.prettyPrint(JsonOutput.toJson(mapOf(
+            "baselineVersion" to "1.3.0", "candidateVersion" to "@CANDIDATE_VERSION@",
+            "sameCompiledClasses" to true, "compileIdentity" to recorded,
+            "runtimeArtifacts" to flowbus.associate {
+                (it.id.componentIdentifier as ModuleComponentIdentifier).module to digest(it.file)
+            },
+            "runtimeDependencies" to dependencies.incoming.resolutionResult.allComponents
+                .map { it.id.displayName }.sorted(),
+            "deviceExecution" to "required-separately"
+        ))) + "\n")
+    }
+}
+
+// 即使原版编译或冻结依赖失败，也不能留下上次的成功验收报告。
+gradle.taskGraph.whenReady {
+    if (hasTask(verifyLegacy130Identity.get())) runtimeIdentity.get().asFile.delete()
+}

@@ -5,11 +5,17 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.onSubscription
 import kotlinx.coroutines.flow.transform
-import java.util.ArrayDeque
+import java.util.TreeMap
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
+import kotlin.coroutines.intrinsics.startCoroutineUninterceptedOrReturn
+import kotlin.coroutines.intrinsics.suspendCoroutineUninterceptedOrReturn
 import kotlin.reflect.KClass
 
 internal class FlowBusStore(
@@ -42,13 +48,14 @@ internal class FlowBusStore(
         var stickyReplayCount = 0
         val subscriptionCount: Int
         val accepted = if (isSticky) {
-            synchronized(stickyReplayLock) {
+            val (flow, stickyValue) = synchronized(stickyReplayLock) {
                 val flow = getStickyEventFlow(key.name, channelConfig)
                 subscriptionCount = flow.subscriptionCount
-                val accepted = flow.tryEmit(value)
-                stickyReplayCount = flow.replayCache.size
-                accepted
+                flow to flow.prepare(value)
             }
+            val accepted = flow.tryEmit(stickyValue)
+            stickyReplayCount = flow.replaySize
+            accepted
         } else {
             val flow = getNormalEventFlow(key.name, channelConfig)
             subscriptionCount = flow.subscriptionCount.value
@@ -102,32 +109,13 @@ internal class FlowBusStore(
         scopeName: String?,
         channelConfig: ResolvedFlowBusChannelConfig
     ) {
-        if (channelConfig.stickyReplay == 0 && channelConfig.stickyExtraBufferCapacity == 0) {
+        val (flow, stickyValue) = synchronized(stickyReplayLock) {
             val flow = getStickyEventFlow(key.name, channelConfig)
-            val subscriptionCount = flow.subscriptionCount
-            flow.emit(value)
-            val result = FlowBusPostResult(
-                eventName = key.name,
-                scopeName = scopeName,
-                isSticky = true,
-                accepted = true,
-                outcome = resolvePostOutcome(accepted = true, subscriptionCount = subscriptionCount, overflowPolicy = channelConfig.stickyOverflowPolicy),
-                subscriptionCount = subscriptionCount,
-                stickyReplayCount = 0,
-                overflowPolicy = channelConfig.stickyOverflowPolicy
-            )
-            recordResult(key.name, isSticky = true, result = result)
-            return
-        }
-
-        val flow = synchronized(stickyReplayLock) {
-            getStickyEventFlow(key.name, channelConfig)
+            flow to flow.prepare(value)
         }
         val subscriptionCount = flow.subscriptionCount
-        flow.emit(value)
-        val stickyReplayCount = synchronized(stickyReplayLock) {
-            flow.replayCache.size
-        }
+        flow.emit(stickyValue)
+        val stickyReplayCount = flow.replaySize
         val result = FlowBusPostResult(
             eventName = key.name,
             scopeName = scopeName,
@@ -411,10 +399,9 @@ internal class FlowBusStore(
         val value: Any
     ) {
         private val committed = AtomicBoolean(false)
+        var order: Long = -1L
 
-        fun commit() {
-            committed.set(true)
-        }
+        fun commit(): Boolean = committed.compareAndSet(false, true)
 
         fun isCommitted(): Boolean {
             return committed.get()
@@ -432,82 +419,123 @@ internal class FlowBusStore(
             extraBufferCapacity = replay + extraBufferCapacity,
             onBufferOverflow = onBufferOverflow
         )
-        private val replayValues = ArrayDeque<StickyValue>()
+        private val replayValues = TreeMap<Long, StickyValue>()
+        // 默认 replay=1 只需比较序号，避免每次发送分配树节点和装箱键。
+        private var singleReplayValue: StickyValue? = null
         private val commitLock = Any()
+        private var nextOrder = 0L
+        private var publicationDepth = 0
+        private var deferredResumptions: MutableList<() -> Unit>? = null
         @Volatile
         private var generation = 0L
 
         val replayCache: List<Any>
             get() = synchronized(commitLock) {
-                replayValues.map { it.value }
+                if (replayCapacity == 1) singleReplayValue?.let { listOf(it.value) } ?: emptyList()
+                else replayValues.values.map { it.value }
+            }
+
+        val replaySize: Int
+            get() = synchronized(commitLock) {
+                if (replayCapacity == 1) if (singleReplayValue == null) 0 else 1
+                else replayValues.size
             }
 
         val subscriptionCount: Int
             get() = backing.subscriptionCount.value
 
-        suspend fun emit(value: Any) {
-            val stickyValue = stickyValueOf(value)
-            backing.emit(StickyDelivery.live(stickyValue))
-            commitIfCurrent(stickyValue)
+        suspend fun emit(stickyValue: StickyValue) {
+            suspendCoroutineUninterceptedOrReturn<Unit> { caller ->
+                withPublicationLock {
+                    stickyValue.order = nextOrder++
+                    // 在锁内启动到底层首次挂起，序号与 SharedFlow 入队一致；不跨挂起持锁。
+                    val result = (suspend { backing.emit(StickyDelivery.live(stickyValue)) })
+                        .startCoroutineUninterceptedOrReturn(object : Continuation<Unit> {
+                            override val context = caller.context
+
+                            override fun resumeWith(result: Result<Unit>) {
+                                withPublicationLock {
+                                    if (result.isSuccess) commitIfCurrent(stickyValue)
+                                    deferResumption { caller.resumeWith(result) }
+                                }
+                            }
+                        })
+                    if (result !== COROUTINE_SUSPENDED) commitIfCurrent(stickyValue)
+                    result
+                }
+            }
         }
 
-        fun tryEmit(value: Any): Boolean {
-            val stickyValue = stickyValueOf(value)
-            val accepted = backing.tryEmit(StickyDelivery.live(stickyValue))
-            if (accepted) {
-                commitIfCurrent(stickyValue)
+        fun tryEmit(stickyValue: StickyValue): Boolean = withPublicationLock {
+            stickyValue.order = nextOrder++
+            backing.tryEmit(StickyDelivery.live(stickyValue)).also { accepted ->
+                if (accepted) commitIfCurrent(stickyValue)
             }
-            return accepted
         }
 
         fun resetReplayCache() {
             synchronized(commitLock) {
                 generation += 1
+                singleReplayValue = null
                 replayValues.clear()
             }
         }
 
         fun consumeLatestAndReset(): Any? {
             return synchronized(commitLock) {
-                val latest = replayValues.lastOrNull()?.value ?: return@synchronized null
+                val latest = if (replayCapacity == 1) singleReplayValue?.value
+                    else replayValues.lastEntry()?.value?.value
+                if (latest == null) return@synchronized null
                 generation += 1
+                singleReplayValue = null
                 replayValues.clear()
                 latest
             }
         }
 
-        fun asFlow(): Flow<Any> = asFlow(null)
+        fun asFlow(onSubscribed: (() -> Unit)?): Flow<Any> = flow {
+            // 每次 collect 的 slot 登记和历史快照同属一个临界区，live 不会重复进入本次 replay。
+            suspendCoroutineUninterceptedOrReturn<Unit> { caller ->
+                withPublicationLock {
+                    (suspend {
+                        backing.onSubscription {
+                            val replaySnapshot = replaySnapshot()
+                            awaitPublicationUnlock()
+                            currentCoroutineContext().ensureActive()
+                            if (onSubscribed != null) {
+                                onSubscribed()
+                            }
+                            replaySnapshot.values.forEach { stickyValue ->
+                                if (replaySnapshot.generation == generation) {
+                                    emit(StickyDelivery.replay(stickyValue, replaySnapshot.generation))
+                                }
+                            }
+                        }.transform { delivery ->
+                            awaitPublicationUnlock()
+                            currentCoroutineContext().ensureActive()
+                            val stickyValue = delivery.stickyValue
+                            val replayGeneration = delivery.replayGeneration
+                            val shouldEmit = if (replayGeneration == null) {
+                                stickyValue.generation == generation || stickyValue.isCommitted()
+                            } else {
+                                replayGeneration == generation &&
+                                    stickyValue.generation == generation &&
+                                    stickyValue.isCommitted()
+                            }
+                            if (shouldEmit) emit(stickyValue.value)
+                        }.collect { emit(it) }
+                    }).startCoroutineUninterceptedOrReturn(object : Continuation<Unit> {
+                        override val context = caller.context
 
-        fun asFlow(onSubscribed: (() -> Unit)?): Flow<Any> = backing
-            .onSubscription {
-                val replaySnapshot = replaySnapshot()
-                if (onSubscribed != null) {
-                    currentCoroutineContext().ensureActive()
-                    // 先固定历史快照，避免通知后新写入的 live 值再次进入本次 replay。
-                    onSubscribed()
-                }
-                replaySnapshot.values.forEach { stickyValue ->
-                    if (replaySnapshot.generation == generation) {
-                        emit(StickyDelivery.replay(stickyValue, replaySnapshot.generation))
-                    }
+                        override fun resumeWith(result: Result<Unit>) {
+                            withPublicationLock { deferResumption { caller.resumeWith(result) } }
+                        }
+                    })
                 }
             }
-            .transform { delivery ->
-                val stickyValue = delivery.stickyValue
-                val replayGeneration = delivery.replayGeneration
-                val shouldEmit = if (replayGeneration == null) {
-                    stickyValue.generation == generation || stickyValue.isCommitted()
-                } else {
-                    replayGeneration == generation &&
-                        stickyValue.generation == generation &&
-                        stickyValue.isCommitted()
-                }
-                if (shouldEmit) {
-                    emit(stickyValue.value)
-                }
-            }
+        }
 
-        private fun stickyValueOf(value: Any): StickyValue {
+        fun prepare(value: Any): StickyValue {
             return synchronized(commitLock) {
                 StickyValue(generation = generation, value = value)
             }
@@ -517,21 +545,81 @@ internal class FlowBusStore(
             return synchronized(commitLock) {
                 StickyReplaySnapshot(
                     generation = generation,
-                    values = replayValues.toList()
+                    values = if (replayCapacity == 1) listOfNotNull(singleReplayValue)
+                        else replayValues.values.toList()
                 )
             }
         }
 
         private fun commitIfCurrent(stickyValue: StickyValue) {
             synchronized(commitLock) {
-                if (stickyValue.generation == generation) {
-                    stickyValue.commit()
-                    if (replayCapacity > 0) {
-                        replayValues.addLast(stickyValue)
+                if (stickyValue.generation == generation && stickyValue.commit()) {
+                    if (replayCapacity == 1) {
+                        if (singleReplayValue == null || stickyValue.order > singleReplayValue!!.order) {
+                            singleReplayValue = stickyValue
+                        }
+                    } else if (replayCapacity > 1) {
+                        replayValues[stickyValue.order] = stickyValue
                         while (replayValues.size > replayCapacity) {
-                            replayValues.removeFirst()
+                            replayValues.pollFirstEntry()
                         }
                     }
+                }
+            }
+        }
+
+        private suspend fun awaitPublicationUnlock() {
+            synchronized(commitLock) {
+                if (publicationDepth == 0) return
+            }
+            // 延后到当前临界区退出，但保留 UNDISPATCHED 建立订阅时的同步通知语义。
+            suspendCoroutineUninterceptedOrReturn<Unit> { continuation ->
+                deferResumption {
+                    val result = runCatching { continuation.context.ensureActive() }
+                    continuation.resumeWith(result)
+                }
+                COROUTINE_SUSPENDED
+            }
+        }
+
+        private fun deferResumption(resume: () -> Unit) {
+            val pending = deferredResumptions ?: mutableListOf<() -> Unit>().also { deferredResumptions = it }
+            pending.add(resume)
+        }
+
+        private inline fun <T> withPublicationLock(block: () -> T): T {
+            var resumptions: List<() -> Unit>? = null
+            var failure: Throwable? = null
+            return try {
+                synchronized(commitLock) {
+                    publicationDepth++
+                    try {
+                        block()
+                    } finally {
+                        publicationDepth--
+                        if (publicationDepth == 0) {
+                            resumptions = deferredResumptions
+                            deferredResumptions = null
+                        }
+                    }
+                }
+            } catch (error: Throwable) {
+                failure = error
+                throw error
+            } finally {
+                // SharedFlow 可以立即恢复 Unconfined 协程；用户回调与发送调用者都在解锁后继续。
+                var resumeFailure: Throwable? = null
+                resumptions?.forEach { resume ->
+                    try {
+                        resume()
+                    } catch (error: Throwable) {
+                        if (resumeFailure == null) resumeFailure = error
+                        else if (resumeFailure !== error) resumeFailure!!.addSuppressed(error)
+                    }
+                }
+                resumeFailure?.let { error ->
+                    if (failure == null) throw error
+                    if (failure !== error) failure.addSuppressed(error)
                 }
             }
         }

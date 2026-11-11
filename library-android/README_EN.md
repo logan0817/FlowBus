@@ -14,6 +14,8 @@ implementation("io.github.logan0817:flowbus:1.3.0")
 
 If you are integrating FlowBus into an Android app, this is usually the place to start.
 
+The public release remains **1.3.0**. **1.3.1 is not published**; local candidate work addresses lifecycle thresholds and core boundary cases. See the [1.3.1 development notes](../docs/en/release-notes-1.3.1.md) for candidate behavior, upgrade guidance and verification status.
+
 ## Guide map
 
 - [Quick start](#3-minute-quick-start) · [API selection](#api-selection-matrix)
@@ -493,7 +495,7 @@ viewLifecycleOwner.onEventSuspending<RefreshHomeEvent>(from = requireActivity())
 
 `refreshSuspending` is application-provided. Global and owner sources both support reified types or Android `EventChannel<T>`: use `onEventSuspending(channel)` or `onEventSuspending(from = owner, channel = channel)`. The source owner and receiver lifecycle have different roles. These are source alternatives, not duplicate registrations for one requirement.
 
-`LifecycleOwner` variants default to `STARTED` and expose dispatcher, minLifecycleState, and isSticky. Register on the main thread; `INITIALIZED` is rejected immediately. Leaving the active state requests callback cancellation. Restart within the same repeatOnLifecycle waits for the previous callback to finish before resubscribing. Blocking or NonCancellable work cannot be forcibly stopped, and side effects are not rolled back. Normal events do not replay, while explicitly selected sticky collection can replay the latest value.
+`LifecycleOwner` variants default to `STARTED` and expose dispatcher, minLifecycleState, and isSticky. Register on the main thread and choose `CREATED`, `STARTED`, or `RESUMED` as the minimum state. Public 1.3.0 rejects `INITIALIZED` immediately. The 1.3.1 candidate also rejects `DESTROYED` synchronously, before convenience entry points obtain their global/owner source. Leaving the active state requests callback cancellation. Restart within the same repeatOnLifecycle waits for the previous callback to finish before resubscribing. Blocking or NonCancellable work cannot be forcibly stopped, and side effects are not rolled back. Normal events do not replay, while explicitly selected sticky collection can replay the latest value.
 
 `CoroutineScope.onEventSuspending` offers global/owner and type/channel variants managed by the caller's scope, without automatic UI lifecycle gating. Owner acquisition must occur on the main thread. These variants have no dispatcher parameter and use the collection coroutine context. Cancel the returned Job to stop collection. A custom `FlowEventBus` exposes `subscribeEventSuspending`: the lifecycle version returns a Job, and the suspending version runs in a caller-managed coroutine.
 
@@ -523,6 +525,10 @@ viewLifecycleOwner.collectEventFromSuspending(from = featureBus, key = refreshKe
 }
 // Once collection is active, call notifier.notifyRefresh("login") from business work.
 ```
+
+In the 1.3.1 candidate, an invalid threshold throws `IllegalArgumentException` listing the supplied value and valid states. An already destroyed owner with a valid threshold still completes without subscribing; passing `DESTROYED` as the threshold is not a way to express that case. The Android unit regressions have passed; development notes track the remaining candidate device and complete CI checks.
+
+Recompile consumers when testing the upgrade. Public inline `collectEvent` may already be embedded in consumer bytecode, as may source lookup in old reified wrappers. Replacing the AAR alone cannot guarantee the complete validation fix. Existing non-inline method signatures and defaults remain.
 
 `collectEventFrom` accepts an ordinary callback and `collectEventFromSuspending` a suspending callback. Both accept an explicit `FlowBus`, `ScopedFlowBus`, or `FlowBusScope` with a core `EventKey<T>`. Convert a core channel via `coreChannel.asEventKey()`. Defaults are `Dispatchers.Main.immediate`, `STARTED`, and `isSticky=false`; the source instance's error policy is used. Registration does not establish immediate subscription readiness.
 

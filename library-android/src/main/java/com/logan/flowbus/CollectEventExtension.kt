@@ -21,7 +21,7 @@ import kotlinx.coroutines.withContext
  *
  * @param flow 要收集的 Flow。
  * @param dispatcher 回调执行所在的协程调度器。
- * @param minLifecycleState 开始收集的最小生命周期状态。
+ * @param minLifecycleState 开始收集的最小生命周期状态，只允许 CREATED、STARTED、RESUMED。
  * @param onReceived 收到数据后的回调。
  */
 @MainThread
@@ -31,8 +31,8 @@ inline fun <T> LifecycleOwner.collectEvent(
     minLifecycleState: Lifecycle.State = Lifecycle.State.STARTED,
     crossinline onReceived: (T) -> Unit
 ): Job {
-    require(minLifecycleState != Lifecycle.State.INITIALIZED) {
-        "Lifecycle.State.INITIALIZED is not supported by repeatOnLifecycle. Use CREATED, STARTED, or RESUMED."
+    require(minLifecycleState.isAtLeast(Lifecycle.State.CREATED)) {
+        "Invalid lifecycle threshold $minLifecycleState. Use CREATED, STARTED, or RESUMED."
     }
     return lifecycleScope.launch {
         repeatOnLifecycle(minLifecycleState) {
@@ -49,6 +49,7 @@ inline fun <T> LifecycleOwner.collectEvent(
  * 按生命周期顺序执行任意 Flow 的挂起回调。
  * 这是通用 Flow 工具，异常直接传播，不自动使用 FlowBus 的 logger/errorHandler。
  * 收集显式总线并复用错误策略时使用 collectEventFromSuspending。
+ * 最低状态只允许 CREATED、STARTED、RESUMED，无效值在启动协程前抛出异常。
  */
 @MainThread
 fun <T> LifecycleOwner.collectEventSuspending(
@@ -57,8 +58,8 @@ fun <T> LifecycleOwner.collectEventSuspending(
     minLifecycleState: Lifecycle.State = Lifecycle.State.STARTED,
     onReceived: suspend (T) -> Unit
 ): Job {
-    require(minLifecycleState != Lifecycle.State.INITIALIZED) {
-        "Lifecycle.State.INITIALIZED is not supported by repeatOnLifecycle. Use CREATED, STARTED, or RESUMED."
+    require(minLifecycleState.isAtLeast(Lifecycle.State.CREATED)) {
+        "Invalid lifecycle threshold $minLifecycleState. Use CREATED, STARTED, or RESUMED."
     }
     return lifecycleScope.launch {
         repeatOnLifecycle(minLifecycleState) {

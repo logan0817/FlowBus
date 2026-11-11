@@ -11,8 +11,8 @@ from datetime import datetime, timezone
 ROOT = Path(__file__).resolve().parents[2]
 WORK = ROOT / "benchmarks/jvm"
 OUT = WORK / "results/current"
-BASELINE_VERSION = "1.2.0"
-BASELINE_SHA256 = "525c10846d00e7a41f932ac0ce45dba47b7b8b1da58bc68266e33df4a4b974f2"
+BASELINE_VERSION = "1.3.0"
+BASELINE_SHA256 = "3e15654a40e3a071d2ca2df51efa1288587d96f407de690c30369092ad2149b4"
 
 def command(*args):
     return subprocess.check_output(args, cwd=ROOT, text=True).strip()
@@ -110,7 +110,7 @@ def main():
     (OUT / "environment.json").write_text(json.dumps(environment, ensure_ascii=False, indent=2) + "\n")
     def find(target, scenario, mode="thrpt"):
         return next((r for r in metrics[target] if r["params"].get("scenario", "configuredRegistration") == scenario and r["mode"] == mode), None)
-    lines = ["# JVM 基线实测报告", "", "本报告由真实 JMH JSON 生成；3 forks、5 × 1s 预热、5 × 1s 测量，包含 Throughput/SampleTime 与 GC profiler。误差为 JMH scoreError（默认 99.9% CI）。", "", f"候选 core SHA-256：`{environment['candidateSha256']}`。", f"环境：{environment['cpu']} / {environment['os']}；JDK {metrics['candidate'][0]['jdkVersion']}。", "", "ops/ms 表示批次/ms；B/op 表示每批次分配。active/slow/producers 的每批次包含订阅与校验，不是单事件延迟。", "", "| 场景 | 1.2.0 ops/ms ± 误差 | 当前候选 ops/ms ± 误差 | SharedFlow ops/ms ± 误差 | 候选/基线 | 候选 B/op |", "| --- | --- | --- | --- | --- | --- |"]
+    lines = ["# JVM 基线实测报告", "", "本报告由真实 JMH JSON 生成；3 forks、5 × 1s 预热、5 × 1s 测量，包含 Throughput/SampleTime 与 GC profiler。误差为 JMH scoreError（默认 99.9% CI）。", "", f"候选 core SHA-256：`{environment['candidateSha256']}`。", f"环境：{environment['cpu']} / {environment['os']}；JDK {metrics['candidate'][0]['jdkVersion']}。", "", "ops/ms 表示批次/ms；B/op 表示每批次分配。active/slow/producers 的每批次包含订阅与校验，不是单事件延迟。", "", f"| 场景 | {BASELINE_VERSION} ops/ms ± 误差 | 当前候选 ops/ms ± 误差 | SharedFlow ops/ms ± 误差 | 候选/基线 | 候选 B/op |", "| --- | --- | --- | --- | --- | --- |"]
     scenarios = ["noSubscribers", "active1", "active8", "slowSuspend", "slowDrop", "stickySend", "stickyReplay", "producers", "registration", "scope", "configuredRegistration"]
     for scenario in scenarios:
         rows = [find(t, scenario) for t in ["baseline", "candidate", "shared"]]

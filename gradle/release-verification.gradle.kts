@@ -511,6 +511,71 @@ dependencies {
     add(legacyAndroidArtifacts.name, "$artifactGroup:flowbus-core:1.1.0")
 }
 
+// 原版 1.3.0 只用于 fixture 编译；候选应用运行图仅使用封存候选。
+val released130Artifacts = configurations.create("released130Artifacts") {
+    isCanBeResolved = true
+    isCanBeConsumed = false
+    isTransitive = false
+}
+dependencies {
+    add(released130Artifacts.name, "$artifactGroup:flowbus-core:1.3.0")
+    add(released130Artifacts.name, "$artifactGroup:flowbus:1.3.0@aar")
+    add(released130Artifacts.name, "$artifactGroup:flowbus-compose:1.3.0@aar")
+}
+
+fun prepareLegacy130(root: File, role: String, compileSdk: Int) {
+    val legacy = root.resolve("legacy130")
+    rootProject.file("compatibility/$role-consumer/legacy130").copyRecursively(legacy, overwrite = true)
+    val baseline = legacy.resolve("baseline").apply { mkdirs() }
+    val metadata = (JsonSlurper().parse(rootProject.file("compatibility/core-binary-consumer/baselines.json"))
+        as Map<*, *>)["1.3.0"] as Map<*, *>
+    val selected = if (role == "android") setOf("flowbus-core", "flowbus") else setOf("flowbus-core", "flowbus-compose")
+    val digests = linkedMapOf<String, String>()
+    val classes = linkedMapOf<String, String>()
+    fun digest(file: File): String = java.security.MessageDigest.getInstance("SHA-256").digest(file.readBytes())
+        .joinToString("") { "%02x".format(it.toInt() and 255) }
+    released130Artifacts.resolvedConfiguration.resolvedArtifacts.filter { it.name in selected }.forEach { artifact ->
+        val key = when (artifact.name) {
+            "flowbus-core" -> "coreSha256"
+            "flowbus" -> "androidSha256"
+            else -> "composeSha256"
+        }
+        check(digest(artifact.file) == metadata[key]) { "Unexpected published 1.3.0 artifact: ${artifact.file.name}" }
+        digests[artifact.file.name] = digest(artifact.file)
+        val jar = baseline.resolve("${artifact.name}.jar")
+        if (artifact.extension == "aar") ZipFile(artifact.file).use { zip ->
+            jar.writeBytes(zip.getInputStream(checkNotNull(zip.getEntry("classes.jar"))).readBytes())
+        } else artifact.file.copyTo(jar, overwrite = true)
+        classes[jar.name] = digest(jar)
+    }
+    check(classes.size == selected.size) { "Missing published 1.3.0 fixture inputs" }
+    baseline.resolve("identity.json").writeText(groovy.json.JsonOutput.prettyPrint(groovy.json.JsonOutput.toJson(
+        mapOf("artifactsSha256" to digests, "classesSha256" to classes)
+    )) + "\n")
+    legacy.resolve("src/main/AndroidManifest.xml").writeText("<manifest />")
+    val runtimeModules = if (role == "android") listOf("flowbus-core", "flowbus")
+        else listOf("flowbus-core", "flowbus", "flowbus-compose")
+    val replacements = mapOf(
+        "@AGP@" to libsCatalog.version("agp"),
+        "@KOTLIN@" to if (role == "android") consumerKotlinVersion else libsCatalog.version("kotlin"),
+        "@ROLE@" to role, "@COMPILE_SDK@" to compileSdk.toString(),
+        "@LIFECYCLE@" to libsCatalog.version("lifecycle_version"), "@GROUP@" to artifactGroup,
+        "@CANDIDATE_VERSION@" to artifactVersion,
+        "@COMPOSE_CONFIG@" to if (role == "compose")
+            "buildFeatures { compose = true }; composeOptions { kotlinCompilerExtensionVersion = \"1.5.15\" }" else "",
+        "@COMPOSE_DEPENDENCY@" to if (role == "compose")
+            "compileOnly(\"androidx.compose.runtime:runtime:1.5.4\")" else "",
+        "@RUNTIME_MODULES@" to runtimeModules.joinToString(", ") { "\"$it\"" },
+        "@CANDIDATE_ARTIFACTS@" to runtimeModules.joinToString(", ") {
+            val extension = if (it == "flowbus-core") "jar" else "aar"
+            "\"$it\" to \"${mavenLocalRoot.resolve("$it/$artifactVersion/$it-$artifactVersion.$extension").invariantSeparatorsPath}\""
+        }
+    )
+    legacy.resolve("build.gradle.kts").writeText(replacements.entries.fold(
+        rootProject.file("compatibility/legacy130-build.gradle.kts.template").readText()
+    ) { script, (token, value) -> script.replace(token, value) })
+}
+
 val prepareMavenLocalConsumer = tasks.register("prepareMavenLocalConsumer") {
     group = "verification"
     description = "Generate a small Android consumer project that depends on the Maven local flowbus coordinate."
@@ -522,6 +587,10 @@ val prepareMavenLocalConsumer = tasks.register("prepareMavenLocalConsumer") {
     inputs.property("kotlin", consumerKotlinVersion)
     inputs.dir(rootProject.file("compatibility/android-consumer/app/src/main/java"))
     inputs.dir(rootProject.file("compatibility/android-consumer/legacy/src"))
+    inputs.dir(rootProject.file("compatibility/android-consumer/legacy130"))
+    inputs.file(rootProject.file("compatibility/legacy130-build.gradle.kts.template"))
+    inputs.file(rootProject.file("compatibility/core-binary-consumer/baselines.json"))
+    inputs.files(released130Artifacts)
     trackConsumerAndroidBaseline(consumerAndroidCompileSdk)
     outputs.dir(consumerDir)
     doLast {
@@ -551,7 +620,7 @@ val prepareMavenLocalConsumer = tasks.register("prepareMavenLocalConsumer") {
             }
 
             rootProject.name = "FlowBusMavenLocalConsumer"
-            include(":app", ":legacy")
+            include(":app", ":legacy", ":legacy130")
             """.trimIndent()
         )
         root.resolve("build.gradle.kts").writeText("")
@@ -615,6 +684,7 @@ val prepareMavenLocalConsumer = tasks.register("prepareMavenLocalConsumer") {
             }
             """.trimIndent()
         )
+        prepareLegacy130(root, "android", consumerAndroidCompileSdk)
         val appDir = root.resolve("app")
         appDir.mkdirs()
         val sourceDir = appDir.resolve("src/main/java/com/logan/flowbus/consumer")
@@ -661,6 +731,8 @@ val prepareMavenLocalConsumer = tasks.register("prepareMavenLocalConsumer") {
             dependencies {
                 implementation("$artifactGroup:flowbus:$artifactVersion")
                 implementation(project(":legacy"))
+                implementation(files(rootProject.project(":legacy130").layout.buildDirectory.file("frozen/legacy130-android.jar"))
+                    .builtBy(":legacy130:freezeLegacy130"))
             }
             """.trimIndent()
         )
@@ -712,7 +784,8 @@ tasks.register<GradleBuild>("verifyMavenLocalConsumer") {
     description = "Build a minified Android consumer from Maven local coordinates."
     dependsOn(candidatePrerequisite, prepareMavenLocalConsumer)
     dir = layout.buildDirectory.dir("maven-local-consumer").get().asFile
-    tasks = listOf(":legacy:testReleaseUnitTest", ":app:assembleRelease")
+    tasks = listOf(":legacy:testReleaseUnitTest", ":app:assembleRelease", ":legacy130:verifyLegacy130Identity")
+    doFirst { dir.resolve("legacy130/build/reports/binary-compatibility.json").delete() }
 }
 
 tasks.register<GradleBuild>("verifyMavenLocalCoreConsumer") {
@@ -745,6 +818,7 @@ val prepareMavenLocalBinaryCoreConsumer = tasks.register("prepareMavenLocalBinar
     inputs.dir(templateDir.resolve("src"))
     inputs.dir(templateDir.resolve("src-1.1.0"))
     inputs.dir(templateDir.resolve("src-1.2.0"))
+    inputs.dir(templateDir.resolve("src-1.3.0"))
     inputs.file(binaryConsumerBaselinesFile)
     inputs.property("baselineVersion", binaryConsumerBaselineVersion)
     inputs.file(templateDir.resolve("build.gradle.kts.template"))
@@ -768,11 +842,14 @@ val prepareMavenLocalBinaryCoreConsumer = tasks.register("prepareMavenLocalBinar
             """.trimIndent()
         )
         templateDir.resolve("src").copyRecursively(root.resolve("src"), overwrite = true)
-        if (binaryConsumerBaselineVersion in setOf("1.1.0", "1.2.0")) {
+        if (binaryConsumerBaselineVersion in setOf("1.1.0", "1.2.0", "1.3.0")) {
             templateDir.resolve("src-1.1.0").copyRecursively(root.resolve("src"), overwrite = true)
         }
-        if (binaryConsumerBaselineVersion == "1.2.0") {
+        if (binaryConsumerBaselineVersion in setOf("1.2.0", "1.3.0")) {
             templateDir.resolve("src-1.2.0").copyRecursively(root.resolve("src"), overwrite = true)
+        }
+        if (binaryConsumerBaselineVersion == "1.3.0") {
+            templateDir.resolve("src-1.3.0").copyRecursively(root.resolve("src"), overwrite = true)
         }
         val consumerSource = root.resolve("src/main/kotlin/com/logan/flowbus/binaryconsumer/BinaryCoreConsumer.kt")
         consumerSource.writeText(consumerSource.readText().replace(
@@ -780,6 +857,7 @@ val prepareMavenLocalBinaryCoreConsumer = tasks.register("prepareMavenLocalBinar
             when (binaryConsumerBaselineVersion) {
                 "1.1.0" -> "BinaryCoreConsumer110.verify()"
                 "1.2.0" -> "BinaryCoreConsumer110.verify(); BinaryCoreConsumer120.verify()"
+                "1.3.0" -> "BinaryCoreConsumer110.verify(); BinaryCoreConsumer120.verify(); BinaryCoreConsumer130.verify()"
                 else -> ""
             }
         ))
@@ -830,6 +908,10 @@ val prepareMavenLocalComposeConsumer = tasks.register("prepareMavenLocalComposeC
         "NavHost verification requires flowbus.consumer.navigationVersion."
     }
     inputs.dir(rootProject.file("compatibility/compose-consumer/app"))
+    inputs.dir(rootProject.file("compatibility/compose-consumer/legacy130"))
+    inputs.file(rootProject.file("compatibility/legacy130-build.gradle.kts.template"))
+    inputs.file(rootProject.file("compatibility/core-binary-consumer/baselines.json"))
+    inputs.files(released130Artifacts)
     if (navigationVersion != null) {
         inputs.dir(rootProject.file("compatibility/navigation-consumer/app"))
     }
@@ -888,11 +970,12 @@ val prepareMavenLocalComposeConsumer = tasks.register("prepareMavenLocalComposeC
                 }
             }
             rootProject.name = "FlowBusComposeMavenLocalConsumer"
-            include(":app")
+            include(":app", ":legacy130")
             """.trimIndent()
         )
         root.resolve("build.gradle.kts").writeText("")
         root.resolve("gradle.properties").writeText("android.useAndroidX=true")
+        prepareLegacy130(root, "compose", libsCatalog.version("compile_sdk_version").toInt())
         root.resolve("app/build.gradle.kts").writeText(
             """
             plugins {
@@ -926,6 +1009,8 @@ val prepareMavenLocalComposeConsumer = tasks.register("prepareMavenLocalComposeC
             dependencies {
                 implementation("$artifactGroup:flowbus:$artifactVersion")
                 implementation("$artifactGroup:flowbus-compose:$artifactVersion")
+                implementation(files(rootProject.project(":legacy130").layout.buildDirectory.file("frozen/legacy130-compose.jar"))
+                    .builtBy(":legacy130:freezeLegacy130"))
                 implementation("androidx.activity:activity-compose:1.8.2")
                 implementation("androidx.compose.runtime:runtime:$composeVersion")
                 implementation("androidx.compose.ui:ui:$composeVersion")
@@ -943,5 +1028,6 @@ tasks.register<GradleBuild>("verifyMavenLocalComposeConsumer") {
     description = "Build a minified Compose consumer; Compose dependencies stay outside the base library."
     dependsOn(candidatePrerequisite, prepareMavenLocalComposeConsumer)
     dir = layout.buildDirectory.dir("maven-local-compose-consumer").get().asFile
-    tasks = listOf(":app:assembleRelease")
+    tasks = listOf(":app:assembleRelease", ":legacy130:verifyLegacy130Identity")
+    doFirst { dir.resolve("legacy130/build/reports/binary-compatibility.json").delete() }
 }

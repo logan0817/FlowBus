@@ -4,6 +4,12 @@
 
 Published 1.3.0 provides Kotlin/JVM core, Android adapter and optional Compose coordinates. Android and Compose coordinates depend transitively on the matching core version. There are no Kotlin Multiplatform, cross-process, or Navigation artifacts.
 
+## 1.3.1 candidate verification
+
+Sources now target unpublished 1.3.1, retaining production dependencies, minimum SDK, bytecode and build baselines. Published 1.3.0 core/Android/Compose symbols and frozen consumer bytecode are added to verification. Android/effect/policy require 8/12/11 stages. Current local and remote evidence is recorded in [1.3.1 development notes](release-notes-1.3.1.md); historical passes below do not certify this candidate.
+
+Invalid lifecycle thresholds now fail synchronously. Recompile consumers for the complete fix because old inline/reified call sites can embed earlier behavior. Supported thresholds and public signatures remain compatible.
+
 ## 1.3.0 release verification
 
 The stable version is published 1.3.0. Base minSdk 21, Java 8, Kotlin 1.9.25, Coroutines 1.8.1 and Lifecycle 2.6.2 remain. Optional Compose uses runtime 1.5.4/compiler 1.5.15 and does not enter the existing base coordinates. Published 1.2.0 is added as a fixed core bytecode / Android symbol baseline. All nine final main CI checks passed, covering Kotlin 1.8.22 / 1.9.22 / 2.0.21 / 2.1.0, Java 8, real Maven/R8 and API 21/35 devices. See the [release notes](release-notes-1.3.0.md) for public-file and consumer acceptance.

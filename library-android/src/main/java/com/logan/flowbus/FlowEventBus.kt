@@ -96,8 +96,8 @@ class FlowEventBus : ViewModel() {
         isSticky: Boolean,
         onReceived: (T) -> Unit
     ): Job {
-        require(startState != Lifecycle.State.INITIALIZED) {
-            "Lifecycle.State.INITIALIZED is not supported by repeatOnLifecycle. Use CREATED, STARTED, or RESUMED."
+        require(startState.isAtLeast(Lifecycle.State.CREATED)) {
+            "Invalid lifecycle threshold $startState. Use CREATED, STARTED, or RESUMED."
         }
         return lifecycleOwner.lifecycleScope.launch {
             lifecycleOwner.repeatOnLifecycle(startState) {
@@ -188,8 +188,8 @@ class FlowEventBus : ViewModel() {
         isSticky: Boolean,
         onReceived: suspend (T) -> Unit
     ): Job {
-        require(startState != Lifecycle.State.INITIALIZED) {
-            "Lifecycle.State.INITIALIZED is not supported by repeatOnLifecycle. Use CREATED, STARTED, or RESUMED."
+        require(startState.isAtLeast(Lifecycle.State.CREATED)) {
+            "Invalid lifecycle threshold $startState. Use CREATED, STARTED, or RESUMED."
         }
         return lifecycleOwner.lifecycleScope.launch {
             lifecycleOwner.repeatOnLifecycle(startState) {

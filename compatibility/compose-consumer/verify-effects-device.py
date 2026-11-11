@@ -12,6 +12,7 @@ PHASES = (
     "source-replaced", "key-replaced", "owner-replaced",
     "min-state-replaced", "composition-disposed-restored",
     "lifecycle-stopped-restarted", "callback-error-continued", "destroyed-source-retained",
+    "binary-1.3.0-composable",
 )
 
 

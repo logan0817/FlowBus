@@ -1,7 +1,17 @@
 package com.logan.flowbus
 
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.LifecycleRegistry
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -20,6 +30,35 @@ class FlowBusAndroidStickyConsumeTest {
         removeStickyEvent<String>(eventName = "android.sticky.consume.type")
         globalChannel.removeSticky()
         FlowBusAndroid.resetForTests()
+    }
+
+    @Test
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun `main immediate owner callback keeps latest replay when publishing reentrantly`() = runTest {
+        Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
+        val owner = LifecycleStoreOwner()
+        val channel = eventChannel<Int>("android.sticky.reentrant.owner")
+        val received = mutableListOf<Int>()
+        owner.registry.currentState = Lifecycle.State.RESUMED
+        val subscription = owner.onEventSuspending(
+            from = owner,
+            channel = channel,
+            isSticky = true
+        ) { value ->
+            received += value
+            if (value == 1) channel.postStickyTo(owner, 2)
+        }
+        try {
+            // 不运行 scheduler：默认 Main.immediate 必须在发送返回前执行实际 owner 订阅回调。
+            channel.postStickyTo(owner, 1)
+            assertEquals(listOf(1, 2), received)
+            assertEquals(2, channel.consumeStickyLatestFrom(owner))
+        } finally {
+            subscription.cancelAndJoin()
+            owner.registry.currentState = Lifecycle.State.DESTROYED
+            owner.viewModelStore.clear()
+            Dispatchers.resetMain()
+        }
     }
 
     @Test
@@ -77,5 +116,11 @@ class FlowBusAndroidStickyConsumeTest {
 
     private class TestOwner : ViewModelStoreOwner {
         override val viewModelStore: ViewModelStore = ViewModelStore()
+    }
+
+    private class LifecycleStoreOwner : LifecycleOwner, ViewModelStoreOwner {
+        val registry = LifecycleRegistry.createUnsafe(this)
+        override val lifecycle: Lifecycle get() = registry
+        override val viewModelStore = ViewModelStore()
     }
 }

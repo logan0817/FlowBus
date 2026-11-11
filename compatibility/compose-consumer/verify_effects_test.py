@@ -25,7 +25,8 @@ class VerifyEffectsTest(unittest.TestCase):
         self.verify_driver(policy_driver, "flowbus.compose.verifyPolicies", "FlowBusComposePolicy", wrong_count=True)
 
     def verify_driver(self, selected_driver, mode, tag, wrong_count=False):
-        scenarios = ("passed", "stale", "failed", "wrong-ui", "missing-phase", "wrong-api")
+        scenarios = ("passed", "stale", "failed", "wrong-ui", "wrong-api")
+        scenarios += tuple("missing-phase:" + phase for phase in selected_driver.PHASES)
         if wrong_count:
             scenarios += ("wrong-count",)
         for scenario in scenarios:
@@ -62,7 +63,8 @@ class VerifyEffectsTest(unittest.TestCase):
                         return f"PASS API=24 checks={count} runId={value}"
                     if args[:2] == ["shell", "cat"]:
                         tree = ET.Element("hierarchy")
-                        phases = selected_driver.PHASES[:-1] if scenario == "missing-phase" else selected_driver.PHASES
+                        phases = tuple(phase for phase in selected_driver.PHASES
+                                       if scenario != "missing-phase:" + phase)
                         text = chr(10).join((f"PASS API=24 checks={len(selected_driver.PHASES)} runId={run_id}", *phases))
                         package = "other.application" if scenario == "wrong-ui" else "com.logan.flowbus.composeconsumer"
                         ET.SubElement(tree, "node", package=package, text=text)

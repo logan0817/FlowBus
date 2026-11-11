@@ -6,7 +6,7 @@ This directory is an isolated consumer template for evaluating Compose compilati
 
 The default consumer uses activity-compose `1.8.2`, Compose runtime/ui `1.5.4`, compiler `1.5.15`, and a direct Lifecycle `2.6.2` declaration with the current candidate FlowBus artifact. Runtime/ui `1.7.8` is a separate optional experiment. These dependencies apply only to the consumer; the base library does not add Compose or change its dependency, SDK, or Kotlin requirements. Keep evidence for the two combinations separate: declared versions do not establish resolved dependencies or device compatibility.
 
-`FlowBusEffect` accepts an explicit `FlowBus`, `EventKey<T>`, and caller-provided `LifecycleOwner`, collecting from STARTED by default. Navigation callers can provide their `NavBackStackEntry`; the template adds no navigation dependency and does not use LocalLifecycleOwner. The event callback and optional `onSubscribed` notification use rememberUpdatedState, so updating either does not resubscribe. Changes to source, event name/type, owner, minimum lifecycle state, or sticky selection restart the effect. INITIALIZED is rejected synchronously during composition.
+`FlowBusEffect` accepts an explicit `FlowBus`, `EventKey<T>`, and caller-provided `LifecycleOwner`, collecting from STARTED by default. Navigation callers can provide their `NavBackStackEntry`; the template adds no navigation dependency and does not use LocalLifecycleOwner. The event callback and optional `onSubscribed` notification use rememberUpdatedState, so updating either does not resubscribe. Changes to source, event name/type, owner, minimum lifecycle state, or sticky selection restart the effect. The 1.3.1 candidate rejects INITIALIZED and DESTROYED thresholds synchronously during composition. Supported values are CREATED, STARTED, and RESUMED; an already destroyed owner with a valid threshold completes without subscribing.
 
 [Actual NavHost verification](../navhost-consumer/README_EN.md) optionally adds navigation-compose with the navHost property and records standard ComposeNavigator behavior, default animation thresholds, and Activity recreation. An incoming page may be STARTED before RESUMED; select RESUMED explicitly for side effects restricted to the interactive page. An outgoing page remaining composed or animated does not imply an active owner. Collect according to the actual entry lifecycle rather than visual presence.
 
@@ -16,7 +16,7 @@ The launcher `ConsumerActivity` actually invokes the effects and uses AndroidVie
 
 StateFlow independently expresses the business counter and restores the latest in-memory value after lifecycle re-entry. Events express transient Toast notifications. The ViewModel preserves state through configuration changes, but the template has no persistent storage or SavedStateHandle and does not guarantee recovery after process death.
 
-Historical 1.2.0 fixture results: default 1.5.4 and optional 1.7.8 each passed ten API 24 interaction stages, nine controlled-effect stages, and eight policy stages. The current 1.3.0 candidate consumes the new module and extends effects to eleven stages. Historical results do not replace this candidate's build and device verification. Process-death recovery, deep links, and other NavHost configurations still require independent checks.
+Historical 1.2.0 fixture results: default 1.5.4 and optional 1.7.8 each passed ten API 24 interaction stages, nine controlled-effect stages, and eight policy stages. Public 1.3.0 consumes the optional module and passed its then-current eleven effect/eight policy stages. The unpublished 1.3.1 development candidate extends this to twelve effect/eleven policy stages. Historical results do not replace this candidate's build and device verification. Process-death recovery, deep links, and other NavHost configurations still require independent checks.
 
 ## Generation and build
 
@@ -49,7 +49,7 @@ The consumer uses repository Kotlin/AGP/SDK settings. Preserve actual dependency
 | Default 1.5.4 | 2.6.2 | 1.10.0 |
 | Optional 1.7.8 | 2.8.3 | 1.12.0 |
 
-Both continue to use Kotlin 1.9.25, compiler 1.5.15, activity-compose 1.8.2, Coroutines 1.8.1, AGP 8.6.1, and Java 8 bytecode. Preserve this candidate's complete releaseRuntimeClasspath graph; direct declarations and APK META-INF markers do not prove resolved versions. Rerun current eleven-stage effects and existing eight-stage policies against this candidate. Verify API 21/35 through actual device reports using the [release checklist](../../docs/en/release-checklist.md). See the [compatibility assessment](../../docs/en/compatibility.md).
+Both continue to use Kotlin 1.9.25, compiler 1.5.15, activity-compose 1.8.2, Coroutines 1.8.1, AGP 8.6.1, and Java 8 bytecode. Preserve this candidate's complete releaseRuntimeClasspath graph; direct declarations and APK META-INF markers do not prove resolved versions. Rerun current twelve-stage effects and eleven-stage parameter/error/cancellation policies against this candidate. Verify API 21/35 through actual device reports using the [release checklist](../../docs/en/release-checklist.md). See the [compatibility assessment](../../docs/en/compatibility.md).
 
 ## Controlled Composition verification entry point
 
@@ -66,7 +66,7 @@ FLOWBUS_COMPOSE_SIGNED_APK="/path/to/test-signed-compose-release.apk"
 python3 -B compatibility/compose-consumer/verify-effects-device.py --adb /path/to/android-sdk/platform-tools/adb --serial device-serial --expected-api 24 --apk "$FLOWBUS_COMPOSE_SIGNED_APK" --report-dir build/compose-effects-device
 ```
 
-The driver checks actual API and boot_completed, installs the APK, force-stops its own package, and cold-starts with flowbus.compose.verifyEffects=true and the current flowbus.consumer.runId. The fixture has a 30-second global timeout; the driver polls for up to 40 seconds. Success requires the current FlowBusCompose logs and com.logan.flowbus.composeconsumer UI to match PASS API=<actual API> checks=11 runId=<current UUID> and every stage below. FAIL, stale runId, another foreground package, missing stages, or timeout cannot pass. Evidence is saved under report-dir/current-UUID as start.txt, current.log, ui-dump.txt, current-ui.xml, and the final result.txt. Run serially with instrumentation to avoid UiAutomation contention.
+The driver checks actual API and boot_completed, installs the APK, force-stops its own package, and cold-starts with flowbus.compose.verifyEffects=true and the current flowbus.consumer.runId. The fixture has a 30-second global timeout; the driver polls for up to 40 seconds. Success requires the current FlowBusCompose logs and com.logan.flowbus.composeconsumer UI to match PASS API=<actual API> checks=12 runId=<current UUID> and every stage below. FAIL, stale runId, another foreground package, missing stages, or timeout cannot pass. Evidence is saved under report-dir/current-UUID as start.txt, current.log, ui-dump.txt, current-ui.xml, and the final result.txt. Run serially with instrumentation to avoid UiAutomation contention.
 
 | Stage | Verified behavior |
 | --- | --- |
@@ -81,6 +81,7 @@ The driver checks actual API and boot_completed, installs the APK, force-stops i
 | `lifecycle-stopped-restarted` | Inactivity cancels the callback; lifecycle restart receives latest sticky |
 | `callback-error-continued` | A normal exception reaches the configured continuing handler; later callbacks still execute |
 | `destroyed-source-retained` | DESTROYED cancels; the source still accepts posts and a new owner receives them; cancellation does not reach the normal-exception handler |
+| `binary-1.3.0-composable` | An original-1.3.0-compiled Composable runs against the candidate, checking notifications, callback updates without resubscription, lifecycle restart and disposal cancellation |
 
 Reproduce the driver-decision regression independently:
 
@@ -88,7 +89,7 @@ Reproduce the driver-decision regression independently:
 python3 -B compatibility/compose-consumer/verify_effects_test.py
 ```
 
-Current effects and policy protocols each have one unittest with seven mocked-ADB subtests, for two tests/fourteen subtests covering current PASS, stale PASS, current FAIL, another foreground package, missing stages, incorrect check counts, and wrong API before installation. Mocks only verify driver decisions, not device execution. Effect replacement/lifecycle phases also assert notification totals: one initially and one each for source, key, owner, threshold restoration, composition restoration, lifecycle restart, and a new owner after destruction, for eight total. Callback updates and continuing after errors must not add subscriptions. Process-death recovery, deep links, and other NavHost configurations require separate verification. The earlier temporary ten-stage driver is not the repository entry point.
+Current effects and policy protocols each have one unittest, rejecting the absence of every individual phase and covering current PASS, stale PASS, current FAIL, another foreground package, missing stages, incorrect check counts, and wrong API before installation. Mocks only verify driver decisions, not device execution. Effect replacement/lifecycle phases also assert notification totals: one initially and one each for source, key, owner, threshold restoration, composition restoration, lifecycle restart, and a new owner after destruction, for eight total. Callback updates and continuing after errors must not add subscriptions. Process-death recovery, deep links, and other NavHost configurations require separate verification. The earlier temporary ten-stage driver is not the repository entry point.
 
 An optional [real Navigation consumer](../navigation-consumer/README_EN.md) now selects navigation-runtime only with -Pflowbus.consumer.navigationVersion=2.4.1. Default Compose source/manifest/dependencies remain free of navigation. The fixture binds actual NavHostController entries to the Activity and passed compilation, release R8, and seven push/pop/back-dispatcher lifecycle stages on API 24 in two independent combinations: Navigation 2.4.1 / Compose 1.5.4 / Lifecycle 2.6.2 and Navigation 2.8.3 / Compose 1.7.8 / Lifecycle 2.8.3. Evidence is build/navigation-verification.json; it does not cover navigation-compose NavHost animations, saved-state/process restoration, or deep links. Returning to the default configuration also passed compilation/R8 and verified no navigation source/manifest/dependency residue, with Lifecycle still at 2.6.2. Android, Compose-effect, and Navigation thin drivers share compatibility/device_verification.py without CLI/timeout changes. Existing five/six mocked scenarios and three Navigation subtests passed; mocks do not establish device success.
 
@@ -100,8 +101,11 @@ Effects, policy and NavHost checks display live status in an Activity-native Tex
 
 The test recomposer isolates expected failures from the result screen. It does not replace the default error handler or add catches inside FlowBusEffect. It observes both CoroutineExceptionHandler and the runner completion cause, requiring recomposer shutdown, zero subscriptions, and original exception identity. This is test infrastructure, not advice to hide application failures with a supervisor.
 
-| Eight stages | Assertion |
+| Eleven stages | Assertion |
 | --- | --- |
+| invalid-lifecycle-thresholds-rejected | INITIALIZED/DESTROYED fail synchronously during composition without registration/callbacks; finally releases composition resources |
+| supported-lifecycle-thresholds | CREATED/STARTED/RESUMED start at their thresholds, preserve lifecycle restart behavior and cancel on destruction |
+| destroyed-owner-does-not-subscribe | An already destroyed owner with a valid threshold does not subscribe or fail |
 | default-rethrow-terminates-source-retained | Default policy propagates the original callback error and stops collection; a new composition can still use the same source |
 | ignore-logs-and-continues | Ignore retains logger warnings and processes the next event |
 | custom-handler-context-and-continue | A returning custom handler receives event/type/phase/scope/sticky/dispatcher context and continues |
@@ -121,4 +125,21 @@ python3 -B compatibility/compose-consumer/verify-policies-device.py --adb /path/
 python3 -B compatibility/compose-consumer/verify_effects_test.py
 ```
 
-The driver requires current-run FlowBusComposePolicy logs, same-package UI, and all eight stages. Fixture timeout is 30 seconds; driver timeout is 40 seconds. Mocks contain 2 tests / 14 subtests and verify protocol only. Record this candidate's API 21/35 and other device results through the [release checklist](../../docs/en/release-checklist.md).
+The driver requires current-run FlowBusComposePolicy logs, same-package UI, and all eleven stages. Fixture timeout is 30 seconds; driver timeout is 40 seconds. Mocks contain two test methods, checking every missing effect/policy phase and other protocol failure boundaries; they do not execute a device. Record this candidate's API 21/35 and other device results through the [release checklist](../../docs/en/release-checklist.md).
+
+## Published 1.3.0 Composable bytecode baseline
+
+[Legacy130FlowBusEffect.kt](legacy130/src/main/java/com/logan/flowbus/composeconsumer/Legacy130FlowBusEffect.kt) compiles only against public 1.3.0 core / flowbus-compose with fixed Compose compiler 1.5.15 and runtime 1.5.4. Generation validates original hashes from [baselines.json](../core-binary-consumer/baselines.json). Original implementations are compileOnly inputs, while the app runtime resolves candidate coordinates.
+
+`:legacy130:freezeLegacy130` records original compiled class/JAR identity, and the app consumes `legacy130/build/frozen/legacy130-compose.jar` before release R8. After APK construction, `:legacy130:verifyLegacy130Identity` checks unchanged old classes/JAR and actual runtime versions/hashes from the isolated candidate. Its report is `build/maven-local-compose-consumer/legacy130/build/reports/binary-compatibility.json`. `deviceExecution=required-separately` still requires the current twelve-stage effects run; successful freezing, compilation or R8 is not evidence that the old Composable executed on a device. Public symbols are frozen in [api/flowbus-compose-1.3.0.api](api/flowbus-compose-1.3.0.api).
+
+```bash
+# Download and verify the published baseline as specified in docs/implementation-plan-1.3.1.md first.
+FLOWBUS_VERSION=$(sed -n 's/^VERSION_NAME=//p' gradle.properties)
+python3 -B compatibility/core-binary-consumer/verify_symbols.py \
+  --baseline-artifact build/published-baseline/flowbus-compose-1.3.0.aar \
+  --candidate-artifact "build/candidate-maven/io/github/logan0817/flowbus-compose/$FLOWBUS_VERSION/flowbus-compose-$FLOWBUS_VERSION.aar" \
+  --baseline-api-snapshot compatibility/compose-consumer/api/flowbus-compose-1.3.0.api \
+  --javap /path/to/jdk17/bin/javap \
+  --output build/compose-1.3.0-jvm-symbol-verification.json
+```

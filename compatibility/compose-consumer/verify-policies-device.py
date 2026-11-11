@@ -8,6 +8,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import device_verification as verification
 
 PHASES = (
+    "invalid-lifecycle-thresholds-rejected", "supported-lifecycle-thresholds",
+    "destroyed-owner-does-not-subscribe",
     "default-rethrow-terminates-source-retained", "ignore-logs-and-continues",
     "custom-handler-context-and-continue", "legacy-handler-continues",
     "handler-failure-propagates", "cancellation-bypasses-error-handler",

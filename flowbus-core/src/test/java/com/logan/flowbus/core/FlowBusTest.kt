@@ -22,6 +22,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.fail
 import org.junit.Test
 import java.util.Collections
@@ -829,16 +830,226 @@ class FlowBusTest {
     fun `binding to coroutine scope without job is rejected`() {
         val bus = FlowBus()
         val scope = bus.openScope("invalid")
+        val key = eventKey<String>("invalid.binding.event")
         val noJobScope = object : CoroutineScope {
             override val coroutineContext = EmptyCoroutineContext
         }
 
         try {
-            scope.bindTo(noJobScope)
-            fail("Expected CoroutineScope without Job to be rejected.")
-        } catch (expected: IllegalArgumentException) {
-            assertTrue(expected.message.orEmpty().contains("Job"))
+            val error = assertThrows(IllegalArgumentException::class.java) {
+                scope.bindTo(noJobScope)
+            }
+            assertTrue(error.message.orEmpty().contains("Job"))
+            assertFalse(scope.isClosed)
+            assertEquals(0, scope.lifecycleBindingCountForTest())
+            assertTrue(scope.postSticky(key, "still-open"))
+            assertEquals("still-open", scope.consumeStickyLatest(key))
+        } finally {
+            scope.close()
         }
+    }
+
+    @Test
+    fun `opening scope without job must not retain an unreachable handle`() {
+        val bus = FlowBus()
+        val noJobScope = object : CoroutineScope {
+            override val coroutineContext = EmptyCoroutineContext
+        }
+
+        try {
+            val error = assertThrows(IllegalArgumentException::class.java) {
+                bus.openScope("invalid.creation", closeWhen = noJobScope)
+            }
+            assertTrue(error.message.orEmpty().contains("Job"))
+            assertNull(bus.inspectScope("invalid.creation"))
+            bus.openScope("invalid.creation").close()
+        } finally {
+            bus.removeScope("invalid.creation")
+        }
+    }
+
+    @Test
+    fun `opening owner scope without job does not retain a handle`() {
+        val bus = FlowBus()
+        val owner = flowBusOwner("invalid.owner.creation")
+        val noJobScope = object : CoroutineScope {
+            override val coroutineContext = EmptyCoroutineContext
+        }
+
+        try {
+            val error = assertThrows(IllegalArgumentException::class.java) {
+                bus.openScope(owner, closeWhen = noJobScope)
+            }
+            assertTrue(error.message.orEmpty().contains("Job"))
+            assertNull(bus.inspectScope(owner.busScopeName))
+            bus.openScope(owner).close()
+        } finally {
+            bus.removeScope(owner.busScopeName)
+        }
+    }
+
+    @Test
+    fun `failed scope creation preserves existing shared sticky values and configuration`() = runBlocking {
+        val bus = FlowBus()
+        val owner = flowBusOwner("shared.creation.failure")
+        val shared = bus.scoped(owner)
+        val key = eventKey<String>("shared.creation.event")
+        val noJobScope = object : CoroutineScope {
+            override val coroutineContext = EmptyCoroutineContext
+        }
+        shared.configureChannel(key, FlowBusChannelConfig(stickyReplay = 2, normalBufferCapacity = 3))
+        shared.postSticky(key, "cached")
+        val originalConfig = shared.inspectChannel(key)
+
+        try {
+            assertThrows(IllegalArgumentException::class.java) {
+                bus.openScope(owner.busScopeName, closeWhen = noJobScope)
+            }
+            assertFalse(requireNotNull(bus.inspectScope(owner.busScopeName)).hasOpenScopeHandle)
+            assertThrows(IllegalArgumentException::class.java) {
+                bus.openScope(owner, closeWhen = noJobScope)
+            }
+            assertFalse(requireNotNull(bus.inspectScope(owner.busScopeName)).hasOpenScopeHandle)
+            assertEquals(originalConfig, shared.inspectChannel(key))
+            assertEquals("cached", withTimeout(1_000) { shared.stickyFlow(key).first() })
+            val owned = bus.openScope(owner)
+            try {
+                assertEquals(originalConfig, owned.inspectChannel(key))
+                assertEquals("cached", owned.consumeStickyLatest(key))
+            } finally {
+                owned.close()
+            }
+        } finally {
+            bus.removeScope(owner.busScopeName)
+        }
+    }
+
+    @Test
+    fun `failed scope creation cannot replace or close an existing owned handle`() {
+        val bus = FlowBus()
+        val owner = flowBusOwner("owned.creation.failure")
+        val original = bus.openScope(owner)
+        val key = eventKey<String>("owned.creation.event")
+        val noJobScope = object : CoroutineScope {
+            override val coroutineContext = EmptyCoroutineContext
+        }
+
+        try {
+            assertThrows(IllegalArgumentException::class.java) {
+                bus.openScope(owner.busScopeName, closeWhen = noJobScope)
+            }
+            assertThrows(IllegalArgumentException::class.java) {
+                bus.openScope(owner, closeWhen = noJobScope)
+            }
+            assertFalse(original.isClosed)
+            assertTrue(requireNotNull(bus.inspectScope(owner.busScopeName)).hasOpenScopeHandle)
+            assertTrue(original.postSticky(key, "original"))
+            assertEquals("original", original.consumeStickyLatest(key))
+            assertThrows(IllegalArgumentException::class.java) { bus.openScope(owner) }
+        } finally {
+            original.close()
+        }
+        assertNull(bus.inspectScope(owner.busScopeName))
+    }
+
+    @Test
+    fun `coroutine scope overloads release handles when their jobs complete or cancel`() = runBlocking {
+        for (useOwner in listOf(false, true)) {
+            for (cancelParent in listOf(false, true)) {
+                val bus = FlowBus()
+                val owner = flowBusOwner("active.parent.$useOwner.$cancelParent")
+                val parent = Job()
+                val parentScope = CoroutineScope(parent)
+                val scope = if (useOwner) {
+                    bus.openScope(owner, parentScope)
+                } else {
+                    bus.openScope(owner.busScopeName, parentScope)
+                }
+                try {
+                    assertEquals(1, scope.lifecycleBindingCountForTest())
+                    if (cancelParent) parent.cancel() else parent.complete()
+                    assertTrue(scope.isClosed)
+                    assertTrue(withTimeout(1_000) { scope.closeSuspending() }.closed)
+                    assertNull(bus.inspectScope(owner.busScopeName))
+                    assertEquals(0, scope.lifecycleBindingCountForTest())
+                    bus.openScope(owner).close()
+                } finally {
+                    parent.cancel()
+                    scope.close()
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `coroutine scope overloads with completed jobs leave no handle or binding`() = runBlocking {
+        for (useOwner in listOf(false, true)) {
+            for (cancelParent in listOf(false, true)) {
+                val bus = FlowBus()
+                val owner = flowBusOwner("finished.parent.$useOwner.$cancelParent")
+                val parent = Job()
+                if (cancelParent) parent.cancel() else parent.complete()
+                val parentScope = CoroutineScope(parent)
+                val scope = if (useOwner) {
+                    bus.openScope(owner, parentScope)
+                } else {
+                    bus.openScope(owner.busScopeName, parentScope)
+                }
+                try {
+                    assertTrue(scope.isClosed)
+                    assertTrue(withTimeout(1_000) { scope.closeSuspending() }.closed)
+                    assertNull(bus.inspectScope(owner.busScopeName))
+                    assertEquals(0, scope.lifecycleBindingCountForTest())
+                    bus.openScope(owner).close()
+                } finally {
+                    scope.close()
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `closed scope owner is rejected before checking the binding job`() {
+        val bus = FlowBus()
+        val owner = bus.openScope("closed.binding.owner")
+        owner.close()
+        val noJobScope = object : CoroutineScope {
+            override val coroutineContext = EmptyCoroutineContext
+        }
+        val parent = Job()
+
+        try {
+            for (parentScope in listOf(noJobScope, CoroutineScope(parent))) {
+                val error = assertThrows(IllegalArgumentException::class.java) {
+                    bus.openScope(owner, parentScope)
+                }
+                assertTrue(error.message.orEmpty().contains("closed"))
+                assertNull(bus.inspectScope(owner.busScopeName))
+            }
+            bus.openScope(owner.busScopeName).close()
+        } finally {
+            parent.cancel()
+            bus.removeScope(owner.busScopeName)
+        }
+    }
+
+    @Test
+    fun `blank scope names are rejected before checking the binding job`() {
+        val bus = FlowBus()
+        val noJobScope = object : CoroutineScope {
+            override val coroutineContext = EmptyCoroutineContext
+        }
+        val invalidOwner = NamedFlowBusOwner("   ")
+
+        val nameError = assertThrows(IllegalArgumentException::class.java) {
+            bus.openScope("   ", noJobScope)
+        }
+        assertTrue(nameError.message.orEmpty().contains("scopeName"))
+        val ownerError = assertThrows(IllegalArgumentException::class.java) {
+            bus.openScope(invalidOwner, noJobScope)
+        }
+        assertTrue(ownerError.message.orEmpty().contains("scopeName"))
+        assertTrue(bus.inspector().snapshot().scopes.isEmpty())
     }
 
     private fun assertRejectsBlankEventName(action: () -> Unit) {

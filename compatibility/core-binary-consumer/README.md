@@ -1,8 +1,8 @@
-# 1.0.7 / 1.1.0 / 1.2.0 core 二进制消费者回归
+# 1.0.7 / 1.1.0 / 1.2.0 / 1.3.0 core 二进制消费者回归
 
 [English](README_EN.md)
 
-此 fixture 按所选基线调用已发布 1.0.7、1.1.0 或 1.2.0 的入口，默认基线为 1.0.7。它先用 Maven Central 的原始 core JAR 编译 Kotlin 与 Java 消费者，再将同一批消费者 class 文件分别放到原版和候选 JAR 上运行。它补充“针对候选重新编译”的消费者验证，检查旧 inline、默认参数和直接 Java JVM 调用的链接路径。当前源码版本与公开安装均为 **1.3.0**；此入口默认验证本地隔离候选，不能用其替代公开依赖验收。
+此 fixture 按所选基线调用已发布 1.0.7、1.1.0、1.2.0 或 1.3.0 的入口，默认基线为 1.0.7。它先用 Maven Central 的原始 core JAR 编译 Kotlin 与 Java 消费者，再将同一批消费者 class 文件分别放到原版和候选 JAR 上运行。它补充“针对候选重新编译”的消费者验证，检查旧 inline、默认参数和直接 Java JVM 调用的链接路径。当前源码为未发布 **1.3.1**，公开安装仍为 **1.3.0**；此入口默认验证本地隔离候选，不能用其替代公开依赖验收。
 
 ## 运行
 
@@ -22,7 +22,7 @@ python3 -B compatibility/core-binary-consumer/verify_symbols.py \
 python3 -B -m unittest discover -s compatibility/core-binary-consumer -p '*_test.py' -v
 ```
 
-Gradle 任务默认将当前 1.3.0 候选发布到指定本地目录，不做远端发布；传入 `-Pflowbus.verification.reuseCandidate=true` 时只校验并复用封存候选。原版按所选版本从 Maven Central 非传递解析，默认坐标为 io.github.logan0817:flowbus-core:1.0.7；候选 JAR 按绝对路径加入第二次运行。不能把本地产物当作原版基准。
+Gradle 任务默认将当前 1.3.1 候选发布到指定本地目录，不做远端发布；传入 `-Pflowbus.verification.reuseCandidate=true` 时只校验并复用封存候选。原版按所选版本从 Maven Central 非传递解析，默认坐标为 io.github.logan0817:flowbus-core:1.0.7；候选 JAR 按绝对路径加入第二次运行。不能把本地产物当作原版基准。
 
 生成工程为 build/maven-local-binary-core-consumer。消费者编译 classpath 只含原版 core、基线 stdlib 和 Coroutines；运行候选时移除原版 core。两次运行都检查 FlowBus 的实际 codeSource，检查产物摘要不同，并核对消费者 class 摘要在切换前后不变。任务失败时不保留旧的成功 runtime report。
 
@@ -30,7 +30,7 @@ Gradle 任务默认将当前 1.3.0 候选发布到指定本地目录，不做远
 
 消费者覆盖根/Default/共享/owned scope 的旧 reified collect 默认参数、channel 默认/显式来源、sticky replay/消费/清理、关闭重开、绑定 Job 关闭、removeScope、legacy 异常处理器继续，以及 Java 无参构造器、Class key 工厂与 scope 调用。就绪由 UNDISPATCHED、Deferred 和流订阅建立，不使用固定 delay。报告位于 build/maven-local-binary-core-consumer/build/reports/binary-compatibility.json。
 
-独立 verify_symbols.py 使用 JDK javap 核对稳定具名类的 declared public/protected JVM 成员描述符及 static/instance 形式，检查 JAR 与 runtime report 的摘要一致。它保留默认参数、bridge 和 PublishedApi 相关 JVM 符号；仅排除含数字的编译器实现类，以及带 ACC_SYNTHETIC 标记的 access$ 私有实现桥接。历史 1.0.7 对照曾核对 46 个具名类、631 个描述符；这不是当前候选通过的证据。脚本回归覆盖描述符/static/类缺失、默认参数/bridge 保留、synthetic accessor 排除、无法识别的输出拒绝、AAR 只读取 classes.jar 与临时文件清理、缺 classes.jar 拒绝、产物变化拒绝、公开快照与原版字节码交叉核对。
+独立 verify_symbols.py 使用 JDK javap 核对稳定具名类的 declared public/protected JVM 成员描述符及 static/instance 形式，检查 JAR 与 runtime report 的摘要一致。它保留默认参数、bridge 和 PublishedApi 相关 JVM 符号；排除含数字的编译器实现类，以及带 ACC_SYNTHETIC 标记的 access$ 私有实现桥接。原版 InnerClasses 明确标记 private 的内部类不作为外部 API 门禁；其变化仍写入 otherJvmRemovals，类名写入 privateImplementationClasses。public/protected 嵌套类和 Kotlin internal 的公开 JVM 成员仍照常检查，不按类名猜测可见性。历史 1.0.7 对照曾核对 46 个具名类、631 个描述符；这不是当前候选通过的证据。脚本回归覆盖 private 元数据隔离、公开/受保护/internal 类不得漏查、描述符/static/类缺失、默认参数/bridge 保留、synthetic accessor 排除、无法识别的输出拒绝、AAR 只读取 classes.jar 与临时文件清理、缺 classes.jar 拒绝、产物变化拒绝、公开快照与原版字节码交叉核对。
 
 ### AAR 静态模式
 
@@ -65,3 +65,9 @@ python3 -B compatibility/core-binary-consumer/verify_symbols.py \
 ```
 
 该固定原版 API 快照先与原版 JAR 核对，再限定受支持符号门禁；其他 JVM 变化仍保存在 `otherJvmRemovals` 并需要人工审查。1.2.0 Android 使用原版 AAR 与 [固定 API 快照](../android-consumer/api/flowbus-1.2.0.api)的静态模式核对，见 [Android 消费者](../android-consumer/README.md#正式-120-兼容基线)。core 同字节码运行和 Android 静态符号都不代表旧 1.2.0 Android 字节码在设备上运行。
+
+## 1.3.0 基线
+
+`-Pflowbus.consumer.baselineVersion=1.3.0` 使用正式原版摘要和 `src-1.3.0/`，额外调用 root/shared/owned 的普通及 sticky 订阅通知、默认参数、inspectChannel/copy，以及真实 Java key 工厂和通知重载。DefaultFlowBus 通过原有 `raw()` 取得完整 API，不假设单例存在额外重载。
+
+原版编译一次后，在原版和 1.3.1 候选上用 Java 8 运行同一 class。报告为 `build/maven-local-binary-core-consumer-1.3.0/build/reports/binary-compatibility.json`；静态核对使用 `--baseline-api-snapshot compatibility/core-binary-consumer/api/flowbus-core-1.3.0.api`。API 快照取自 1.3.0 发布提交，不能用候选 apiDump 替换。历史 1.0.7/1.1.0/1.2.0 基线继续独立执行。

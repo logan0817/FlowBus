@@ -2,6 +2,7 @@ package com.logan.flowbus.core
 
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -25,6 +26,26 @@ class FlowBusStickyConsumeTest {
     @After
     fun tearDown() {
         DefaultFlowBus.resetForTests()
+    }
+
+    @Test
+    fun `reentrant sticky publication keeps newest replay in live publication order`() = runBlocking {
+        val bus = FlowBus()
+        val key = eventKey<Int>("sticky.reentrant.latest")
+        val received = mutableListOf<Int>()
+        val collector = launch(Dispatchers.Unconfined) {
+            bus.stickyFlow(key).collect { value ->
+                received += value
+                if (value == 1) assertTrue(bus.postSticky(key, 2))
+            }
+        }
+        try {
+            assertTrue(bus.postSticky(key, 1))
+            assertEquals(listOf(1, 2), received)
+            assertEquals(2, bus.consumeStickyLatest(key))
+        } finally {
+            collector.cancelAndJoin()
+        }
     }
 
     @Test
