@@ -10,10 +10,10 @@ Local validation uses `130c4aa375155917fdd296e312d4dfab14acee66` plus the candid
 
 | Change | Problem | Current status |
 | --- | --- | --- |
-| Sticky reentrant publication | Receiving `1` and immediately publishing `2` yields live `[1, 2]` but latest replay `1` | Local core/Android regressions pass; formal performance and API 21/35 verification remain pending |
+| Sticky reentrant publication | Receiving `1` and immediately publishing `2` yields live `[1, 2]` but latest replay `1` | Behavior, formal CI performance and API21/35 pass |
 | Scope binding failure safety | A CoroutineScope without a Job makes openScope throw after registering an unreachable handle | Validation before registration is implemented; local targeted tests passed |
-| Lifecycle thresholds and lookup side effects | DESTROYED silently never subscribes; invalid calls may obtain a global/owner source first | Android/Compose validation is implemented; Android L01–L07 regressions passed; real Compose device stages are pending |
-| Published 1.3.0 consumer baseline | Newly released APIs lack original-bytecode execution against a replacement candidate | Original core bytecode passes on Java 8; Android/Compose R8 and frozen identity checks pass; device/CI evidence remains pending |
+| Lifecycle thresholds and lookup side effects | DESTROYED silently never subscribes; invalid calls may obtain a global/owner source first | L01–L07 and real Compose API21/35 stages pass |
+| Published 1.3.0 consumer baseline | Newly released APIs lack original-bytecode execution against a replacement candidate | Core unchanged bytecode on Java8 and Android/Compose R8, identity and device execution pass |
 
 The target keeps the three coordinates, Java 8 bytecode, Android API 21, and existing base toolchain/dependency versions. It adds no public API, production dependency, durable queue, or reliable-delivery guarantee. Final public-symbol compatibility still requires candidate API and binary gates.
 
@@ -69,9 +69,13 @@ Workstation timing data remains disturbed by background load; see the [directed 
 4. Record directed performance comparisons between public 1.3.0 and the final candidate. Smoke does not establish speedup or absence of regressions.
 5. Add final candidate commit/hashes, complete CI runs, unresolved limits and rollback details here. Publication follows the applicable authorization and [release checklist](release-checklist.md); these notes do not authorize publication.
 
-## Performance review in progress
+## Formal performance and second CI acceptance
 
-Initial formal measurements found approximately 48 additional bytes per sticky event. JFR samples included TreeMap entries, boxed Long keys and temporary lists used only to count replay. The candidate now stores replay=1 directly and reads replay size without a list, preserving ordering, generations and cancellation. `w6-optimized-quality.log` passes APIs, 284 JVM tests, release lint and local artifacts. Reversed producer resumption covers replay=1/2. Optimized formal measurements and reversed-order baseline measurements remain in progress; no performance acceptance is claimed yet.
+Initial measurements found approximately 48 additional bytes per sticky event. JFR motivated direct single-value replay and size reads, preserving ordering, generations and cancellation. Reversed resumption covers replay=1/2; APIs, 284 JVM tests and lint pass. Workstation timing remained disturbed and is retained with its limitations.
+
+[CI 42971579052](https://github.com/logan0817/FlowBus/actions/runs/42971579052), head `7dd6bdf`, attempt 1, checkout `1380cf166d7519be2b015e131eeaa43aff120938`, passed all nine checks. A formal same-runner comparison yields throughput ratios approximately 1.003/1.018/0.998 with overlapping error intervals; no material timing regression was observed, while sticky allocation drops about 22%. The [formal report](../../benchmarks/jvm/results/1.3.1/report.md) retains settings, iterations, identities and limits, without promising stable speedups or ART performance.
+
+Both APIs again pass 8/12/11 consumer stages, alongside four Kotlin versions, Java8, historical bytecode/symbols and R8. Logs/UI/manifests were audited. The final documentation commit must still pass full CI before merge and main CI verification. Production and benchmark inputs stay unchanged, so formal measurement is reused. Final head, merge commit and main checks are identified by [PR #16](https://github.com/logan0817/FlowBus/pull/16) merge/Checks records and final delivery, avoiding recursive commits solely to reference their own run IDs.
 
 ## Rollback
 

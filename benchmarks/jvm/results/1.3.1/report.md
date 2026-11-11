@@ -1,6 +1,22 @@
 # 1.3.1 sticky 修复的定向性能记录
 
-测量日期：2026-11-11。状态：分配变化已有测量；耗时验收尚未完成。当前记录不能用于宣称提速或无性能回退。
+测量日期：2026-11-11。状态：正式 CI 定向对照已验收；在所测场景未观察到明显耗时退化，sticky 分配下降。不据此宣称稳定提速或 Android ART 性能。
+
+## 正式 CI 对照与结论
+
+[PR CI 42971579052](https://github.com/logan0817/FlowBus/actions/runs/42971579052) 的同一 consumers runner 串行测量正式 1.3.0 与提交 `7dd6bdf` 的候选，attempt=1，checkout=`1380cf166d7519be2b015e131eeaa43aff120938`。AMD EPYC 9V74、4 个逻辑 CPU、JDK17，3 forks、5×1s 预热/测量、512MB heap 和 GC profiler；原有 smoke 与必需检查全部保留。
+
+| 场景 | 1.3.0 批次/ms ± 误差 | 候选批次/ms ± 误差 | 候选/基线 | 1.3.0 B/批次 | 候选 B/批次 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| noSubscribers | 153.220 ± 1.876 | 153.680 ± 1.874 | 1.003 | 40.04 | 40.04 |
+| stickySend | 91.684 ± 0.696 | 93.312 ± 4.279 | 1.018 | 15400.07 | 11986.74 |
+| active1 | 21.709 ± 0.715 | 21.660 ± 0.880 | 0.998 | 23497.79 | 25250.85 |
+
+三组吞吐的误差范围均有重叠，没有观察到超过噪声的约 10% 退化。stickySend 分配下降约 22%，按 128 次发送折算约 120.3 → 93.6 B/事件；不同 fork/JIT 逃逸分析可能改变具体分配量，因此不把本机约 80 B/事件写成所有环境固定成本。active1 吞吐分配增加约 7.5%，同一场景采样模式分配约 23485 → 23459 B/批次，未形成一致退化信号。
+
+SampleTime 整批均值分别为：noSubscribers `0.006734 → 0.006668 ms`、stickySend `0.011396 → 0.010547 ms`、active1 `0.046622 → 0.045416 ms`。只说明本次测量，不能称为单事件延迟或稳定提速。所有实际收发 ID 和计数断言通过。基线摘要、候选摘要、源码和基准身份均已核对；候选 core JAR SHA-256 为 `7ee18320f698d9a5a4fb3e822e6ee12751564c70d361c94b2b7b2ef765382806`。
+
+本次结论只覆盖这三个 JVM 场景。以下本机结果保留为最初发现、修正和环境限制的证据，不与 CI 的不同机器读数混合计算比值。
 
 测量使用 Maven Central 正式 1.3.0、未优化的修复候选、优化后的 1.3.1 候选和反向顺序的正式基线。每组均为 JMH 1.37、JDK 17、3 forks、5×1s 预热、5×1s 测量，固定 `-Xms512m -Xmx512m` 和 GC profiler；仅包含 noSubscribers、stickySend、active1 两种模式，共 6 行，不代表完整基准。
 
@@ -30,12 +46,12 @@ JFR 对未优化候选采样发现 TreeMap.Entry、Long、ArrayList/数组等分
 
 误差为 JMH scoreError，默认 99.9% 置信区间。未修改的普通发送路径也显著变慢；反向复测时记录到 load≈51、swap 使用约 15 GB，同机其他项目 Gradle 占用 CPU。基线 active1 从约 26 跌至约 0.32 批次/ms，不能将这种差异归因于修复算法。
 
-下一步是在后台负载较平稳时取得正式对照，并结合误差和相同工作量判断耗时。不得挑选有利读数、用 smoke 替代，或停止不属于本任务的进程。本记录不推导 Android ART 性能。
+本机结果触发了同 runner 正式 CI 对照，验收见上节。不得挑选有利读数、用 smoke 替代，或停止不属于本任务的进程。本记录不推导 Android ART 性能。
 
-后续复测连续记录 load≈8.9–22.1，同机已知项目 Gradle CPU 峰值约 1.7%，但普通未修改路径仍显示吞吐降低而 SampleTime 缩短的矛盾趋势，无法证明稳定耗时差异。保留这两组作为限制，下一次在 PR 显式启用现有 consumers runner 上的正式对照，不将本机“低于 10%”的个别比值作为通过依据。
+后续复测连续记录 load≈8.9–22.1，同机已知项目 Gradle CPU 峰值约 1.7%，但普通未修改路径仍显示吞吐降低而 SampleTime 缩短的矛盾趋势，无法证明稳定耗时差异。保留这两组作为限制，后续已在 PR 显式启用现有 consumers runner 上的正式对照，不将本机“低于 10%”的个别比值作为通过依据。
 
 ## 身份与保留范围
 
-[metrics.json](metrics.json) 保留六组参数、实际 JAR 和源码摘要、误差、原始迭代值、分位数、GC 与 sent/received 辅助计数；仅移除较大的 rawDataHistogram。其 originalReportSha256 和 identity.reportSha256 均绑定原始 JMH JSON，不能用于校验裁剪后的归档 JSON。[environment.json](environment.json) 保留测量环境和受扰观察。
+[metrics.json](metrics.json) 保留八组参数、实际 JAR 和源码摘要、误差、Throughput 原始迭代值、SampleTime 分位数、GC 与 sent/received 辅助计数；仅移除较大的 rawDataHistogram。其 originalReportSha256 和 identity.reportSha256 均绑定原始 JMH JSON，不能用于校验裁剪后的归档 JSON。[environment.json](environment.json) 保留测量环境、CI 身份和受扰观察。
 
 最终修复候选 core SHA-256 为 `b1b0ea21fcb91615b17a56319fdb2f0cc463ef47c44b06455f83769a0c5bcd03`。PR #16 首轮云端 core JAR 与本地该候选的全部 ZIP 文件内容一致；最终 PR/main 制品仍须分别核对身份。原始 JSON、日志和 JFR 留在本地忽略目录，本归档不覆盖 1.2.0 或 1.3.0 历史结果，也不调用完整 summarize.py。

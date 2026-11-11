@@ -154,7 +154,7 @@ inspect().config 显示 bus 默认值；tryPostResult/tryPostStickyResult.overfl
 
 ### Job 看似活跃，但 onSubscribed 从未触发
 
-除检查来源、key 和实际 owner 生命周期外，还要检查最低收集状态。阈值只应为 `CREATED`、`STARTED` 或 `RESUMED`；`DESTROYED` 不是一种“销毁时收集”的模式。1.3.0 接受该参数时可能返回活跃 Job 而不订阅；1.3.1 候选会像拒绝 `INITIALIZED` 一样同步抛出 `IllegalArgumentException`，便捷入口也不会先获取全局/owner 总线。Android 参数与副作用回归已通过，Compose 候选新增阶段仍需真实设备验收。
+除检查来源、key 和实际 owner 生命周期外，还要检查最低收集状态。阈值只应为 `CREATED`、`STARTED` 或 `RESUMED`；`DESTROYED` 不是一种“销毁时收集”的模式。1.3.0 接受该参数时可能返回活跃 Job 而不订阅；1.3.1 候选会像拒绝 `INITIALIZED` 一样同步抛出 `IllegalArgumentException`，便捷入口也不会先获取全局/owner 总线。Android 参数与副作用回归、Compose 候选新增 API21/35 真实阶段均已通过，具体受测提交见开发说明。
 
 owner 本身已经销毁且阈值合法时，应正常不订阅并完成 Job。不要把这种情况改成非法阈值，也不要捕获所有异常后当作订阅成功。
 

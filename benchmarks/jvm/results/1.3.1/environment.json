@@ -20,8 +20,8 @@
       "limitation": "Other workspace processes were left running; no process or global environment was modified."
     }
   ],
-  "archiveNote": "Rows retain raw iteration values and percentiles, but omit rawDataHistogram; originalReportSha256 and each identity refer to original unmodified JMH JSON. These are four directed groups, not a complete three-adapter report.",
-  "status": "Allocation improvement measured; timing acceptance pending due to heavy workstation contention.",
+  "archiveNote": "Rows retain raw iteration values and percentiles, but omit rawDataHistogram; originalReportSha256 and each identity refer to original unmodified JMH JSON. These are eight directed groups, not a complete three-adapter report.",
+  "status": "Directed formal CI comparison accepted: comparable timings, no material regression observed in measured scenarios; JVM only.",
   "finalComparisonObservations": [
     {
       "utc": "2026-11-11T06:07:10.622547+00:00",
@@ -275,5 +275,19 @@
       ],
       "otherProjectGradleCpu": "1.1"
     }
-  ]
+  ],
+  "ciFormal": {
+    "run": 42971579052,
+    "attempt": 1,
+    "head": "7dd6bdfb6eec1616565a760201b4b84e5e837fc7",
+    "checkout": "1380cf166d7519be2b015e131eeaa43aff120938",
+    "candidateManifestSha256": "073e921d6eb7615e1b59a9f511f4852308a1cf9fe9aec040ffa843d539098437",
+    "runnerEnvironment": "Wed Nov 11 06:25:31 UTC 2026\nLinux x86_64\nArchitecture:                            x86_64\nCPU op-mode(s):                          32-bit, 64-bit\nAddress sizes:                           48 bits physical, 48 bits virtual\nByte Order:                              Little Endian\nCPU(s):                                  4\nOn-line CPU(s) list:                     0-3\nVendor ID:                               AuthenticAMD\nModel name:                              AMD EPYC 9V74 80-Core Processor\nCPU family:                              25\nModel:                                   17\nThread(s) per core:                      2\nCore(s) per socket:                      2\nSocket(s):                               1\nStepping:                                1\nBogoMIPS:                                5192.29\nFlags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology tsc_reliable nonstop_tsc cpuid extd_apicid aperfmperf tsc_known_freq pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm cmp_legacy svm cr8_legacy abm sse4a misalignsse 3dnowprefetch osvw topoext vmmcall fsgsbase bmi1 avx2 smep bmi2 erms invpcid avx512f avx512dq rdseed adx smap avx512ifma clflushopt clwb avx512cd sha_ni avx512bw avx512vl xsaveopt xsavec xgetbv1 xsaves user_shstk avx512_bf16 clzero xsaveerptr rdpru arat npt nrip_save tsc_scale vmcb_clean flushbyasid decodeassists pausefilter pfthreshold v_vmsave_vmload avx512vbmi umip avx512_vbmi2 gfni vaes vpclmulqdq avx512_vnni avx512_bitalg avx512_vpopcntdq rdpid fsrm\nVirtualization:                          AMD-V\nHypervisor vendor:                       Microsoft\nVirtualization type:                     full\nL1d cache:                               64 KiB (2 instances)\nL1i cache:                               64 KiB (2 instances)\nL2 cache:                                2 MiB (2 instances)\nL3 cache:                                32 MiB (1 instance)\nNUMA node(s):                            1\nNUMA node0 CPU(s):                       0-3\nVulnerability Gather data sampling:      Not affected\nVulnerability Ghostwrite:                Not affected\nVulnerability Indirect target selection: Not affected\nVulnerability Itlb multihit:             Not affected\nVulnerability L1tf:                      Not affected\nVulnerability Mds:                       Not affected\nVulnerability Meltdown:                  Not affected\nVulnerability Mmio stale data:           Not affected\nVulnerability Old microcode:             Not affected\nVulnerability Reg file data sampling:    Not affected\nVulnerability Retbleed:                  Not affected\nVulnerability Spec rstack overflow:      Vulnerable: Safe RET, no microcode\nVulnerability Spec store bypass:         Vulnerable\nVulnerability Spectre v1:                Mitigation; usercopy/swapgs barriers and __user pointer sanitization\nVulnerability Spectre v2:                Mitigation; Retpolines; STIBP disabled; RSB filling; PBRSB-eIBRS Not affected; BHI Not affected\nVulnerability Srbds:                     Not affected\nVulnerability Tsa:                       Vulnerable: No microcode\nVulnerability Tsx async abort:           Not affected\nVulnerability Vmscape:                   Not affected\n               total        used        free      shared  buff/cache   available\nMem:           15983        4897        7607          49        3872       11085\nSwap:           3071           0        3071\n 06:25:31 up 3 min,  0 users,  load average: 3.63, 1.85, 0.73\n 06:28:38 up 6 min,  0 users,  load average: 1.94, 1.81, 0.92\n 06:31:46 up 9 min,  0 users,  load average: 2.06, 1.83, 1.09\n",
+    "order": [
+      "baseline",
+      "candidate"
+    ],
+    "candidateJarSha256": "7ee18320f698d9a5a4fb3e822e6ee12751564c70d361c94b2b7b2ef765382806",
+    "acceptance": "Throughput ratios for noSubscribers/stickySend/active1 are approximately 1.003/1.018/0.998 with overlapping scoreError intervals. Sticky allocation is lower; active1 allocation changes vary by mode/fork and remain below the investigation threshold."
+  }
 }
