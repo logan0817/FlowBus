@@ -35,7 +35,7 @@ Recompile consumers to obtain the complete fix. Public inline `collectEvent` may
 
 The final fix must preserve rejected/cancelled sends not polluting replay, generation isolation for clear/consume, existing backpressure and DROP policies, and subscription notification before historical replay. Moving replay commit before a potentially rejected send, delaying a reentrant send, or weakening assertions is not an acceptable substitute.
 
-The 1.3.0 failure and formal regression are confirmed; the final candidate sticky fix is not yet verified. `accepted=true` still does not guarantee live delivery without drops or completed business work. Existing DROP_LATEST differences between live delivery and replay remain, and no total order is promised for otherwise unordered concurrent calls.
+Candidate sticky behavior regressions pass locally and in the first PR CI. Final pre-release acceptance remains pending. `accepted=true` still does not guarantee live delivery without drops or completed business work. Existing DROP_LATEST differences between live delivery and replay remain, and no total order is promised for otherwise unordered concurrent calls.
 
 ## Local evidence so far
 
@@ -51,7 +51,15 @@ The 1.3.0 failure and formal regression are confirmed; the final candidate stick
 - `w5-negative-results.json`: five negative cases reject changed fixture/JAR, class and baseline hashes, original input leaking into runtime, and missing reports. Stale success reports are removed; normal input passes again after restoration.
 - All three 1.3.0 public-symbol snapshots have no missing descriptors. Four raw JVM changes belong to implementation classes explicitly marked private in the original InnerClasses metadata. They remain in otherJvmRemovals; public/protected/internal class descriptor removals still fail. Nine script regressions pass.
 
-These are intermediate results and must be reassessed when their inputs change. No 1.3.1 PR/main CI, device acceptance, or public Maven artifact evidence is recorded here yet. Historical 1.3.0 passes cannot fill those gaps.
+These are intermediate results and must be reassessed when their inputs change. First PR/device evidence follows below; main CI and public release acceptance remain pending.
+
+## First PR acceptance
+
+[PR #16](https://github.com/logan0817/FlowBus/pull/16), head `c90cb55`, passed all nine checks in [CI 42969426491](https://github.com/logan0817/FlowBus/actions/runs/42969426491), attempt 1, checkout `475c0f141c2b40b2288e7cc79952044143160546`. Coverage includes 284 JVM tests, APIs/release lint, four Kotlin versions, Java 8, four original core bytecode baselines, public symbols, release R8 and API21/35. API35 library instrumentation passed 3 tests and sample release instrumentation passed 20, without failures or skips.
+
+Downloaded Android/effect/policy reports pass 8/12/11 phases respectively on both APIs, including original-compiled 1.3.0 Java/Kotlin/Composable calls. Current run IDs, same-package UI, every phase and candidate manifests match. API21 retains Navigation/NavHost 7/8 phases. All 98 class files and 100 runtime file contents in the CI core JAR match the local measured candidate; container hashes differ and remain separately identified.
+
+Workstation timing data remains disturbed by background load; see the [directed performance report](../../benchmarks/jvm/results/1.3.1/report.md). The PR remains draft, with an explicit formal comparison in the existing consumers runner next. Final performance and subsequent PR/main CI acceptance remain pending; the first pass does not cover later edits automatically.
 
 ## Required before release
 

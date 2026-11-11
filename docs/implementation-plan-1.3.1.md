@@ -175,9 +175,9 @@ FlowBus 1.3.0 已有类型通道、每通道配置、订阅就绪通知、Java�
 | W0 | 恢复现场、核对授权和工具链 | 无 | 实际基线、修改清单、任务状态 | 完成 |
 | W1 | 将 3 个复现转为正式行为回归 | W0 | 修复前失败证据、必要测试资源清理 | 完成 |
 | W2 | 修复 sticky 重入与提交顺序 | W1 | 局部内部实现、设计说明、完整行为矩阵 | 本地行为通过；性能/设备待验收 |
-| W3 | 修复 scope 创建绑定失败 | W1 | 登记前校验、异常安全回归 | 本地通过 |
-| W4 | 修复生命周期阈值与入口副作用 | W1 | Android/Compose 参数验证及真实消费者阶段 | Android 本地通过；Compose 设备待验收 |
-| W5 | 补齐正式 1.3.0 兼容基线 | W0；最终运行等待 W2–W4 | 固定原版摘要/API、旧字节码运行证据 | 进行中 |
+| W3 | 修复 scope 创建绑定失败 | W1 | 登记前校验、异常安全回归 | 首轮 PR CI 通过 |
+| W4 | 修复生命周期阈值与入口副作用 | W1 | Android/Compose 参数验证及真实消费者阶段 | 首轮 PR API21/35 真实阶段通过 |
+| W5 | 补齐正式 1.3.0 兼容基线 | W0；最终运行等待 W2–W4 | 固定原版摘要/API、旧字节码运行证据 | 首轮 PR CI 通过 |
 | W6 | 正式 1.3.0 定向性能对照 | W2、W5 基线可用 | 带身份的正式 JMH 数据与解释 | 进行中 |
 | W7 | 版本候选、文档、集成与 CI | W2–W6 | 1.3.1 最终候选及完整门禁 | 进行中 |
 | W8 | 授权发布与公开制品验收 | W7；对应远端授权 | Central 状态、公开消费者、tag/Release | 本次目标不执行 |
@@ -433,6 +433,7 @@ core 新基线与三份符号比较进入 `consumers` job；Android/Compose fixt
 4. 保存 JSON、identity、日志、机器/JDK 及当时负载。以同一工作量比较吞吐、采样耗时与分配，区分批次和单事件。不要与其他重型构建并行；不能停止不属于本任务的进程，应等待合适环境并记录限制。
 5. 定向结果使用单独报告名，不调用完整汇总器冒充三组完整对照。只有完成 baseline20/candidate22/shared16 完整组和身份验证后，才可按现有归档流程更新完整报告。
 6. 超过噪声的约 10%退化触发调查和有理由的反向顺序复测，不直接设共享 CI 硬阈值。因修复正确性带来必要开销时，记录数据、原因和取舍，不删掉正确性或指标绕过问题。
+7. 本机反向复测若仍受后台负载干扰，可在已授权的 PR 正文显式加入 `<!-- flowbus-formal-performance -->`，复用现有 consumers runner 串行取得相同参数的正式 baseline/candidate 数据；步骤不替换 smoke、扩大矩阵或设置硬阈值。报告纳入现有 artifact，执行时间计入原 20 分钟 job 超时；需先核对历史耗时仍有余量。当前首轮 consumers 用时约 4 分 30 秒，正式测量另需约 6 分钟。
 
 **W6 退出条件：** 针对最终相关实现有可比正式数据和明确结论；若环境无法测量，标“待验证”并说明影响，不能将 smoke 作为通过。正式版本切换可以在测量前完成；当前已采用 1.3.1 候选测量。报告文件名仅为标签，实际身份以 JSON 中版本与 JAR 摘要为准。测量后若纯版本切换，至少重跑 smoke 并核对实现未变，不把旧版本 JAR 测量称为正式 1.3.1 制品实测；性能相关输入变化时重做受影响正式测量。
 
@@ -702,3 +703,11 @@ W0–W8状态：未开始 / 进行中 / 本地通过 / CI通过 / 待授权 / �
 - W7：源码版本已为未发布 1.3.1；`w7-local-quality-final.log` 三模块 API、284 项 JVM 测试、全部 release lint、示例 debug/release R8 和发布名称检查通过，lint XML 均 0 error/0 warning。后续文档输入修改需最终复验；PR/main CI、API21/35 及完整 Kotlin 矩阵尚未执行。
 - 本地封存补充记录 `local-source-identity.json`、`workspace.patch` 和 `untracked-inputs.json`；HEAD 仍只标识基线，不能代替未提交 patch。正式验收须使用干净 CI checkout。用户已持续授权本次会话在 logan0817/FlowBus 的 fix/release-1.3.1 提交、推送、创建或更新面向 main 的 PR、现有 CI，并在性能验收和全部必需检查通过后合并与核验 main CI；不包含 Maven 上传、正式发布、tag 或 GitHub Release。
 - 验证由主执行者串行运行Gradle；各执行者按文件分工，日志保留在 `build/verification-1.3.1/`。
+
+### 首轮 PR 验收与性能复核
+
+提交 `c90cb55` 已推送至 `fix/release-1.3.1`，草稿 [PR #16](https://github.com/logan0817/FlowBus/pull/16) 首轮 [CI 42969426491](https://github.com/logan0817/FlowBus/actions/runs/42969426491) 的九项检查全部成功。PR 合成提交为 `475c0f141c2b40b2288e7cc79952044143160546`，attempt=1；284 项 JVM 测试重新执行，三份 lint XML 均无 issue。四个 Kotlin 版本、Java8、四个历史 core 原版字节码基线、公开符号、R8、API21/35 均通过。
+
+下载并核对 API21/35 的 Android 8、effect 12、policy 11 阶段：本次 runId 日志、同包 UI 和全部阶段一致；API21 另保留 Navigation/NavHost 7/8 阶段。API35 的库 instrumentation 3 项与示例 release instrumentation 20 项均无失败或跳过。五份已下载报告中的候选清单一致；十份兼容运行/冻结报告指向同一候选摘要。云端 core JAR 与本地性能候选的 98 个 class 和全部 100 个文件内容一致；ZIP 容器摘要分别保留，不谎称整体文件相同。
+
+本机首轮性能发现约 48 B/事件的 sticky 额外分配，JFR 后将 replay=1 改为直接保存最近值、计数直接读 size；修复后全部行为/API/lint 通过。正式吞吐模式分配从原版约 120 B/事件变为约 80 B/事件。但多轮耗时受同机高负载和 swap 干扰，普通未修改路径也明显波动；[定向记录](../benchmarks/jvm/results/1.3.1/report.md)保留全部数据，不把它们当耗时验收。下一次 PR CI 在现有 consumers 中显式运行正式对照。取得可信数据、完成后续最终 PR/main CI 前，W6/W7 不勾选完成，PR 保持草稿。

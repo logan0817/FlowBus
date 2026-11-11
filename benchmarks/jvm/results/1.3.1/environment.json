@@ -1,0 +1,279 @@
+{
+  "generatedUtc": "2026-11-11T06:06:16.112349+00:00",
+  "commit": "c90cb55f68fe2f49ebb5cf02914dcde9370469b6",
+  "os": "macOS-26.5.2-arm64-arm-64bit",
+  "machine": "arm64",
+  "logicalCpus": 8,
+  "initialEnvironment": "Wed Nov 11 05:48:58 UTC 2026\nDarwin arm64\nMacBookPro17,1\n8\n17179869184\n13:48  up 2 days,  2:22, 1 user, load averages: 10.50 15.75 11.68\n  PID  %CPU\n70308   0.0\n95301   0.0\n",
+  "observations": [
+    {
+      "utc": "2026-11-11T06:03:01.293102+00:00",
+      "load": [
+        51.21875,
+        20.59716796875,
+        13.65869140625
+      ],
+      "machine": "arm64",
+      "sample": "reverse baseline active1",
+      "knownOtherProjectGradleCpu": "163.8",
+      "swap": "total = 16384.00M  used = 15370.38M  free = 1013.62M  (encrypted)",
+      "limitation": "Other workspace processes were left running; no process or global environment was modified."
+    }
+  ],
+  "archiveNote": "Rows retain raw iteration values and percentiles, but omit rawDataHistogram; originalReportSha256 and each identity refer to original unmodified JMH JSON. These are four directed groups, not a complete three-adapter report.",
+  "status": "Allocation improvement measured; timing acceptance pending due to heavy workstation contention.",
+  "finalComparisonObservations": [
+    {
+      "utc": "2026-11-11T06:07:10.622547+00:00",
+      "load": [
+        17.986328125,
+        20.81005859375,
+        15.67431640625
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:07:25.637587+00:00",
+      "load": [
+        18.2255859375,
+        20.734375,
+        15.73681640625
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:07:40.644406+00:00",
+      "load": [
+        15.91162109375,
+        20.0947265625,
+        15.59521484375
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:07:55.653240+00:00",
+      "load": [
+        13.46337890625,
+        19.35302734375,
+        15.4091796875
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:08:10.664194+00:00",
+      "load": [
+        16.18359375,
+        19.66259765625,
+        15.587890625
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:08:25.681170+00:00",
+      "load": [
+        15.67529296875,
+        19.37060546875,
+        15.5537109375
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:08:40.692231+00:00",
+      "load": [
+        16.15380859375,
+        19.2880859375,
+        15.59033203125
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:08:55.717377+00:00",
+      "load": [
+        17.78662109375,
+        19.48779296875,
+        15.72509765625
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:09:10.783473+00:00",
+      "load": [
+        19.4423828125,
+        19.8251953125,
+        15.9140625
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:09:25.805189+00:00",
+      "load": [
+        22.08203125,
+        20.40185546875,
+        16.1884765625
+      ],
+      "otherProjectGradleCpu": "0.1"
+    },
+    {
+      "utc": "2026-11-11T06:09:40.841424+00:00",
+      "load": [
+        19.2568359375,
+        19.85888671875,
+        16.06787109375
+      ],
+      "otherProjectGradleCpu": "0.1"
+    },
+    {
+      "utc": "2026-11-11T06:09:55.867212+00:00",
+      "load": [
+        18.978515625,
+        19.7802734375,
+        16.1064453125
+      ],
+      "otherProjectGradleCpu": "1.3"
+    },
+    {
+      "utc": "2026-11-11T06:10:10.905277+00:00",
+      "load": [
+        20.40771484375,
+        20.0654296875,
+        16.2724609375
+      ],
+      "otherProjectGradleCpu": "0.3"
+    },
+    {
+      "utc": "2026-11-11T06:10:25.949694+00:00",
+      "load": [
+        19.39990234375,
+        19.87744140625,
+        16.2724609375
+      ],
+      "otherProjectGradleCpu": "1.7"
+    },
+    {
+      "utc": "2026-11-11T06:10:40.972401+00:00",
+      "load": [
+        18.66162109375,
+        19.6875,
+        16.26708984375
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:10:55.986256+00:00",
+      "load": [
+        18.00439453125,
+        19.47705078125,
+        16.25048828125
+      ],
+      "otherProjectGradleCpu": "1.5"
+    },
+    {
+      "utc": "2026-11-11T06:11:11.011333+00:00",
+      "load": [
+        16.6552734375,
+        19.095703125,
+        16.16943359375
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:11:26.021782+00:00",
+      "load": [
+        14.7490234375,
+        18.55224609375,
+        16.02587890625
+      ],
+      "otherProjectGradleCpu": "1.6"
+    },
+    {
+      "utc": "2026-11-11T06:11:41.043694+00:00",
+      "load": [
+        13.96533203125,
+        18.197265625,
+        15.94287109375
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:11:56.053096+00:00",
+      "load": [
+        11.69580078125,
+        17.4853515625,
+        15.7275390625
+      ],
+      "otherProjectGradleCpu": "1.2"
+    },
+    {
+      "utc": "2026-11-11T06:12:11.059125+00:00",
+      "load": [
+        10.4697265625,
+        16.923828125,
+        15.55712890625
+      ],
+      "otherProjectGradleCpu": "0.2"
+    },
+    {
+      "utc": "2026-11-11T06:12:26.066863+00:00",
+      "load": [
+        9.9521484375,
+        16.4873046875,
+        15.4248046875
+      ],
+      "otherProjectGradleCpu": "1.7"
+    },
+    {
+      "utc": "2026-11-11T06:12:41.087631+00:00",
+      "load": [
+        9.29052734375,
+        16.021484375,
+        15.2763671875
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:12:56.097658+00:00",
+      "load": [
+        8.86767578125,
+        15.595703125,
+        15.13671875
+      ],
+      "otherProjectGradleCpu": "1.6"
+    },
+    {
+      "utc": "2026-11-11T06:13:11.130334+00:00",
+      "load": [
+        9.28173828125,
+        15.35400390625,
+        15.05810546875
+      ],
+      "otherProjectGradleCpu": "0.0"
+    },
+    {
+      "utc": "2026-11-11T06:13:26.164954+00:00",
+      "load": [
+        10.451171875,
+        15.318359375,
+        15.05029296875
+      ],
+      "otherProjectGradleCpu": "1.5"
+    },
+    {
+      "utc": "2026-11-11T06:13:41.191039+00:00",
+      "load": [
+        15.34326171875,
+        16.14013671875,
+        15.3466796875
+      ],
+      "otherProjectGradleCpu": "0.3"
+    },
+    {
+      "utc": "2026-11-11T06:13:56.232397+00:00",
+      "load": [
+        16.58984375,
+        16.39013671875,
+        15.44970703125
+      ],
+      "otherProjectGradleCpu": "1.1"
+    }
+  ]
+}

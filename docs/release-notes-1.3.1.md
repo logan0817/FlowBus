@@ -51,7 +51,15 @@
 - `w5-negative-results.json`：fixture/JAR、class、原版摘要、运行图污染及缺报告五项负向测试均被拒绝，旧成功报告不残留；恢复正常输入后验收通过。
 - 三模块 1.3.0 公开符号无缺失。旧版 raw JVM 比较的四处变更属于原版 `InnerClasses` 明确标记 private 的实现类；检查器保留 `otherJvmRemovals`，继续阻止公开/受保护/internal 类的描述符缺失，9 项脚本回归通过。
 
-以上为开发阶段证据，输入继续变化后应按最终范围重验。本说明尚无本版 PR/main CI、设备验收或公开 Maven 制品记录；不能复用 1.3.0 的通过结果填补。
+以上为开发阶段证据，输入继续变化后应按最终范围重验。本版首轮 PR CI 与设备证据见下节；main CI 与正式发布验收尚未完成。
+
+## 首轮 PR 验收
+
+[PR #16](https://github.com/logan0817/FlowBus/pull/16) 的提交 `c90cb55` 对应 [CI 42969426491](https://github.com/logan0817/FlowBus/actions/runs/42969426491)，attempt=1，合成 checkout 为 `475c0f141c2b40b2288e7cc79952044143160546`。九项检查全部通过：284 项 JVM 测试、三模块 API/release lint、四个 Kotlin 版本、Java8、四个历史 core 字节码、公开符号、release R8 和 API21/35。API35 库 instrumentation 3 项、示例 release instrumentation 20 项均无失败或跳过。
+
+API21/35 的 Android/effect/policy 分别通过 8/12/11 阶段，包括原版 1.3.0 编译的 Java/Kotlin/Composable；已下载报告核对本次 runId、同包 UI、全部阶段和候选清单。API21 保留 Navigation/NavHost 7/8 阶段。云端 core 与本地受测候选的全部 98 个 class、100 个文件内容一致；ZIP 容器摘要不同，分别记录，不能混用。
+
+本机性能数据受持续负载干扰，记录见[定向性能报告](../benchmarks/jvm/results/1.3.1/report.md)。PR 保持草稿，下一次 CI 在现有 consumers runner 显式执行正式对照；最终性能验收及后续 PR/main CI 仍待完成。上述首轮成功不自动覆盖后续改动。
 
 ## 发布前必须补齐
 

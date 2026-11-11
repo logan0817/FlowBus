@@ -37,6 +37,8 @@ python3 benchmarks/jvm/summarize.py
 
 JMH 成功后生成同名 `.identity.json`，绑定报告摘要、实际 JAR、源码与基准构建脚本。`summarize.py` 在写入结果前验证三份完整报告及身份；缺少标记、输入变化或摘要不符均拒绝。旧无标记报告保留为历史，不能手工补标记后改称当前测量。
 
+本机负载影响正式对照时，可在 PR 正文加入 `<!-- flowbus-formal-performance -->`，由下一次 PR CI 的现有 `consumers` job 在同一 runner 串行测量 baseline/candidate 的 noSubscribers、stickySend、active1，保留原 smoke、3 forks 和 5×1s 参数。输出为 `baseline-formal`、`candidate-formal` 的 JSON/identity，以及 `formal-environment.txt`，进入该 job 的现有报告 artifact。此入口增加约 6 分钟测量，未启用的 PR 和 main 不执行；不改必需检查、设置共享 CI 性能硬阈值或生成完整三组报告。发起远端运行仍须有本次会话的 CI 授权。
+
 ## 场景与读数
 
 | 场景 | 配置 / 工作量 | 每次 invocation 的发送 / 实际接收 |

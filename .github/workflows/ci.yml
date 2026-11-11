@@ -114,6 +114,21 @@ jobs:
           done
           ./gradlew -p benchmarks/jvm jmh -Pbenchmark.target=candidate -Pbenchmark.smoke \
             '-Pbenchmark.filter=.*SubscriptionBenchmark.*' -Pbenchmark.report=subscription-smoke --warning-mode=all
+      - name: Measure directed formal performance when requested by the PR
+        if: github.event_name == 'pull_request' && contains(github.event.pull_request.body, '<!-- flowbus-formal-performance -->')
+        run: |
+          # PR 显式启用，同一 runner 串行正式测量；保留原 smoke，不以共享机器读数设硬阈值。
+          date -u > benchmarks/jvm/build/reports/formal-environment.txt
+          uname -sm >> benchmarks/jvm/build/reports/formal-environment.txt
+          lscpu >> benchmarks/jvm/build/reports/formal-environment.txt
+          free -m >> benchmarks/jvm/build/reports/formal-environment.txt
+          for benchmark_target in baseline candidate; do
+            uptime >> benchmarks/jvm/build/reports/formal-environment.txt
+            ./gradlew -p benchmarks/jvm jmh "-Pbenchmark.target=$benchmark_target" \
+              '-Pbenchmark.filter=.*BusBenchmark.*' -Pbenchmark.scenarios=noSubscribers,stickySend,active1 \
+              "-Pbenchmark.report=$benchmark_target-formal" --warning-mode=all
+          done
+          uptime >> benchmarks/jvm/build/reports/formal-environment.txt
       - name: Verify unchanged 1.0.7 core consumer bytecode
         run: |
           ./gradlew verifyMavenLocalBinaryCoreConsumer \
