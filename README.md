@@ -25,7 +25,7 @@ Android 项目优先使用 `flowbus`：
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.3.1")
+implementation("io.github.logan0817:flowbus:1.4.0")
 ```
 
 纯 Kotlin / Coroutines / 非 Android 场景使用 `flowbus-core`：
@@ -33,7 +33,7 @@ implementation("io.github.logan0817:flowbus:1.3.1")
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.3.1")
+implementation("io.github.logan0817:flowbus-core:1.4.0")
 ```
 
 模块选择：
@@ -173,15 +173,17 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 
 <a id="130-版本"></a>
 
-## 1.3.1 版本
+<a id="131-版本"></a>
 
-最新正式版本为 **1.3.1**，已于 2026-11-11 发布到 Maven Central。修复 sticky 重入最近值顺序、scope 创建失败残留登记和无效生命周期阈值；保持公共 API、依赖和最低支持版本。
+## 1.4.0 版本
 
-- Android：`io.github.logan0817:flowbus:1.3.1`；纯 JVM：`io.github.logan0817:flowbus-core:1.3.1`。
-- Compose 按需添加 `implementation("io.github.logan0817:flowbus-compose:1.3.1")`，基础两个坐标不传递 Compose。
-- [1.3.1 修复、升级、验证证据与回退](docs/release-notes-1.3.1.md)；[1.3.0 功能说明](docs/release-notes-1.3.0.md)；[1.2.0 历史说明](docs/release-notes-1.2.0.md)。
+最新正式版本为 **1.4.0**，已于 2026-11-16 发布到 Maven Central。增加可选事件排障观察并隔离自定义 logger 异常，保留既有投递、取消、sticky、scope 契约与配置 ABI。
 
-1.4.0 事件排障正在源码开发，尚未发布；见[实施方案](docs/implementation-plan-1.4.0.md)和[候选用法](flowbus-core/README.md#event-diagnostics-140)，上方正式安装仍使用 1.3.1。
+- Android：`io.github.logan0817:flowbus:1.4.0`；纯 JVM：`io.github.logan0817:flowbus-core:1.4.0`。
+- Compose 按需添加 `implementation("io.github.logan0817:flowbus-compose:1.4.0")`，基础两个坐标不传递 Compose。
+- [1.4.0 用法、正式制品、成本与回退](docs/release-notes-1.4.0.md)；[1.3.1 历史修复](docs/release-notes-1.3.1.md)；[1.3.0 功能说明](docs/release-notes-1.3.0.md)；[1.2.0 历史说明](docs/release-notes-1.2.0.md)。
+
+排障默认关闭。完整订阅跟踪须先安装观察器再取得 Flow；开启有实际成本，建议临时排障使用。见[用法](flowbus-core/README.md#event-diagnostics-140)和[实施验收记录](docs/implementation-plan-1.4.0.md)。
 
 ## 兼容与发布状态
 

@@ -21,7 +21,7 @@
 - [scope](#scope-与所有权) · [API 选择](#api-选择矩阵)
 - [通道配置](#channel-configuration) · [挂起订阅](#suspend-collection)
 - [1.3 订阅通知](#subscription-notification) · [通道诊断](#channel-diagnostics)
-- [1.4.0 候选：事件排障观察](#event-diagnostics-140)
+- [1.4.0：事件排障观察](#event-diagnostics-140)
 - [诊断](#诊断) · [行为边界](#行为边界)
 - [兼容性](../docs/compatibility.md) · [排障](../TROUBLESHOOTING.md)
 
@@ -61,14 +61,14 @@
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.3.1")
+implementation("io.github.logan0817:flowbus-core:1.4.0")
 ```
 
-**1.3.1 已发布到 Maven Central。** sticky 重入、scope 创建和生命周期阈值修复已通过最终 main CI、公开制品与独立消费者验收；升级和验证见 [1.3.1 发布说明](../docs/release-notes-1.3.1.md)。
+**1.4.0 已发布到 Maven Central。** 增加可选事件排障并隔离 logger 异常，保留既有契约。公开验收、成本与回退见 [1.4.0 发布说明](../docs/release-notes-1.4.0.md)。
 
 回调收到 sticky `1` 并立即发送 `2` 后，最近 replay 保持 `2`；多个成功发布完成后，历史缓存保留发布顺序的尾部。挂起发送尚未成功恢复前取消时，不提交 replay；已实时交付不撤回，成功发送之后取消 Job 也不回滚历史。并发实时投递与 replay 快照不是跨协程事务，`accepted` 不代表业务处理完成。
 
-最新正式版本为 **1.3.1**，已发布到 Maven Central。下文标记“1.3 起”的能力可通过以上正式坐标使用；发布验证见[发布说明](../docs/release-notes-1.3.1.md)，本地修改的候选验证见[发布清单](../docs/release-checklist.md)。
+最新正式版本为 **1.4.0**，已发布到 Maven Central。下文标记“1.3 起”的能力可通过以上正式坐标使用；发布验证见[发布说明](../docs/release-notes-1.4.0.md)，本地修改的候选验证见[发布清单](../docs/release-checklist.md)。
 
 <a id="先看最短路径"></a>
 
@@ -393,7 +393,7 @@ if (!result.accepted) {
 
 ## 按通道配置
 
-从已发布的 1.2.0 起提供，1.1.0 不包含这些 API。通过 Maven Central 使用 `io.github.logan0817:flowbus-core:1.3.1` 或 `io.github.logan0817:flowbus:1.3.1`；变化与验收记录见[发布说明](../docs/release-notes-1.2.0.md)。
+从已发布的 1.2.0 起提供，1.1.0 不包含这些 API。通过 Maven Central 使用 `io.github.logan0817:flowbus-core:1.4.0` 或 `io.github.logan0817:flowbus:1.4.0`；变化与验收记录见[发布说明](../docs/release-notes-1.2.0.md)。
 
 ### core、scope 与实例用法
 
@@ -666,9 +666,9 @@ println("normal=${channel.normalSubscriptionCount}, sticky=${channel.stickySubsc
 
 <a id="event-diagnostics-140"></a>
 
-### 1.4.0 候选：观察发送、订阅与错误
+### 1.4.0：观察发送、订阅与错误
 
-本节描述当前源码的 **1.4.0 候选能力，尚未发布到 Maven Central**；上方 `1.3.1` 正式坐标不包含这些 API。验证候选请使用[本地候选流程](../CONTRIBUTING.md#candidate-builds)；开发与验收范围见 [1.4.0 实施方案](../docs/implementation-plan-1.4.0.md)。
+本节 API 已包含在上方 **1.4.0** 正式坐标中。验收与成本见[发布说明](../docs/release-notes-1.4.0.md)；验证源码修改时使用[本地候选流程](../CONTRIBUTING.md#candidate-builds)。
 
 当事件名相同却收不到、页面反复订阅或需要区分多个实例时，在来源 bus 上安装观察器。它覆盖该实例的 root 和命名 scope，不会自动观察其他实例：
 

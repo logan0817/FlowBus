@@ -21,7 +21,7 @@ If you are not building an Android app, or if you want to manage bus instances, 
 - [Scopes](#scopes-and-ownership) · [API selection](#api-selection-matrix)
 - [Channel configuration](#channel-configuration) · [Suspend collection](#suspend-collection)
 - [1.3 subscription notification](#subscription-notification) · [Channel diagnostics](#channel-diagnostics)
-- [1.4.0 candidate: event diagnostics](#event-diagnostics-140)
+- [1.4.0: event diagnostics](#event-diagnostics-140)
 - [Diagnostics](#diagnostics) · [Behavior boundaries](#behavior-boundaries)
 - [Compatibility](../docs/en/compatibility.md) · [Troubleshooting](../TROUBLESHOOTING.md) (Chinese)
 
@@ -61,14 +61,14 @@ Cleanup APIs have 2 extra rules:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.3.1")
+implementation("io.github.logan0817:flowbus-core:1.4.0")
 ```
 
-The latest released version is **1.3.1**, available from Maven Central. Features marked “since 1.3” below are available through the dependency above. See the [release notes](../docs/en/release-notes-1.3.1.md) for publication evidence and the [release checklist](../docs/en/release-checklist.md) for local candidate verification.
+The latest released version is **1.4.0**, available from Maven Central. Features marked “since 1.3” below are available through the dependency above. See the [release notes](../docs/en/release-notes-1.4.0.md) for publication evidence and the [release checklist](../docs/en/release-checklist.md) for local candidate verification.
 
 <a id="start-with-the-shortest-path"></a>
 
-**1.3.1 is published to Maven Central.** Sticky reentrancy, scope creation and lifecycle threshold fixes passed final main CI, public artifact checks and independent consumers. See the [1.3.1 release notes](../docs/en/release-notes-1.3.1.md) for upgrades and verification.
+**1.4.0 is published to Maven Central.** It adds optional event diagnostics and isolates logger failures while preserving existing contracts. See the [1.4.0 release notes](../docs/en/release-notes-1.4.0.md) for verification, costs and rollback.
 
 When a callback receives sticky `1` and immediately publishes `2`, replay keeps `2`. After successful publications complete, replay retains the tail in publication order. Cancelling a suspended sender before successful resumption does not commit replay or retract existing live delivery; cancelling its Job after success does not roll back history. Concurrent live delivery and replay snapshots do not form a cross-coroutine transaction, and `accepted` does not mean business processing completed.
 
@@ -396,7 +396,7 @@ It does not mean subscribers already handled the event. `DROP_OLDEST` / `DROP_LA
 
 ## Channel configuration
 
-Available in the published 1.2.0 release; 1.1.0 does not provide these APIs. Use Maven Central with `io.github.logan0817:flowbus-core:1.3.1` or `io.github.logan0817:flowbus:1.3.1`, and [release notes](../docs/en/release-notes-1.2.0.md) for changes and evidence.
+Available in the published 1.2.0 release; 1.1.0 does not provide these APIs. Use Maven Central with `io.github.logan0817:flowbus-core:1.4.0` or `io.github.logan0817:flowbus:1.4.0`, and [release notes](../docs/en/release-notes-1.2.0.md) for changes and evidence.
 
 ### Core, scopes, and explicit instances
 
@@ -667,9 +667,9 @@ Removing an individual Flow retains its configuration. Complete scope cleanup ma
 
 <a id="event-diagnostics-140"></a>
 
-### 1.4.0 candidate: observe publication, subscriptions, and failures
+### 1.4.0: observe publication, subscriptions, and failures
 
-This section describes the **1.4.0 source candidate, which is not published to Maven Central**. The stable `1.3.1` coordinates above do not contain these APIs. Verify candidates through the [local candidate workflow](../CONTRIBUTING.md#candidate-builds); the [1.4.0 implementation plan](../docs/implementation-plan-1.4.0.md) (Chinese) defines development and acceptance scope.
+These APIs are available in the published **1.4.0** coordinates above. See the [release notes](../docs/en/release-notes-1.4.0.md) for verification and costs; use the [local candidate workflow](../CONTRIBUTING.md#candidate-builds) when testing source changes.
 
 Install an observer on the source bus to distinguish instances, investigate missing events with the same name, or track repeated subscriptions. It covers that instance's root and named scopes, without observing other instances:
 

@@ -25,7 +25,7 @@ Android projects should usually start with `flowbus`:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.3.1")
+implementation("io.github.logan0817:flowbus:1.4.0")
 ```
 
 Pure Kotlin / Coroutines / non-Android projects should use `flowbus-core`:
@@ -33,7 +33,7 @@ Pure Kotlin / Coroutines / non-Android projects should use `flowbus-core`:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus-core.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus-core)
 
 ```gradle
-implementation("io.github.logan0817:flowbus-core:1.3.1")
+implementation("io.github.logan0817:flowbus-core:1.4.0")
 ```
 
 Module choice:
@@ -173,15 +173,17 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 
 <a id="version-130"></a>
 
-## Version 1.3.1
+<a id="version-131"></a>
 
-The latest stable version is **1.3.1**, published to Maven Central on 2026-11-11. It fixes sticky reentrant replay ordering, failed scope registration and invalid lifecycle thresholds, retaining public APIs, dependencies and minimum supported versions.
+## Version 1.4.0
 
-- Android: `io.github.logan0817:flowbus:1.3.1`; JVM: `io.github.logan0817:flowbus-core:1.3.1`.
-- Compose consumers optionally add `implementation("io.github.logan0817:flowbus-compose:1.3.1")`; the two base coordinates do not pull in Compose.
-- [1.3.1 fixes, upgrade guidance, verification and rollback](docs/en/release-notes-1.3.1.md); [1.3.0 features](docs/en/release-notes-1.3.0.md); [historical 1.2.0 notes](docs/en/release-notes-1.2.0.md).
+The latest stable version is **1.4.0**, published to Maven Central on 2026-11-16. It adds optional event diagnostics and isolates custom logger failures while retaining delivery, cancellation, sticky, scope and existing configuration ABI contracts.
 
-Version 1.4.0 event diagnostics are under development and unpublished; see the [implementation plan (Chinese)](docs/implementation-plan-1.4.0.md) and [candidate usage](flowbus-core/README_EN.md#event-diagnostics-140). Stable installation above remains 1.3.1.
+- Android: `io.github.logan0817:flowbus:1.4.0`; JVM: `io.github.logan0817:flowbus-core:1.4.0`.
+- Compose consumers optionally add `implementation("io.github.logan0817:flowbus-compose:1.4.0")`; the two base coordinates do not pull in Compose.
+- [1.4.0 usage, verified artifacts, costs and rollback](docs/en/release-notes-1.4.0.md); [historical 1.3.1 fixes](docs/en/release-notes-1.3.1.md); [1.3.0 features](docs/en/release-notes-1.3.0.md); [historical 1.2.0 notes](docs/en/release-notes-1.2.0.md).
+
+Diagnostics are disabled by default. Install the observer before obtaining a Flow for full subscription tracking; enable it temporarily because it has measured costs. See [usage](flowbus-core/README_EN.md#event-diagnostics-140) and the [implementation and acceptance record](docs/implementation-plan-1.4.0.md).
 
 ## Compatibility and release status
 

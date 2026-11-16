@@ -6,15 +6,15 @@
 
 ## 安装
 
-当前正式版本为 **1.3.1**，已发布到 Maven Central。此坐标自 1.3.0 起提供，1.2.0 不包含该模块。
+当前正式版本为 **1.4.0**，已发布到 Maven Central。此坐标自 1.3.0 起提供，1.2.0 不包含该模块。
 
 在消费者仓库配置 `mavenCentral()`，然后声明：
 
 ```kotlin
-implementation("io.github.logan0817:flowbus-compose:1.3.1")
+implementation("io.github.logan0817:flowbus-compose:1.4.0")
 ```
 
-**1.3.1 已发布到 Maven Central。** sticky 重入、scope 创建和生命周期阈值修复已通过最终 main CI、公开制品与独立消费者验收；升级和验证见 [1.3.1 发布说明](../docs/release-notes-1.3.1.md)。
+**1.4.0 已发布到 Maven Central。** 增加可选事件排障并隔离 logger 异常，保留既有契约。公开验收、成本与回退见 [1.4.0 发布说明](../docs/release-notes-1.4.0.md)。
 
 仅在验证本地源码修改时，使用[本地候选安装流程](../CONTRIBUTING.md#candidate-builds)和隔离仓库；候选验收不能代替公开发布。
 
@@ -69,7 +69,7 @@ fun RefreshEvents(
 
 需要 sticky 时显式选择 `isSticky = true`。普通与 sticky 独立分流，生命周期重进可能再次回放。可恢复页面状态和不可遗漏的业务结果使用 `StateFlow`、业务状态或持久化机制。
 
-1.4.0 源码候选增加可选的 [core 事件排障观察](../flowbus-core/README.md#event-diagnostics-140)，尚未包含在公开 `1.3.1` 坐标中。先在注入来源上安装，再由 effect 取得 Flow，才能完整观察实际订阅起止；回调更新仍不重订阅，生命周期停止只请求取消，结束记录等待真正退出。诊断句柄由安装方关闭，不改变 effect 或来源的所有权。
+1.4.0增加可选的 [core 事件排障观察](../flowbus-core/README.md#event-diagnostics-140)，已包含在公开 `1.4.0` 坐标中。先在注入来源上安装，再由 effect 取得 Flow，才能完整观察实际订阅起止；回调更新仍不重订阅，生命周期停止只请求取消，结束记录等待真正退出。诊断句柄由安装方关闭，不改变 effect 或来源的所有权。
 
 ## 构建组合与验证入口
 

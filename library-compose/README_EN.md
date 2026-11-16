@@ -6,15 +6,15 @@
 
 ## Installation
 
-The stable version is **1.3.1**, published to Maven Central. This coordinate is available since 1.3.0; 1.2.0 does not contain this module.
+The stable version is **1.4.0**, published to Maven Central. This coordinate is available since 1.3.0; 1.2.0 does not contain this module.
 
 Configure `mavenCentral()` in the consumer repositories, then declare:
 
 ```kotlin
-implementation("io.github.logan0817:flowbus-compose:1.3.1")
+implementation("io.github.logan0817:flowbus-compose:1.4.0")
 ```
 
-**1.3.1 is published to Maven Central.** Sticky reentrancy, scope creation and lifecycle threshold fixes passed final main CI, public artifact checks and independent consumers. See the [1.3.1 release notes](../docs/en/release-notes-1.3.1.md) for upgrades and verification.
+**1.4.0 is published to Maven Central.** It adds optional event diagnostics and isolates logger failures while preserving existing contracts. See the [1.4.0 release notes](../docs/en/release-notes-1.4.0.md) for verification, costs and rollback.
 
 Use the isolated [local candidate workflow](../CONTRIBUTING.md#candidate-builds) only when verifying local source changes; candidate verification does not establish public publication.
 
@@ -69,7 +69,7 @@ A one-shot `CompletableDeferred` may coordinate initial subscription only; it ca
 
 Select `isSticky = true` explicitly for sticky collection. Ordinary and sticky streams are separate, and lifecycle restarts can replay again. Use `StateFlow`, business state, or persistence for restorable UI state and business results that must not be missed.
 
-The 1.4.0 source candidate adds optional [core event diagnostics](../flowbus-core/README_EN.md#event-diagnostics-140), which are not included in the published `1.3.1` coordinates. Install on the injected source before the effect obtains its Flow to track actual subscription start/end. Callback-only updates still do not resubscribe; lifecycle stop requests cancellation, and the end record waits for actual exit. The installer owns the diagnostic handle, without changing effect or source ownership.
+Version 1.4.0 adds optional [core event diagnostics](../flowbus-core/README_EN.md#event-diagnostics-140), included in the published `1.4.0` coordinates. Install on the injected source before the effect obtains its Flow to track actual subscription start/end. Callback-only updates still do not resubscribe; lifecycle stop requests cancellation, and the end record waits for actual exit. The installer owns the diagnostic handle, without changing effect or source ownership.
 
 ## Build combination and verification
 

@@ -9,19 +9,19 @@ The Gradle module directory is `library-android`, and the published artifact is:
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.3.1")
+implementation("io.github.logan0817:flowbus:1.4.0")
 ```
 
 If you are integrating FlowBus into an Android app, this is usually the place to start.
 
-**1.3.1 is published to Maven Central.** Sticky reentrancy, scope creation and lifecycle threshold fixes passed final main CI, public artifact checks and independent consumers. See the [1.3.1 release notes](../docs/en/release-notes-1.3.1.md) for upgrades and verification.
+**1.4.0 is published to Maven Central.** It adds optional event diagnostics and isolates logger failures while preserving existing contracts. See the [1.4.0 release notes](../docs/en/release-notes-1.4.0.md) for verification, costs and rollback.
 
 ## Guide map
 
 - [Quick start](#3-minute-quick-start) · [API selection](#api-selection-matrix)
 - [Owner configuration](#android-owner-configuration) · [Suspend callbacks and explicit instances](#suspend-callbacks)
 - [Since 1.3.0: Java, subscription notification, diagnostics](#development-130)
-- [1.4.0 candidate: event diagnostics](#event-diagnostics-140)
+- [1.4.0: event diagnostics](#event-diagnostics-140)
 - [Sticky](#sticky-events) · [Global defaults](#optional-configuration)
 - [Compatibility](../docs/en/compatibility.md) · [Troubleshooting](../TROUBLESHOOTING.md) (Chinese)
 
@@ -45,7 +45,7 @@ FlowBus is a good fit for asynchronous events where one place sends a notificati
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.3.1")
+implementation("io.github.logan0817:flowbus:1.4.0")
 ```
 
 ### 2. Define an event type
@@ -281,7 +281,7 @@ viewLifecycleOwner.onEvent<UploadFinishedEvent>(from = requireActivity()) { even
 | `emitEvent(...)` | Yes | Yes | none | active broadcasts that should wait for buffer space under the configured policy | coroutine call; normal events without subscribers are not retained, and dropping policies still apply |
 | `postStickyEvent(...)` / `emitStickyEvent(...)` | depends on API | Yes | depends on API | late subscribers need the latest value | not a replacement for long-lived state management |
 
-The 1.4.0 candidate isolates ordinary exceptions from Android send-warning loggers, including their own CancellationException, without changing rejection results or actual coroutine cancellation; recovery from fatal JVM errors is not guaranteed.
+Version 1.4.0 isolates ordinary exceptions from Android send-warning loggers, including their own CancellationException, without changing rejection results or actual coroutine cancellation; recovery from fatal JVM errors is not guaranteed.
 
 Common global send:
 
@@ -442,7 +442,7 @@ postEvent<MainEvent>(MainEvent.ShowToast(message = "success"))
 
 ## Channel configuration
 
-Available in the published 1.2.0 release; 1.1.0 does not provide these APIs. Use Maven Central with `io.github.logan0817:flowbus-core:1.3.1` or `io.github.logan0817:flowbus:1.3.1`, and [release notes](../docs/en/release-notes-1.2.0.md) for changes and evidence.
+Available in the published 1.2.0 release; 1.1.0 does not provide these APIs. Use Maven Central with `io.github.logan0817:flowbus-core:1.4.0` or `io.github.logan0817:flowbus:1.4.0`, and [release notes](../docs/en/release-notes-1.2.0.md) for changes and evidence.
 
 <a id="android-owner-configuration"></a>
 
@@ -498,7 +498,7 @@ viewLifecycleOwner.onEventSuspending<RefreshHomeEvent>(from = requireActivity())
 
 `refreshSuspending` is application-provided. Global and owner sources both support reified types or Android `EventChannel<T>`: use `onEventSuspending(channel)` or `onEventSuspending(from = owner, channel = channel)`. The source owner and receiver lifecycle have different roles. These are source alternatives, not duplicate registrations for one requirement.
 
-`LifecycleOwner` variants default to `STARTED` and expose dispatcher, minLifecycleState, and isSticky. Register on the main thread and choose `CREATED`, `STARTED`, or `RESUMED` as the minimum state. Public 1.3.0 rejects `INITIALIZED` immediately. The 1.3.1 release also rejects `DESTROYED` synchronously, before convenience entry points obtain their global/owner source. Leaving the active state requests callback cancellation. Restart within the same repeatOnLifecycle waits for the previous callback to finish before resubscribing. Blocking or NonCancellable work cannot be forcibly stopped, and side effects are not rolled back. Normal events do not replay, while explicitly selected sticky collection can replay the latest value.
+`LifecycleOwner` variants default to `STARTED` and expose dispatcher, minLifecycleState, and isSticky. Register on the main thread and choose `CREATED`, `STARTED`, or `RESUMED` as the minimum state. Public 1.3.0 rejects `INITIALIZED` immediately. The 1.4.0 release also rejects `DESTROYED` synchronously, before convenience entry points obtain their global/owner source. Leaving the active state requests callback cancellation. Restart within the same repeatOnLifecycle waits for the previous callback to finish before resubscribing. Blocking or NonCancellable work cannot be forcibly stopped, and side effects are not rolled back. Normal events do not replay, while explicitly selected sticky collection can replay the latest value.
 
 `CoroutineScope.onEventSuspending` offers global/owner and type/channel variants managed by the caller's scope, without automatic UI lifecycle gating. Owner acquisition must occur on the main thread. These variants have no dispatcher parameter and use the collection coroutine context. Cancel the returned Job to stop collection. A custom `FlowEventBus` exposes `subscribeEventSuspending`: the lifecycle version returns a Job, and the suspending version runs in a caller-managed coroutine.
 
@@ -641,9 +641,9 @@ Snapshots are diagnostic views, not readiness barriers or cross-thread transacti
 
 <a id="event-diagnostics-140"></a>
 
-## 1.4.0 candidate: Android event diagnostics
+## 1.4.0: Android event diagnostics
 
-These APIs belong to the **unpublished 1.4.0 source candidate**. The `flowbus:1.3.1` coordinates above do not include them. Verify through the [local candidate workflow](../CONTRIBUTING.md#candidate-builds), rather than replacing the installation version with an unpublished coordinate.
+These APIs are included in the published `flowbus:1.4.0` coordinate. Use the [local candidate workflow](../CONTRIBUTING.md#candidate-builds) only when verifying source changes.
 
 Install an observer before obtaining the Flow or registering subscriptions to track. For example, observe the Activity source on a Fragment's main thread:
 

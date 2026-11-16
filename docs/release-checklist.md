@@ -1,8 +1,8 @@
 # 1.4.0 发布前清单
 
-**1.4.0 为未发布候选。** 源码版本：VERSION_NAME=1.4.0、APP_VERSION_NAME=1.4.0、APP_VERSION_CODE=13；测试 APK versionCode=3。本轮任务与证据见 [1.4.0 实施方案](implementation-plan-1.4.0.md)，生产实现专项审查与首轮完整 CI 已通过，最终 PR/main 门禁及候选身份按方案核验。当前公开安装仍为 1.3.1；下文历史记录不能替代本版验收。
+**1.4.0 已发布到 Maven Central。** 源码版本：VERSION_NAME=1.4.0、APP_VERSION_NAME=1.4.0、APP_VERSION_CODE=13；测试 APK versionCode=3。固定源码、main CI、公开制品、签名及独立消费者验收见 [1.4.0 发布说明](release-notes-1.4.0.md)。后续修改仍须执行受影响门禁。
 
-当前正式版本为 **1.3.1，已发布到 Maven Central**。固定源码、最终 main CI 和公开验收见 [1.3.1 发布说明](release-notes-1.3.1.md)。下文复用流程准备 core、Android、可选 Compose 三个坐标；各版本历史证据分别保留。
+当前正式版本为 **1.4.0**。下文复用流程准备 core、Android、可选 Compose 三个坐标；1.3.1 及更早版本的历史证据分别保留。
 
 [English](en/release-checklist.md)
 
@@ -126,7 +126,7 @@ CI 的 SDK 初始化显式选择 `platform-tools`，命令行工具由 setup-and
 
 正式仓库解析成功后，同步根/模块 README 正式坐标、文档索引候选状态、本地候选说明及更新日志发布日期。保留历史版本说明和固定旧版 fixture，不全仓替换旧版本号。
 
-核对根与模块 README 中英文、CHANGELOG、1.4.0 候选说明、API 注释、版本配置及 CI 路径，保留 1.3.1 及更早版本的历史正式记录。普通无人订阅、sticky replay、关闭等待、订阅建立通知、诊断观察、错误策略和协作取消说明必须与实现一致。
+核对根与模块 README 中英文、CHANGELOG、1.4.0 发布说明、API 注释、版本配置及 CI 路径，保留 1.3.1 及更早版本的历史正式记录。普通无人订阅、sticky replay、关闭等待、订阅建立通知、诊断观察、错误策略和协作取消说明必须与实现一致。
 
 检查 git status、工作区与暂存区差异；不提交构建产物、测试签名、密钥、日志、个人环境配置、临时沟通记录或无关改动。保留必要 fixtures、API 基准和回归测试。三个发布模块都由主仓统一维护，不能含子仓 .git/.gitmodules 或独立发布配置。
 
@@ -166,7 +166,7 @@ signing.gnupg.keyName=<完整密钥指纹>
 
 ### 上传、验收与回退
 
-上传批次名称采用 `GROUP-根项目名-VERSION_NAME`。未来取得正式发布授权且本轮门禁全部通过后，1.4.0 的目标批次为 `io.github.logan0817-FlowBus-1.4.0`，三个目标坐标为 `io.github.logan0817:flowbus-core:1.4.0`、`io.github.logan0817:flowbus:1.4.0`、`io.github.logan0817:flowbus-compose:1.4.0`；当前仍未发布，不得复用或覆盖已发布的 1.3.1 坐标。批次名本身不能证明上传或发布成功。版本切换后须重新生成候选并执行门禁和 dry-run。名称用于人工识别；查询、release 或 drop 必须使用本次上传返回的唯一 deployment ID 并核对批次内容。
+上传批次名称采用 `GROUP-根项目名-VERSION_NAME`。本次授权发布的 1.4.0 批次为 `io.github.logan0817-FlowBus-1.4.0`，三个目标坐标为 `io.github.logan0817:flowbus-core:1.4.0`、`io.github.logan0817:flowbus:1.4.0`、`io.github.logan0817:flowbus-compose:1.4.0`；三个坐标均已公开，不得覆盖已发布版本。批次名本身不能证明上传或发布成功。版本切换后须重新生成候选并执行门禁和 dry-run。名称用于人工识别；查询、release 或 drop 必须使用本次上传返回的唯一 deployment ID 并核对批次内容。
 
 发布插件 0.33.0 尚无公开的批次名称配置；根发布脚本只将三个 `createStagingRepository` 任务的暂存 artifact 标识统一为根项目名，让插件按同一个暂存标识生成名称，不修改 `MavenPublication` 或发布文件路径。单模块上传也使用同一项目名称，模块内容通过实际坐标区分。`verifyCentralDeploymentName` 在本地与 CI 核对三个暂存标识及实际发布坐标，并作为暂存任务的前置检查；该检查不执行签名或网络上传。升级发布插件后，必须重新核对其命名规则与暂存任务属性，并执行该检查及 remote dry-run。
 

@@ -1,8 +1,8 @@
 # 1.4.0 pre-release checklist
 
-**1.4.0 is an unpublished candidate.** Source versions: VERSION_NAME=1.4.0, APP_VERSION_NAME=1.4.0, APP_VERSION_CODE=13; test APKs use versionCode=3. Current tasks and evidence belong in the [implementation plan (Chinese)](../implementation-plan-1.4.0.md); the implementation review and first complete CI passed; the plan defines final PR/main gates and candidate identity checks. Public installation remains 1.3.1. Historical evidence below cannot establish this version's acceptance.
+**1.4.0 is published to Maven Central.** Source versions: VERSION_NAME=1.4.0, APP_VERSION_NAME=1.4.0, APP_VERSION_CODE=13; test APKs use versionCode=3. Fixed source, main CI, public artifacts, signatures and independent consumer verification are recorded in the [release notes](release-notes-1.4.0.md). Subsequent changes require the affected checks.
 
-The stable version is **1.3.1, published to Maven Central**. See the [release notes](release-notes-1.3.1.md) for fixed source, final main CI and public acceptance. The reusable procedure below prepares core, Android and optional Compose artifacts; keep each version’s evidence distinct.
+The stable version is **1.4.0**. The reusable procedure below prepares core, Android and optional Compose artifacts; keep historical 1.3.1 and earlier evidence distinct.
 
 [中文](../release-checklist.md)
 
@@ -102,7 +102,7 @@ Keep Kotlin 1.9.25, Coroutines 1.8.1, Lifecycle 2.6.2, AGP 8.6.1, Gradle 8.7, bu
 
 After public resolution succeeds, update stable coordinates in root/module READMEs, candidate status in the documentation indexes, candidate-build instructions, and the changelog release date. Retain historical version notes and baseline fixtures.
 
-Check bilingual root/module READMEs, CHANGELOG, 1.4.0 candidate notes, API comments, versions, and CI paths while preserving historical 1.3.1 and earlier release evidence. Delivery, sticky replay, closure, subscription notifications, diagnostics observation, error policy, and cooperative cancellation documentation must match implementation.
+Check bilingual root/module READMEs, CHANGELOG, 1.4.0 release notes, API comments, versions, and CI paths while preserving historical 1.3.1 and earlier release evidence. Delivery, sticky replay, closure, subscription notifications, diagnostics observation, error policy, and cooperative cancellation documentation must match implementation.
 
 Inspect git status and working/staged diffs. Exclude generated artifacts, signing material, secrets, logs, local configuration, temporary conversation records, and unrelated changes. Retain useful fixtures, API baselines, and tests. All three publication modules belong to the main repository without nested Git/submodule or independent publication configuration.
 
@@ -142,7 +142,7 @@ By default, GPG / `gpg-agent` manages private-key unlocking. Manual and automate
 
 ### Upload, verification, and rollback
 
-Upload batches use `GROUP-root project name-VERSION_NAME`. After separate publication authorization and all current gates pass, the 1.4.0 target batch is `io.github.logan0817-FlowBus-1.4.0`, with coordinates `io.github.logan0817:flowbus-core:1.4.0`, `io.github.logan0817:flowbus:1.4.0`, and `io.github.logan0817:flowbus-compose:1.4.0`. This candidate remains unpublished; never reuse or overwrite the published 1.3.1 coordinates. A batch name alone proves neither upload nor public availability. Regenerate and verify the candidate, including dry-run, after changing versions. Names identify batches to humans; queries, release and drop use the upload's unique deployment ID after checking its contents.
+Upload batches use `GROUP-root project name-VERSION_NAME`. The authorized 1.4.0 publication batch is `io.github.logan0817-FlowBus-1.4.0`, with coordinates `io.github.logan0817:flowbus-core:1.4.0`, `io.github.logan0817:flowbus:1.4.0`, and `io.github.logan0817:flowbus-compose:1.4.0`. All three coordinates are public; never overwrite a published version. A batch name alone proves neither upload nor public availability. Regenerate and verify the candidate, including dry-run, after changing versions. Names identify batches to humans; queries, release and drop use the upload's unique deployment ID after checking its contents.
 
 Publication plugin 0.33.0 has no public deployment-name setting. The root publication script sets only the staging artifact identity of all three `createStagingRepository` tasks to the root project name, allowing the plugin to derive a name from one shared staging identity. It does not change `MavenPublication` or publication file paths. Single-module uploads use the same project name; actual coordinates distinguish module contents. `verifyCentralDeploymentName` checks all three staging identities and actual publication coordinates locally and in CI, before staging tasks. It performs no signing or network upload. After upgrading the plugin, review its naming algorithm/task properties, then repeat this check and remote dry-run.
 

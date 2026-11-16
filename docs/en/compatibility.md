@@ -2,15 +2,15 @@
 
 [中文](../compatibility.md) · [Documentation](README.md)
 
-Published 1.3.1 provides Kotlin/JVM core, Android adapter and optional Compose coordinates. Android and Compose coordinates depend transitively on the matching core version. There are no Kotlin Multiplatform, cross-process, or Navigation artifacts.
+Published 1.4.0 provides Kotlin/JVM core, Android adaptation and optional Compose coordinates. Android and Compose depend transitively on the same core version. No Kotlin Multiplatform, IPC or Navigation artifact is provided.
 
-## 1.4.0 candidate verification status
+## 1.4.0 formal publication acceptance
 
-Current sources are the **unpublished 1.4.0 candidate**; public installation remains **1.3.1**. The optimized candidate passed 327 local JVM tests, three-module `apiCheck`, three release lint reports with 0 issues, sample and independent Maven consumer release R8 builds, Java 8, four Kotlin versions, five historical core bytecode baselines, and 1.3.1 public symbols across all modules. The first nine-job cloud CI, directed performance comparison and current-candidate API21/35 evidence passed review on 2026-11-16; see section 9 of the implementation plan. Final documentation PR and post-merge main checks must still run the required CI. Intermediate API33 and historical results are not evidence for this candidate.
+Version **1.4.0** is public on Maven Central. Fixed production main CI 43786039022 attempt 1 passed nine jobs: 327 JVM tests, three-module API/lint, Java 8, four Kotlin versions, release R8, five unchanged core bytecode baselines and 12 supported-public-symbol reports. API21/35 Android/effect/policy 8/12/11 stages include current logs, run IDs and same-package UI; API21 additionally covers Navigation seven/NavHost eight stages, and API35 sample instrumentation includes 22 tests. Public files, signatures, independent consumers and actual device coverage are recorded in the [release notes](release-notes-1.4.0.md).
 
 Version 1.4.0 adds opt-in diagnostics observer APIs without appending fields to the existing `FlowBusConfig` primary constructor. Existing delivery, error, and cancellation contracts remain. The published 1.3.1 core compilation/runtime and three fixed public-symbol baselines are added while retaining every older baseline. Rolling back to 1.3.1 requires removing new diagnostics calls/type references and recompiling, rather than replacing runtime artifacts alone.
 
-Current scope, actual evidence, and outstanding gates belong in the [1.4.0 implementation plan (Chinese)](../implementation-plan-1.4.0.md) and [candidate notes](release-notes-1.4.0.md). Subsequent source or documentation input changes require affected checks to run again. Local builds establish neither Maven publication nor API21/35 acceptance.
+Implementation, measured costs and acceptance history are in the [implementation plan](../implementation-plan-1.4.0.md) and [release notes](release-notes-1.4.0.md). Subsequent source or documentation input changes require affected verification. Historical results below do not certify later local changes.
 
 <a id="131-release-verification"></a>
 
