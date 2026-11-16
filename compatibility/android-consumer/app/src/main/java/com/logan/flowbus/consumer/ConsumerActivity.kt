@@ -17,6 +17,8 @@ import com.logan.flowbus.collectEvent
 import com.logan.flowbus.collectEventFromSuspending
 import com.logan.flowbus.core.FlowBus
 import com.logan.flowbus.core.FlowBusChannelConfig
+import com.logan.flowbus.core.FlowBusDiagnosticEvent
+import com.logan.flowbus.core.FlowBusDiagnosticEndReason
 import com.logan.flowbus.configureEventChannel
 import com.logan.flowbus.eventChannel
 import com.logan.flowbus.flowFrom
@@ -275,6 +277,11 @@ class ConsumerActivity : Activity() {
         val other = VerificationOwner()
         listOf(receiver, source, other).forEach { it.registry.currentState = Lifecycle.State.CREATED }
         val channel = JavaApiCalls.channel("consumer.runtime.java")
+        val diagnostics = mutableListOf<FlowBusDiagnosticEvent>()
+        val diagnosticRegistrations = listOf(
+            DiagnosticApiCalls.observe(null) { diagnostics += it },
+            DiagnosticApiCalls.observe(source) { diagnostics += it }
+        )
         val labels = setOf("global", "global-sticky", "owner", "owner-sticky", "kotlin")
         val events = labels.associateWith { Channel<String>(Channel.UNLIMITED) }
         val subscribed = Channel<String>(Channel.UNLIMITED)
@@ -314,6 +321,10 @@ class ConsumerActivity : Activity() {
             check(subscribed.tryReceive().isFailure)
             receiver.registry.currentState = Lifecycle.State.STARTED
             awaitSubscriptions()
+            val started = diagnostics.filterIsInstance<FlowBusDiagnosticEvent.SubscriptionStarted>()
+            check(started.size == 5)
+            check(started.map { it.channel.busId }.distinct().size == 2)
+            check(started.map { it.subscriptionId }.distinct().size == 5)
             checkCounts(source, normal = 2, sticky = 1)
             checkCounts(null, normal = 1, sticky = 1)
 
@@ -353,12 +364,16 @@ class ConsumerActivity : Activity() {
             checkCounts(source, normal = 0, sticky = 0)
             checkCounts(null, normal = 0, sticky = 0)
             check(subscriptions.none { it.isCancelled || it.isCompleted })
+            val stopped = diagnostics.filterIsInstance<FlowBusDiagnosticEvent.SubscriptionEnded>()
+            check(stopped.map { it.subscriptionId }.toSet() == started.map { it.subscriptionId }.toSet())
+            check(stopped.all { it.reason == FlowBusDiagnosticEndReason.Cancelled })
             JavaApiCalls.post(source, channel, false, "owner-offline")
             JavaApiCalls.post(null, channel, false, "global-offline")
             JavaApiCalls.post(source, channel, true, "owner-latest")
             JavaApiCalls.post(null, channel, true, "global-latest")
             receiver.registry.currentState = Lifecycle.State.STARTED
             awaitSubscriptions()
+            check(diagnostics.filterIsInstance<FlowBusDiagnosticEvent.SubscriptionStarted>().size == 10)
             received("owner-sticky", "owner-latest")
             received("global-sticky", "global-latest")
             JavaApiCalls.post(source, channel, false, "owner-resumed")
@@ -399,7 +414,19 @@ class ConsumerActivity : Activity() {
             JavaApiCalls.post(null, channel, true, "after-destroy-sticky")
             check(events.values.all { it.tryReceive().isFailure })
             check(subscribed.tryReceive().isFailure)
+            val allStarts = diagnostics.filterIsInstance<FlowBusDiagnosticEvent.SubscriptionStarted>()
+            val allEnds = diagnostics.filterIsInstance<FlowBusDiagnosticEvent.SubscriptionEnded>()
+            check(allStarts.size == 11 && allEnds.size == 11)
+            check(allStarts.map { it.subscriptionId }.toSet() == allEnds.map { it.subscriptionId }.toSet())
+            val sent = diagnostics.filterIsInstance<FlowBusDiagnosticEvent.Published>()
+            check(sent.any { it.channel.isSticky } && sent.any { !it.channel.isSticky })
+            check(sent.all { it.channel.eventName == channel.name })
+            diagnosticRegistrations.forEach { it.close() }
+            val recorded = diagnostics.size
+            JavaApiCalls.post(source, channel, false, "closed-diagnostic")
+            check(diagnostics.size == recorded)
         } finally {
+            diagnosticRegistrations.forEach { it.close() }
             receiver.destroy()
             subscriptions.forEach { it.cancel() }
             kotlinSubscription.cancel()

@@ -21,20 +21,29 @@ import kotlin.reflect.KClass
 internal class FlowBusStore(
     private val config: FlowBusConfig
 ) {
-    private val normalEventFlows = ConcurrentHashMap<String, MutableSharedFlow<Any>>()
+    private val normalEventFlows = ConcurrentHashMap<String, NormalEventFlow>()
     private val stickyEventFlows = ConcurrentHashMap<String, StickyEventFlow>()
     private val channelBindings = ConcurrentHashMap<String, ChannelBinding>()
     private val registrationLock = Any()
     private val defaultChannelConfig = FlowBusChannelConfig().resolve(config)
     private val eventMetrics = ConcurrentHashMap<EventFlowIdentity, FlowBusMetrics>()
     private val stickyReplayLock = Any()
+    private var diagnostics: FlowBusDiagnosticRuntime? = null
+    private var diagnosticScopeName: String? = null
+    @Volatile private var diagnosticStoreId = 0L
+
+    // 只在 store 发布给调用方之前注入，保留既有内部构造器描述符。
+    fun withDiagnostics(runtime: FlowBusDiagnosticRuntime, scopeName: String?): FlowBusStore = apply {
+        diagnostics = runtime
+        diagnosticScopeName = scopeName
+    }
 
     fun <T : Any> configureChannel(key: EventKey<T>, channelConfig: FlowBusChannelConfig) {
         bindChannel(key, channelConfig.resolve(config))
     }
 
     fun <T : Any> post(key: EventKey<T>, value: T, isSticky: Boolean): Boolean {
-        return postResult(key = key, value = value, isSticky = isSticky, scopeName = null).accepted
+        return postResult(key = key, value = value, isSticky = isSticky, scopeName = diagnosticScopeName).accepted
     }
 
     fun <T : Any> postResult(
@@ -47,17 +56,20 @@ internal class FlowBusStore(
         val overflowPolicy = if (isSticky) channelConfig.stickyOverflowPolicy else channelConfig.normalOverflowPolicy
         var stickyReplayCount = 0
         val subscriptionCount: Int
+        val stream: DiagnosticStream
         val accepted = if (isSticky) {
             val (flow, stickyValue) = synchronized(stickyReplayLock) {
                 val flow = getStickyEventFlow(key.name, channelConfig)
                 subscriptionCount = flow.subscriptionCount
                 flow to flow.prepare(value)
             }
+            stream = flow
             val accepted = flow.tryEmit(stickyValue)
             stickyReplayCount = flow.replaySize
             accepted
         } else {
             val flow = getNormalEventFlow(key.name, channelConfig)
+            stream = flow
             subscriptionCount = flow.subscriptionCount.value
             flow.tryEmit(value)
         }
@@ -72,6 +84,7 @@ internal class FlowBusStore(
             overflowPolicy = overflowPolicy
         )
         recordResult(key.name, isSticky, result)
+        streamDiagnostics(stream, key.name, isSticky)?.published(result, FlowBusDiagnosticPublishMode.TryPost)
         return result
     }
 
@@ -89,7 +102,12 @@ internal class FlowBusStore(
 
         val flow = getNormalEventFlow(key.name, channelConfig)
         val subscriptionCount = flow.subscriptionCount.value
-        flow.emit(value)
+        try {
+            flow.emit(value)
+        } catch (error: Throwable) {
+            streamDiagnostics(flow, key.name, isSticky = false)?.emitFailed(error)
+            throw error
+        }
         val result = FlowBusPostResult(
             eventName = key.name,
             scopeName = scopeName,
@@ -101,6 +119,7 @@ internal class FlowBusStore(
             overflowPolicy = channelConfig.normalOverflowPolicy
         )
         recordResult(key.name, isSticky = false, result = result)
+        streamDiagnostics(flow, key.name, isSticky = false)?.published(result, FlowBusDiagnosticPublishMode.Emit)
     }
 
     private suspend fun <T : Any> emitSticky(
@@ -114,7 +133,12 @@ internal class FlowBusStore(
             flow to flow.prepare(value)
         }
         val subscriptionCount = flow.subscriptionCount
-        flow.emit(stickyValue)
+        try {
+            flow.emit(stickyValue)
+        } catch (error: Throwable) {
+            streamDiagnostics(flow, key.name, isSticky = true)?.emitFailed(error)
+            throw error
+        }
         val stickyReplayCount = flow.replaySize
         val result = FlowBusPostResult(
             eventName = key.name,
@@ -127,6 +151,7 @@ internal class FlowBusStore(
             overflowPolicy = channelConfig.stickyOverflowPolicy
         )
         recordResult(key.name, isSticky = true, result = result)
+        streamDiagnostics(flow, key.name, isSticky = true)?.published(result, FlowBusDiagnosticPublishMode.Emit)
     }
 
     @Deprecated(
@@ -145,14 +170,17 @@ internal class FlowBusStore(
     fun <T : Any> flow(key: EventKey<T>, isSticky: Boolean, onSubscribed: (() -> Unit)?): Flow<T> {
         val channelConfig = bindChannel(key)
         return if (isSticky) {
-            getStickyEventFlow(key.name, channelConfig).asFlow(onSubscribed) as Flow<T>
+            val flow = getStickyEventFlow(key.name, channelConfig)
+            val stream = streamDiagnostics(flow, key.name, isSticky = true)
+            if (stream != null) {
+                FlowBusDiagnosticFlow(stream, onSubscribed) { flow.asFlow(it) } as Flow<T>
+            } else flow.asFlow(onSubscribed) as Flow<T>
         } else {
             val flow = getNormalEventFlow(key.name, channelConfig)
-            if (onSubscribed == null) flow as Flow<T>
-            else flow.onSubscription {
-                currentCoroutineContext().ensureActive()
-                onSubscribed()
-            } as Flow<T>
+            val stream = streamDiagnostics(flow, key.name, isSticky = false)
+            if (stream != null) {
+                FlowBusDiagnosticFlow(stream, onSubscribed) { flow.withSubscription(it) } as Flow<T>
+            } else flow.withSubscription(onSubscribed) as Flow<T>
         }
     }
 
@@ -270,7 +298,7 @@ internal class FlowBusStore(
 
     private fun stickyReplayCount(eventName: String): Int {
         return synchronized(stickyReplayLock) {
-            stickyEventFlows[eventName]?.replayCache?.size ?: 0
+            stickyEventFlows[eventName]?.replaySize ?: 0
         }
     }
 
@@ -282,6 +310,32 @@ internal class FlowBusStore(
 
     private fun recordResult(eventName: String, isSticky: Boolean, result: FlowBusPostResult) {
         eventMetrics.getOrPut(EventFlowIdentity(eventName, isSticky)) { FlowBusMetrics() }.record(result)
+    }
+
+    private fun streamDiagnostics(
+        stream: DiagnosticStream,
+        eventName: String,
+        isSticky: Boolean
+    ): FlowBusStreamDiagnostics? {
+        val runtime = diagnostics ?: return null
+        if (!runtime.isEnabled) return null
+        stream.diagnostics?.let { return it }
+        // 元数据仅在启用后首次观察时创建。只发布不可变身份，回调在全部锁释放后执行。
+        return synchronized(stream) {
+            stream.diagnostics ?: run {
+                val storeId = synchronized(this) {
+                    if (diagnosticStoreId == 0L) diagnosticStoreId = FlowBusDiagnosticRuntime.nextId()
+                    diagnosticStoreId
+                }
+                FlowBusStreamDiagnostics(
+                    runtime,
+                    FlowBusDiagnosticChannel(
+                        runtime.busId, storeId, FlowBusDiagnosticRuntime.nextId(),
+                        eventName, diagnosticScopeName, isSticky
+                    )
+                ).also { stream.diagnostics = it }
+            }
+        }
     }
 
     private fun bindChannel(
@@ -344,13 +398,15 @@ internal class FlowBusStore(
     private fun getNormalEventFlow(
         eventName: String,
         channelConfig: ResolvedFlowBusChannelConfig
-    ): MutableSharedFlow<Any> {
+    ): NormalEventFlow {
         // ConcurrentMap.getOrPut 用 putIfAbsent 保证最终只返回获胜的实例，兼容 Android API 21。
         return normalEventFlows.getOrPut(eventName) {
-            MutableSharedFlow(
-                replay = 0,
-                extraBufferCapacity = channelConfig.normalBufferCapacity,
-                onBufferOverflow = channelConfig.normalOverflowPolicy
+            NormalEventFlow(
+                MutableSharedFlow(
+                    replay = 0,
+                    extraBufferCapacity = channelConfig.normalBufferCapacity,
+                    onBufferOverflow = channelConfig.normalOverflowPolicy
+                )
             )
         }
     }
@@ -408,11 +464,32 @@ internal class FlowBusStore(
         }
     }
 
+    private interface DiagnosticStream {
+        var diagnostics: FlowBusStreamDiagnostics?
+    }
+
+    private class NormalEventFlow(private val backing: MutableSharedFlow<Any>) : DiagnosticStream {
+        @Volatile override var diagnostics: FlowBusStreamDiagnostics? = null
+        val subscriptionCount get() = backing.subscriptionCount
+
+        fun tryEmit(value: Any): Boolean = backing.tryEmit(value)
+
+        suspend fun emit(value: Any) = backing.emit(value)
+
+        fun withSubscription(onSubscribed: (() -> Unit)?): Flow<Any> =
+            if (onSubscribed == null) backing
+            else backing.onSubscription {
+                currentCoroutineContext().ensureActive()
+                onSubscribed()
+            }
+    }
+
     private class StickyEventFlow(
         replay: Int,
         extraBufferCapacity: Int,
         onBufferOverflow: BufferOverflow
-    ) {
+    ) : DiagnosticStream {
+        @Volatile override var diagnostics: FlowBusStreamDiagnostics? = null
         private val replayCapacity = replay
         private val backing = MutableSharedFlow<StickyDelivery>(
             replay = 0,

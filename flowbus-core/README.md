@@ -21,6 +21,7 @@
 - [scope](#scope-与所有权) · [API 选择](#api-选择矩阵)
 - [通道配置](#channel-configuration) · [挂起订阅](#suspend-collection)
 - [1.3 订阅通知](#subscription-notification) · [通道诊断](#channel-diagnostics)
+- [1.4.0 候选：事件排障观察](#event-diagnostics-140)
 - [诊断](#诊断) · [行为边界](#行为边界)
 - [兼容性](../docs/compatibility.md) · [排障](../TROUBLESHOOTING.md)
 
@@ -662,6 +663,61 @@ println("normal=${channel.normalSubscriptionCount}, sticky=${channel.stickySubsc
 三种显式来源均支持查询。未知通道或尚未存在的 shared store 返回 null，不创建 store、Flow、配置、类型绑定或发送计数；同名已绑定类型冲突抛 `IllegalArgumentException`，对 raw key 的查询不会补全类型。owned `FlowBusScope` 关闭中或已关闭时查询抛 `IllegalStateException`。
 
 移除单条流后仍可查看保留的配置；完整 scope 清理后 shared 查询返回 null，同名重建重新使用默认值。快照不含 payload，不是跨线程一致性事务；分流订阅数仍不能替代具体订阅通知，也不能推算送达率或业务完成。
+
+<a id="event-diagnostics-140"></a>
+
+### 1.4.0 候选：观察发送、订阅与错误
+
+本节描述当前源码的 **1.4.0 候选能力，尚未发布到 Maven Central**；上方 `1.3.1` 正式坐标不包含这些 API。验证候选请使用[本地候选流程](../CONTRIBUTING.md#candidate-builds)；开发与验收范围见 [1.4.0 实施方案](../docs/implementation-plan-1.4.0.md)。
+
+当事件名相同却收不到、页面反复订阅或需要区分多个实例时，在来源 bus 上安装观察器。它覆盖该实例的 root 和命名 scope，不会自动观察其他实例：
+
+```kotlin
+import com.logan.flowbus.core.FlowBus
+import com.logan.flowbus.core.FlowBusDiagnosticEvent
+import com.logan.flowbus.core.flow
+
+val bus = FlowBus()
+val diagnostics = bus.observeDiagnostics { record ->
+    val channel = record.channel
+    when (record) {
+        is FlowBusDiagnosticEvent.Published ->
+            println("bus=${channel.busId}, flow=${channel.flowId}, result=${record.result.outcome}")
+        is FlowBusDiagnosticEvent.SubscriptionStarted ->
+            println("flow=${channel.flowId}, subscription=${record.subscriptionId}, started")
+        is FlowBusDiagnosticEvent.SubscriptionEnded ->
+            println("subscription=${record.subscriptionId}, ended=${record.reason}")
+        else -> Unit
+    }
+}
+
+// 完整跟踪这条流的订阅，需要在安装观察器之后取得 Flow，再正常收集。
+val events = bus.flow<Int>(eventName = "work.progress")
+```
+
+排障结束后调用 `diagnostics.close()`；需要结束通知时，应先等待被跟踪的收集真正退出，再关闭观察器。`DefaultFlowBus.observeDiagnostics(observer)` 提供相同入口，但会取得并初始化默认实例，应先完成 `configure` / `install`。
+
+| 记录 | 能说明什么 |
+| --- | --- |
+| `Published` | 一次 `TryPost` 或 `Emit` 的底层发送完成，包含原有 `FlowBusPostResult`；拒绝与接受沿用既有语义 |
+| `EmitCancelled` / `EmitFailed` | 对应流的挂起发送被取消或抛错；取消不增加既有 rejected 计数 |
+| `SubscriptionStarted` | 具体收集已登记，发生在 replay 和用户 `onSubscribed` 之前 |
+| `SubscriptionEnded` | 该收集真正退出，原因为 `Completed`、`Cancelled` 或 `Failed`；失败只提供异常类型 |
+| `Failure` | 托管入口识别到 `ValueCast`、`SubscriberCallback` 或 `SubscriptionCallback` 阶段的错误，不改变原有错误策略 |
+
+每条记录的 `channel` 包含进程内 `busId`、`storeId`、`flowId`，以及 `eventName`、`scopeName`、`isSticky`；订阅记录另有 `subscriptionId`。同名 scope 清理重建、移除流后重建或普通/sticky 分流具有不同身份。ID 不跨进程或重启保持稳定，也不是业务消息 ID。
+
+使用时遵守这些边界：
+
+1. 默认关闭，无历史记录或补发。要完整观察订阅，必须先安装，再取得 Flow 并建立订阅；开启诊断不会改造此前已经取得的普通 Flow 或现存订阅。临时排障可先用 Inspector 看当前状态，再由持有者安全重建需要跟踪的订阅。
+2. `Published.result.accepted` 不表示送达或业务成功；DROP 类结果只说明配置策略，不能证明某条值实际被丢弃。无人订阅仍可接受发送，sticky replay 也不是确认机制。
+3. `Failure` 的业务阶段只适用于 FlowBus 托管的 collect 入口。直接 `flow.collect` 或经 `map` / `filter` 等组合后抛错，可表现为 `SubscriptionEnded(Failed)`，不能自动认定为订阅回调错误。`onSubscribed` 的普通异常仍直接终止收集；取消不作为普通错误上报。
+4. 通知同步执行在触发该阶段的线程/协程，不同线程可并发调用；观察器应快速返回。并发通知没有全局顺序保证，`Unconfined` 等立即恢复场景中，回调错误可以先于该次 `Published` 出现。
+5. 观察器的普通异常，包括它自己抛出的取消异常，被隔离，不改变发送结果和业务错误策略；JVM 致命错误不保证恢复。在观察器内同步重入的业务操作仍执行，同一线程嵌套的诊断通知被抑制。
+6. 记录不包含 payload、`Throwable`、异常消息、owner、Job 或业务回调；事件名和 scope 名仍可能敏感，导出前由应用脱敏。库不建立日志历史或后台导出队列。
+7. 关闭幂等，仅移除对应观察器，不取消业务订阅、不关闭 bus、不清 sticky；关闭不等待已经开始的通知，允许回调内自关闭。生命周期取消请求发出后，阻塞或不可取消的收集只有在真正退出时才生成结束记录。
+
+测量与成本见 [1.4.0 性能记录](../benchmarks/jvm/results/1.4.0/report.md)：开启诊断会同步回调并分配记录，本机定向测量显示明显成本，适合按来源临时排障。关闭态也保留少量实例/容器成本，不能称为零开销。
 
 <a id="eventchannel对象式发送扩展eventname-怎么选"></a>
 

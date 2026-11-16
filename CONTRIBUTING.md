@@ -130,6 +130,6 @@ repositories {
 }
 ```
 
-本地候选 Android 使用 `implementation("io.github.logan0817:flowbus:1.3.1")`；纯 JVM 使用 `implementation("io.github.logan0817:flowbus-core:1.3.1")`。若使用集中仓库管理，将仓库配置放入消费者 `settings.gradle.kts` 的 `dependencyResolutionManagement.repositories`。不要把本地候选安装成功当作正式发布或完整设备验收。
+本地候选 Android 使用 `implementation("io.github.logan0817:flowbus:1.4.0")`；纯 JVM 使用 `implementation("io.github.logan0817:flowbus-core:1.4.0")`。若使用集中仓库管理，将仓库配置放入消费者 `settings.gradle.kts` 的 `dependencyResolutionManagement.repositories`。不要把本地候选安装成功当作正式发布或完整设备验收。
 
-当前源码与公开正式版本均为 1.3.1；Compose 候选消费者按需添加 `io.github.logan0817:flowbus-compose:1.3.1`。本地修改生成的候选不代表这些新修改已公开发布；不要覆盖已发布版本。
+当前源码为未发布的 1.4.0，公开正式版本仍为 1.3.1；Compose 候选消费者按需添加 `io.github.logan0817:flowbus-compose:1.4.0`。排障实施与当前门禁见 [1.4.0 方案](docs/implementation-plan-1.4.0.md)。不要覆盖已发布版本。

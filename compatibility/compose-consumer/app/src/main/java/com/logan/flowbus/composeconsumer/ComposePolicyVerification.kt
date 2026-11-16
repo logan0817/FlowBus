@@ -18,6 +18,8 @@ import androidx.lifecycle.LifecycleRegistry
 import com.logan.flowbus.core.EventKey
 import com.logan.flowbus.core.FlowBus
 import com.logan.flowbus.core.FlowBusConfig
+import com.logan.flowbus.core.FlowBusDiagnosticEndReason
+import com.logan.flowbus.core.FlowBusDiagnosticFailurePhase
 import com.logan.flowbus.core.FlowBusErrorContext
 import com.logan.flowbus.core.FlowBusErrorHandler
 import com.logan.flowbus.core.FlowBusErrorPhase
@@ -136,6 +138,7 @@ internal fun ComposePolicyVerification(runId: String) {
     LaunchedEffect(runId) {
         val key = eventKey<PolicyProbe>("consumer.policy")
         val sessions = mutableListOf<PolicyComposition>()
+        val diagnostics = mutableListOf<ConsumerDiagnostics>()
         val suspendGate = CompletableDeferred<Unit>()
         val workerGate = CountDownLatch(1)
         var step = "default-subscription"
@@ -162,6 +165,28 @@ internal fun ComposePolicyVerification(runId: String) {
             return probe
         }
 
+        fun observe(source: FlowBus): ConsumerDiagnostics =
+            ConsumerDiagnostics(source).also { diagnostics.add(it) }
+
+        suspend fun ended(recorder: ConsumerDiagnostics, expected: Int) {
+            while (recorder.ended().size < expected) withFrameNanos { }
+            val ended = recorder.ended()
+            val started = recorder.started()
+            check(ended.size == expected && started.size >= expected)
+            check(ended.map { it.subscriptionId }.toSet().size == expected)
+            check(ended.all { end ->
+                started.any { it.channel == end.channel && it.subscriptionId == end.subscriptionId }
+            })
+        }
+
+        fun assertCallbackFailure(recorder: ConsumerDiagnostics, error: Throwable) {
+            val failure = recorder.failures().single()
+            val started = recorder.started().single()
+            check(failure.phase == FlowBusDiagnosticFailurePhase.SubscriberCallback)
+            check(failure.exceptionType == error.javaClass.name)
+            check(failure.channel == started.channel && failure.subscriptionId == started.subscriptionId)
+        }
+
         try {
             withTimeout(30_000) {
                 suspend fun session(source: FlowBus, sticky: Boolean = false,
@@ -174,6 +199,7 @@ internal fun ComposePolicyVerification(runId: String) {
 
                 for (state in listOf(Lifecycle.State.INITIALIZED, Lifecycle.State.DESTROYED)) {
                     val source = FlowBus()
+                    val recorder = observe(source)
                     val composition = PolicyComposition(currentCoroutineContext()).also { sessions.add(it) }
                     var subscriptions = 0
                     var callbacks = 0
@@ -190,6 +216,7 @@ internal fun ComposePolicyVerification(runId: String) {
                         }
                         check(source.inspectChannel(key) == null && subscriptions == 0 && callbacks == 0)
                         check(!composition.started.isCompleted)
+                        check(recorder.started().isEmpty() && recorder.ended().isEmpty() && recorder.failures().isEmpty())
                     } finally {
                         composition.close()
                     }
@@ -198,6 +225,7 @@ internal fun ComposePolicyVerification(runId: String) {
 
                 for (state in listOf(Lifecycle.State.CREATED, Lifecycle.State.STARTED, Lifecycle.State.RESUMED)) {
                     val source = FlowBus()
+                    val recorder = observe(source)
                     val owner = PolicyOwner(Lifecycle.State.INITIALIZED)
                     val composition = PolicyComposition(currentCoroutineContext(), owner).also { sessions.add(it) }
                     var notifications = 0
@@ -211,28 +239,35 @@ internal fun ComposePolicyVerification(runId: String) {
                         composition.start(source, key, minState = state, onSubscribed = { notifications++ })
                         composition.started.await()
                         check(notifications == 0 && source.inspectChannel(key) == null)
+                        check(recorder.started().isEmpty())
                         owner.registry.currentState = state
                         subscribers(source, 1)
                         check(notifications == 1)
+                        check(recorder.started().size == 1 && recorder.ended().isEmpty())
                         receive(source)
                         if (state == Lifecycle.State.CREATED) {
                             owner.registry.currentState = Lifecycle.State.STARTED
                             owner.registry.currentState = Lifecycle.State.RESUMED
                             withFrameNanos { }
                             check(notifications == 1)
+                            check(recorder.started().size == 1 && recorder.ended().isEmpty())
                         } else {
                             owner.registry.currentState = below
                             subscribers(source, 0)
+                            ended(recorder, 1)
                             val missed = PolicyProbe()
                             check(source.post(key, missed))
                             owner.registry.currentState = state
                             subscribers(source, 1)
                             check(notifications == 2)
+                            check(recorder.started().size == 2)
                             receive(source)
                             check(!missed.entered.isCompleted)
                         }
                         owner.registry.currentState = Lifecycle.State.DESTROYED
                         subscribers(source, 0)
+                        ended(recorder, notifications)
+                        check(recorder.failures().isEmpty())
                         check(!composition.failure.isCompleted)
                     } finally {
                         composition.close()
@@ -242,6 +277,7 @@ internal fun ComposePolicyVerification(runId: String) {
 
                 for (state in listOf(Lifecycle.State.CREATED, Lifecycle.State.STARTED, Lifecycle.State.RESUMED)) {
                     val source = FlowBus()
+                    val recorder = observe(source)
                     val owner = PolicyOwner(Lifecycle.State.CREATED)
                     owner.registry.currentState = Lifecycle.State.DESTROYED
                     val composition = PolicyComposition(currentCoroutineContext(), owner).also { sessions.add(it) }
@@ -252,6 +288,7 @@ internal fun ComposePolicyVerification(runId: String) {
                         composition.started.await()
                         check(callbacks == 0 && source.inspectChannel(key) == null)
                         check(!composition.failure.isCompleted)
+                        check(recorder.started().isEmpty() && recorder.ended().isEmpty() && recorder.failures().isEmpty())
                     } finally {
                         composition.close()
                     }
@@ -261,6 +298,7 @@ internal fun ComposePolicyVerification(runId: String) {
                 // 不覆盖默认 errorHandler；最外层测试 Recomposer 观察传播后的同一异常。
                 val defaultLogger = PolicyLogger()
                 val defaultSource = FlowBus(FlowBusConfig(logger = defaultLogger))
+                val defaultDiagnostics = observe(defaultSource)
                 val defaultSession = session(defaultSource)
                 val callbackFailure = IllegalStateException("expected default failure")
                 receive(defaultSource, callbackFailure)
@@ -268,6 +306,10 @@ internal fun ComposePolicyVerification(runId: String) {
                 check(defaultSession.awaitFailure() === callbackFailure)
                 step = "default-unsubscribe"
                 subscribers(defaultSource, 0)
+                ended(defaultDiagnostics, 1)
+                assertCallbackFailure(defaultDiagnostics, callbackFailure)
+                check(defaultDiagnostics.ended().single().reason == FlowBusDiagnosticEndReason.Failed)
+                check(defaultDiagnostics.ended().single().failureType == callbackFailure.javaClass.name)
                 val missed = PolicyProbe()
                 check(defaultSource.post(key, missed))
                 check(!missed.entered.isCompleted)
@@ -276,18 +318,24 @@ internal fun ComposePolicyVerification(runId: String) {
                 step = "default-replacement"
                 val replacement = session(defaultSource)
                 receive(defaultSource)
+                check(defaultDiagnostics.started().size == 2)
                 replacement.close()
+                ended(defaultDiagnostics, 2)
                 passed("default-rethrow-terminates-source-retained")
 
                 val ignoreLogger = PolicyLogger()
                 val ignoreSource = FlowBus(FlowBusConfig(logger = ignoreLogger,
                     errorHandler = FlowBusErrorHandler.Ignore))
+                val ignoreDiagnostics = observe(ignoreSource)
                 val ignoreSession = session(ignoreSource)
                 receive(ignoreSource, callbackFailure)
                 receive(ignoreSource)
                 check(ignoreLogger.warnings.single() === callbackFailure)
                 check(!ignoreSession.failure.isCompleted)
+                assertCallbackFailure(ignoreDiagnostics, callbackFailure)
+                check(ignoreDiagnostics.ended().isEmpty())
                 ignoreSession.close()
+                ended(ignoreDiagnostics, 1)
                 passed("ignore-logs-and-continues")
 
                 val contexts = mutableListOf<FlowBusErrorContext>()
@@ -296,6 +344,7 @@ internal fun ComposePolicyVerification(runId: String) {
                     contexts.add(context)
                     handled.add(error)
                 }))
+                val customDiagnostics = observe(customSource)
                 val customSession = session(customSource)
                 receive(customSource, callbackFailure)
                 receive(customSource)
@@ -305,17 +354,24 @@ internal fun ComposePolicyVerification(runId: String) {
                 check(context.expectedValueType == PolicyProbe::class && context.actualValueType == PolicyProbe::class)
                 check(context.scopeName == null && !context.isSticky && context.dispatcher == null)
                 check(!customSession.failure.isCompleted)
+                assertCallbackFailure(customDiagnostics, callbackFailure)
+                check(customDiagnostics.ended().isEmpty())
                 customSession.close()
+                ended(customDiagnostics, 1)
                 passed("custom-handler-context-and-continue")
 
                 val legacyErrors = mutableListOf<Throwable>()
                 val legacySource = FlowBus(FlowBusConfig(errorHandler =
                     FlowBusErrorHandler.fromThrowableHandler { legacyErrors.add(it) }))
+                val legacyDiagnostics = observe(legacySource)
                 val legacySession = session(legacySource)
                 receive(legacySource, callbackFailure)
                 receive(legacySource)
                 check(legacyErrors.single() === callbackFailure && !legacySession.failure.isCompleted)
+                assertCallbackFailure(legacyDiagnostics, callbackFailure)
+                check(legacyDiagnostics.ended().isEmpty())
                 legacySession.close()
+                ended(legacyDiagnostics, 1)
                 passed("legacy-handler-continues")
 
                 val handlerFailure = IllegalArgumentException("expected handler failure")
@@ -324,11 +380,16 @@ internal fun ComposePolicyVerification(runId: String) {
                     throwingErrors.add(error)
                     throw handlerFailure
                 }))
+                val throwingDiagnostics = observe(throwingSource)
                 val throwingSession = session(throwingSource)
                 receive(throwingSource, callbackFailure)
                 check(throwingSession.awaitFailure() === handlerFailure)
                 check(throwingErrors.single() === callbackFailure)
                 subscribers(throwingSource, 0)
+                ended(throwingDiagnostics, 1)
+                assertCallbackFailure(throwingDiagnostics, callbackFailure)
+                check(throwingDiagnostics.ended().single().reason == FlowBusDiagnosticEndReason.Failed)
+                check(throwingDiagnostics.ended().single().failureType == handlerFailure.javaClass.name)
                 throwingSession.close()
                 passed("handler-failure-propagates")
 
@@ -336,15 +397,21 @@ internal fun ComposePolicyVerification(runId: String) {
                 val cancellationErrors = mutableListOf<Throwable>()
                 val cancellationSource = FlowBus(FlowBusConfig(logger = cancellationLogger,
                     errorHandler = FlowBusErrorHandler { _, error -> cancellationErrors.add(error) }))
+                val cancellationDiagnostics = observe(cancellationSource)
                 val cancellationSession = session(cancellationSource)
                 receive(cancellationSource, CancellationException("expected callback cancellation"))
                 subscribers(cancellationSource, 0)
+                ended(cancellationDiagnostics, 1)
+                check(cancellationDiagnostics.failures().isEmpty())
+                check(cancellationDiagnostics.ended().single().reason == FlowBusDiagnosticEndReason.Cancelled)
                 check(cancellationLogger.warnings.isEmpty() && cancellationErrors.isEmpty())
                 check(!cancellationSession.failure.isCompleted)
                 cancellationSession.owner.registry.currentState = Lifecycle.State.CREATED
                 cancellationSession.owner.registry.currentState = Lifecycle.State.RESUMED
                 receive(cancellationSource)
+                check(cancellationDiagnostics.started().size == 2)
                 cancellationSession.close()
+                ended(cancellationDiagnostics, 2)
                 passed("cancellation-bypasses-error-handler")
 
                 suspend fun nonCooperative(blockingWorker: Boolean) {
@@ -352,6 +419,7 @@ internal fun ComposePolicyVerification(runId: String) {
                     val errors = mutableListOf<Throwable>()
                     val source = FlowBus(FlowBusConfig(logger = logger,
                         errorHandler = FlowBusErrorHandler { _, error -> errors.add(error) }))
+                    val recorder = observe(source)
                     val holding = PolicyProbe()
                     val originalJob = CompletableDeferred<Job>()
                     val workFinished = CompletableDeferred<Unit>()
@@ -394,14 +462,23 @@ internal fun ComposePolicyVerification(runId: String) {
                     check(source.postSticky(key, next))
                     check(!job.isCompleted && !holding.finished.isCompleted && !next.entered.isCompleted)
                     check(!workFinished.isCompleted)
+                    check(recorder.started().size == 1 && recorder.ended().isEmpty()) {
+                        "Cancellation request must not report the held callback as finished"
+                    }
                     // 取消请求已到达，但工作只在显式释放后才能结束。
                     if (blockingWorker) workerGate.countDown() else suspendGate.complete(Unit)
                     workFinished.await()
                     holding.finished.await()
                     next.entered.await()
                     next.finished.await()
+                    ended(recorder, 1)
+                    check(recorder.started().size == 2)
+                    check(recorder.ended().single().subscriptionId == recorder.started().first().subscriptionId)
+                    check(recorder.ended().single().reason == FlowBusDiagnosticEndReason.Cancelled)
+                    check(recorder.failures().isEmpty())
                     check(logger.warnings.isEmpty() && errors.isEmpty() && !composition.failure.isCompleted)
                     composition.close()
+                    ended(recorder, 2)
                 }
                 nonCooperative(blockingWorker = false)
                 passed("noncancellable-restart-waits-for-callback")
@@ -421,6 +498,7 @@ internal fun ComposePolicyVerification(runId: String) {
             suspendGate.complete(Unit)
             workerGate.countDown()
             withContext(NonCancellable) { sessions.forEach { it.close() } }
+            diagnostics.forEach { it.close() }
         }
     }
     VerificationResult(status + System.lineSeparator() + phases.joinToString(","))

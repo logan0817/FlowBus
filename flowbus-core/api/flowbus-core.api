@@ -18,6 +18,7 @@ public final class com/logan/flowbus/core/DefaultFlowBus {
 	public final fun inspectScope (Ljava/lang/String;)Lcom/logan/flowbus/core/FlowBusScopeSnapshot;
 	public final fun inspector ()Lcom/logan/flowbus/core/FlowBusInspector;
 	public final fun install (Lcom/logan/flowbus/core/FlowBus;)V
+	public final fun observeDiagnostics (Lcom/logan/flowbus/core/FlowBusDiagnosticObserver;)Lcom/logan/flowbus/core/FlowBusDiagnosticRegistration;
 	public final fun openScope (Lcom/logan/flowbus/core/FlowBusOwner;)Lcom/logan/flowbus/core/FlowBusScope;
 	public final fun openScope (Lcom/logan/flowbus/core/FlowBusOwner;Lkotlinx/coroutines/CoroutineScope;)Lcom/logan/flowbus/core/FlowBusScope;
 	public final fun openScope (Lcom/logan/flowbus/core/FlowBusOwner;Lkotlinx/coroutines/Job;)Lcom/logan/flowbus/core/FlowBusScope;
@@ -182,6 +183,7 @@ public final class com/logan/flowbus/core/FlowBus {
 	public final fun inspectChannel (Lcom/logan/flowbus/core/EventKey;)Lcom/logan/flowbus/core/FlowBusChannelSnapshot;
 	public final fun inspectScope (Ljava/lang/String;)Lcom/logan/flowbus/core/FlowBusScopeSnapshot;
 	public final fun inspector ()Lcom/logan/flowbus/core/FlowBusInspector;
+	public final fun observeDiagnostics (Lcom/logan/flowbus/core/FlowBusDiagnosticObserver;)Lcom/logan/flowbus/core/FlowBusDiagnosticRegistration;
 	public final fun openScope (Lcom/logan/flowbus/core/FlowBusOwner;)Lcom/logan/flowbus/core/FlowBusScope;
 	public final fun openScope (Lcom/logan/flowbus/core/FlowBusOwner;Lkotlinx/coroutines/CoroutineScope;)Lcom/logan/flowbus/core/FlowBusScope;
 	public final fun openScope (Lcom/logan/flowbus/core/FlowBusOwner;Lkotlinx/coroutines/Job;)Lcom/logan/flowbus/core/FlowBusScope;
@@ -326,6 +328,105 @@ public final class com/logan/flowbus/core/FlowBusConfigSnapshot {
 	public final fun getStickyReplay ()I
 	public fun hashCode ()I
 	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/logan/flowbus/core/FlowBusDiagnosticChannel {
+	public fun <init> (JJJLjava/lang/String;Ljava/lang/String;Z)V
+	public final fun component1 ()J
+	public final fun component2 ()J
+	public final fun component3 ()J
+	public final fun component4 ()Ljava/lang/String;
+	public final fun component5 ()Ljava/lang/String;
+	public final fun component6 ()Z
+	public final fun copy (JJJLjava/lang/String;Ljava/lang/String;Z)Lcom/logan/flowbus/core/FlowBusDiagnosticChannel;
+	public static synthetic fun copy$default (Lcom/logan/flowbus/core/FlowBusDiagnosticChannel;JJJLjava/lang/String;Ljava/lang/String;ZILjava/lang/Object;)Lcom/logan/flowbus/core/FlowBusDiagnosticChannel;
+	public fun equals (Ljava/lang/Object;)Z
+	public final fun getBusId ()J
+	public final fun getEventName ()Ljava/lang/String;
+	public final fun getFlowId ()J
+	public final fun getScopeName ()Ljava/lang/String;
+	public final fun getStoreId ()J
+	public fun hashCode ()I
+	public final fun isSticky ()Z
+	public fun toString ()Ljava/lang/String;
+}
+
+public final class com/logan/flowbus/core/FlowBusDiagnosticEndReason : java/lang/Enum {
+	public static final field Cancelled Lcom/logan/flowbus/core/FlowBusDiagnosticEndReason;
+	public static final field Completed Lcom/logan/flowbus/core/FlowBusDiagnosticEndReason;
+	public static final field Failed Lcom/logan/flowbus/core/FlowBusDiagnosticEndReason;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/logan/flowbus/core/FlowBusDiagnosticEndReason;
+	public static fun values ()[Lcom/logan/flowbus/core/FlowBusDiagnosticEndReason;
+}
+
+public abstract class com/logan/flowbus/core/FlowBusDiagnosticEvent {
+	public abstract fun getChannel ()Lcom/logan/flowbus/core/FlowBusDiagnosticChannel;
+}
+
+public final class com/logan/flowbus/core/FlowBusDiagnosticEvent$EmitCancelled : com/logan/flowbus/core/FlowBusDiagnosticEvent {
+	public fun <init> (Lcom/logan/flowbus/core/FlowBusDiagnosticChannel;)V
+	public fun getChannel ()Lcom/logan/flowbus/core/FlowBusDiagnosticChannel;
+}
+
+public final class com/logan/flowbus/core/FlowBusDiagnosticEvent$EmitFailed : com/logan/flowbus/core/FlowBusDiagnosticEvent {
+	public fun <init> (Lcom/logan/flowbus/core/FlowBusDiagnosticChannel;Ljava/lang/String;)V
+	public fun getChannel ()Lcom/logan/flowbus/core/FlowBusDiagnosticChannel;
+	public final fun getExceptionType ()Ljava/lang/String;
+}
+
+public final class com/logan/flowbus/core/FlowBusDiagnosticEvent$Failure : com/logan/flowbus/core/FlowBusDiagnosticEvent {
+	public fun <init> (Lcom/logan/flowbus/core/FlowBusDiagnosticChannel;JLcom/logan/flowbus/core/FlowBusDiagnosticFailurePhase;Ljava/lang/String;)V
+	public fun getChannel ()Lcom/logan/flowbus/core/FlowBusDiagnosticChannel;
+	public final fun getExceptionType ()Ljava/lang/String;
+	public final fun getPhase ()Lcom/logan/flowbus/core/FlowBusDiagnosticFailurePhase;
+	public final fun getSubscriptionId ()J
+}
+
+public final class com/logan/flowbus/core/FlowBusDiagnosticEvent$Published : com/logan/flowbus/core/FlowBusDiagnosticEvent {
+	public fun <init> (Lcom/logan/flowbus/core/FlowBusDiagnosticChannel;Lcom/logan/flowbus/core/FlowBusPostResult;Lcom/logan/flowbus/core/FlowBusDiagnosticPublishMode;)V
+	public fun getChannel ()Lcom/logan/flowbus/core/FlowBusDiagnosticChannel;
+	public final fun getMode ()Lcom/logan/flowbus/core/FlowBusDiagnosticPublishMode;
+	public final fun getResult ()Lcom/logan/flowbus/core/FlowBusPostResult;
+}
+
+public final class com/logan/flowbus/core/FlowBusDiagnosticEvent$SubscriptionEnded : com/logan/flowbus/core/FlowBusDiagnosticEvent {
+	public fun <init> (Lcom/logan/flowbus/core/FlowBusDiagnosticChannel;JLcom/logan/flowbus/core/FlowBusDiagnosticEndReason;Ljava/lang/String;)V
+	public fun getChannel ()Lcom/logan/flowbus/core/FlowBusDiagnosticChannel;
+	public final fun getFailureType ()Ljava/lang/String;
+	public final fun getReason ()Lcom/logan/flowbus/core/FlowBusDiagnosticEndReason;
+	public final fun getSubscriptionId ()J
+}
+
+public final class com/logan/flowbus/core/FlowBusDiagnosticEvent$SubscriptionStarted : com/logan/flowbus/core/FlowBusDiagnosticEvent {
+	public fun <init> (Lcom/logan/flowbus/core/FlowBusDiagnosticChannel;J)V
+	public fun getChannel ()Lcom/logan/flowbus/core/FlowBusDiagnosticChannel;
+	public final fun getSubscriptionId ()J
+}
+
+public final class com/logan/flowbus/core/FlowBusDiagnosticFailurePhase : java/lang/Enum {
+	public static final field SubscriberCallback Lcom/logan/flowbus/core/FlowBusDiagnosticFailurePhase;
+	public static final field SubscriptionCallback Lcom/logan/flowbus/core/FlowBusDiagnosticFailurePhase;
+	public static final field ValueCast Lcom/logan/flowbus/core/FlowBusDiagnosticFailurePhase;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/logan/flowbus/core/FlowBusDiagnosticFailurePhase;
+	public static fun values ()[Lcom/logan/flowbus/core/FlowBusDiagnosticFailurePhase;
+}
+
+public abstract interface class com/logan/flowbus/core/FlowBusDiagnosticObserver {
+	public abstract fun onDiagnostic (Lcom/logan/flowbus/core/FlowBusDiagnosticEvent;)V
+}
+
+public final class com/logan/flowbus/core/FlowBusDiagnosticPublishMode : java/lang/Enum {
+	public static final field Emit Lcom/logan/flowbus/core/FlowBusDiagnosticPublishMode;
+	public static final field TryPost Lcom/logan/flowbus/core/FlowBusDiagnosticPublishMode;
+	public static fun getEntries ()Lkotlin/enums/EnumEntries;
+	public static fun valueOf (Ljava/lang/String;)Lcom/logan/flowbus/core/FlowBusDiagnosticPublishMode;
+	public static fun values ()[Lcom/logan/flowbus/core/FlowBusDiagnosticPublishMode;
+}
+
+public abstract interface class com/logan/flowbus/core/FlowBusDiagnosticRegistration : java/lang/AutoCloseable {
+	public abstract fun close ()V
 }
 
 public final class com/logan/flowbus/core/FlowBusErrorContext {

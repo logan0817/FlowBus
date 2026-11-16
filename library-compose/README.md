@@ -69,6 +69,8 @@ fun RefreshEvents(
 
 需要 sticky 时显式选择 `isSticky = true`。普通与 sticky 独立分流，生命周期重进可能再次回放。可恢复页面状态和不可遗漏的业务结果使用 `StateFlow`、业务状态或持久化机制。
 
+1.4.0 源码候选增加可选的 [core 事件排障观察](../flowbus-core/README.md#event-diagnostics-140)，尚未包含在公开 `1.3.1` 坐标中。先在注入来源上安装，再由 effect 取得 Flow，才能完整观察实际订阅起止；回调更新仍不重订阅，生命周期停止只请求取消，结束记录等待真正退出。诊断句柄由安装方关闭，不改变 effect 或来源的所有权。
+
 ## 构建组合与验证入口
 
 模块沿用 Kotlin 1.9.25、Compose compiler 1.5.15、runtime 1.5.4、Lifecycle 2.6.2、Coroutines 1.8.1、minSdk 21 与 Java 8 字节码目标。消费者可以选择经过独立验证的较新 runtime；直接声明不等于最终解析版本，也不代表任意工具链组合兼容。

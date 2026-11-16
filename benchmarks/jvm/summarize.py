@@ -11,8 +11,8 @@ from datetime import datetime, timezone
 ROOT = Path(__file__).resolve().parents[2]
 WORK = ROOT / "benchmarks/jvm"
 OUT = WORK / "results/current"
-BASELINE_VERSION = "1.3.0"
-BASELINE_SHA256 = "3e15654a40e3a071d2ca2df51efa1288587d96f407de690c30369092ad2149b4"
+BASELINE_VERSION = "1.3.1"
+BASELINE_SHA256 = "c28674aac6e420fc31ee04c6baddccd9371c12087fe421ac686a9f86791d0df4"
 
 def command(*args):
     return subprocess.check_output(args, cwd=ROOT, text=True).strip()

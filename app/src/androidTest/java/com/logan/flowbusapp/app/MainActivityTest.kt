@@ -11,6 +11,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.logan.flowbusapp.ChannelCaseActivity
 import com.logan.flowbusapp.DecisionGuideActivity
+import com.logan.flowbusapp.DiagnosticsCaseActivity
 import com.logan.flowbusapp.GlobalCaseActivity
 import com.logan.flowbusapp.MainActivity
 import com.logan.flowbusapp.NonUiCaseActivity
@@ -42,6 +43,7 @@ class MainActivityTest {
         assertLaunchesActivity(R.id.btnOpenStickyCase, StickyCaseActivity::class.java)
         assertLaunchesActivity(R.id.btnOpenChannelCase, ChannelCaseActivity::class.java)
         assertLaunchesActivity(R.id.btnOpenNonUiCase, NonUiCaseActivity::class.java)
+        assertLaunchesActivity(R.id.btnOpenDiagnosticsCase, DiagnosticsCaseActivity::class.java)
         assertLaunchesActivity(R.id.btnOpenDecisionGuide, DecisionGuideActivity::class.java)
     }
 

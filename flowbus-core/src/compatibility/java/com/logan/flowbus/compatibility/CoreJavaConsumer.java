@@ -3,7 +3,13 @@ package com.logan.flowbus.compatibility;
 import com.logan.flowbus.core.EventKey;
 import com.logan.flowbus.core.EventKeyKt;
 import com.logan.flowbus.core.FlowBus;
+import com.logan.flowbus.core.FlowBusDiagnosticEvent;
+import com.logan.flowbus.core.FlowBusDiagnosticPublishMode;
+import com.logan.flowbus.core.FlowBusDiagnosticRegistration;
+import com.logan.flowbus.core.FlowBusPostOutcome;
 import com.logan.flowbus.core.FlowBusScope;
+import java.util.ArrayList;
+import java.util.List;
 
 /** Java 调用方直接使用公开工厂和实例 API，不访问 Kotlin internal 构造器。 */
 public final class CoreJavaConsumer {
@@ -29,6 +35,40 @@ public final class CoreJavaConsumer {
             require(reopened.consumeStickyLatest(key) == null, "Java reopened scope retained old replay");
         } finally {
             reopened.close();
+        }
+        verifyDiagnostics();
+    }
+
+    private static void verifyDiagnostics() {
+        FlowBus bus = new FlowBus();
+        EventKey<String> key = EventKeyKt.eventKey("consumer.java.diagnostics", String.class);
+        List<FlowBusDiagnosticEvent.Published> publications = new ArrayList<>();
+        try (FlowBusDiagnosticRegistration registration = bus.observeDiagnostics(event -> {
+            if (event instanceof FlowBusDiagnosticEvent.Published) {
+                publications.add((FlowBusDiagnosticEvent.Published) event);
+            }
+        })) {
+            require(bus.post(key, "ordinary"), "Java observed ordinary publish rejected");
+            require(bus.postSticky(key, "sticky"), "Java observed sticky publish rejected");
+            require(publications.size() == 2, "Java observer SAM did not receive both publications");
+            FlowBusDiagnosticEvent.Published ordinary = publications.get(0);
+            FlowBusDiagnosticEvent.Published sticky = publications.get(1);
+            require(ordinary.getMode() == FlowBusDiagnosticPublishMode.TryPost, "Java publish mode mismatch");
+            require(ordinary.getResult().getAccepted(), "Java observed result was not accepted");
+            require(ordinary.getResult().getOutcome() == FlowBusPostOutcome.AcceptedWithoutActiveSubscriber,
+                    "Java observed outcome mismatch");
+            require(ordinary.getResult().getSubscriptionCount() == 0, "Java subscriber count mismatch");
+            require(key.getName().equals(ordinary.getChannel().getEventName()), "Java diagnostic event name mismatch");
+            require(ordinary.getChannel().getScopeName() == null, "Java root diagnostic unexpectedly scoped");
+            require(ordinary.getChannel().getBusId() > 0 && ordinary.getChannel().getStoreId() > 0,
+                    "Java diagnostic source identity missing");
+            require(!ordinary.getChannel().isSticky() && sticky.getChannel().isSticky(), "Java sticky identity mismatch");
+            require(ordinary.getChannel().getFlowId() != sticky.getChannel().getFlowId(), "Java stream identities collided");
+            registration.close();
+            registration.close();
+            require(bus.post(key, "after-close"), "Java business send stopped after observer close");
+            require(publications.size() == 2, "Java closed observer received another publication");
+            require("sticky".equals(bus.consumeStickyLatest(key)), "Java observer close cleared sticky replay");
         }
     }
 

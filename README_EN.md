@@ -181,6 +181,8 @@ The latest stable version is **1.3.1**, published to Maven Central on 2026-11-11
 - Compose consumers optionally add `implementation("io.github.logan0817:flowbus-compose:1.3.1")`; the two base coordinates do not pull in Compose.
 - [1.3.1 fixes, upgrade guidance, verification and rollback](docs/en/release-notes-1.3.1.md); [1.3.0 features](docs/en/release-notes-1.3.0.md); [historical 1.2.0 notes](docs/en/release-notes-1.2.0.md).
 
+Version 1.4.0 event diagnostics are under development and unpublished; see the [implementation plan (Chinese)](docs/implementation-plan-1.4.0.md) and [candidate usage](flowbus-core/README_EN.md#event-diagnostics-140). Stable installation above remains 1.3.1.
+
 ## Compatibility and release status
 
 Android supports API 21+. Published bytecode targets Java 8. The library is built with Kotlin 1.9.25, Coroutines 1.8.1, Lifecycle 2.6.2, AGP 8.6.1, Gradle 8.7, JDK 17, and compileSdk/targetSdk 35. Consumer toolchain requirements and tested combinations are described in the [compatibility guide](docs/en/compatibility.md).

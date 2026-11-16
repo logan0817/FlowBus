@@ -21,6 +21,7 @@ If you are not building an Android app, or if you want to manage bus instances, 
 - [Scopes](#scopes-and-ownership) · [API selection](#api-selection-matrix)
 - [Channel configuration](#channel-configuration) · [Suspend collection](#suspend-collection)
 - [1.3 subscription notification](#subscription-notification) · [Channel diagnostics](#channel-diagnostics)
+- [1.4.0 candidate: event diagnostics](#event-diagnostics-140)
 - [Diagnostics](#diagnostics) · [Behavior boundaries](#behavior-boundaries)
 - [Compatibility](../docs/en/compatibility.md) · [Troubleshooting](../TROUBLESHOOTING.md) (Chinese)
 
@@ -663,6 +664,61 @@ println("normal=${channel.normalSubscriptionCount}, sticky=${channel.stickySubsc
 All three explicit source types support this query. An unknown channel or a shared store that does not exist returns null without creating a store, Flow, configuration, type binding, or send counters. A known same-name type conflict throws `IllegalArgumentException`; querying a raw key does not complete its type binding. An owned `FlowBusScope` that is closing or closed rejects queries with `IllegalStateException`.
 
 Removing an individual Flow retains its configuration. Complete scope cleanup makes a shared query return null; recreating the same name restores bus defaults. Snapshots contain no payload and are not cross-thread transactions. Separate counts cannot replace a specific subscription notification or establish delivery rate or business completion.
+
+<a id="event-diagnostics-140"></a>
+
+### 1.4.0 candidate: observe publication, subscriptions, and failures
+
+This section describes the **1.4.0 source candidate, which is not published to Maven Central**. The stable `1.3.1` coordinates above do not contain these APIs. Verify candidates through the [local candidate workflow](../CONTRIBUTING.md#candidate-builds); the [1.4.0 implementation plan](../docs/implementation-plan-1.4.0.md) (Chinese) defines development and acceptance scope.
+
+Install an observer on the source bus to distinguish instances, investigate missing events with the same name, or track repeated subscriptions. It covers that instance's root and named scopes, without observing other instances:
+
+```kotlin
+import com.logan.flowbus.core.FlowBus
+import com.logan.flowbus.core.FlowBusDiagnosticEvent
+import com.logan.flowbus.core.flow
+
+val bus = FlowBus()
+val diagnostics = bus.observeDiagnostics { record ->
+    val channel = record.channel
+    when (record) {
+        is FlowBusDiagnosticEvent.Published ->
+            println("bus=${channel.busId}, flow=${channel.flowId}, result=${record.result.outcome}")
+        is FlowBusDiagnosticEvent.SubscriptionStarted ->
+            println("flow=${channel.flowId}, subscription=${record.subscriptionId}, started")
+        is FlowBusDiagnosticEvent.SubscriptionEnded ->
+            println("subscription=${record.subscriptionId}, ended=${record.reason}")
+        else -> Unit
+    }
+}
+
+// Obtain the Flow after installing diagnostics, then collect normally to track its subscription.
+val events = bus.flow<Int>(eventName = "work.progress")
+```
+
+Call `diagnostics.close()` when investigation ends. To capture an end notification, wait for the tracked collection to exit before closing the observer. `DefaultFlowBus.observeDiagnostics(observer)` provides the same entry point but obtains and initializes the default instance; finish `configure` / `install` first.
+
+| Record | What it establishes |
+| --- | --- |
+| `Published` | A `TryPost` or `Emit` underlying send completed, with the existing `FlowBusPostResult` and its unchanged acceptance/rejection semantics |
+| `EmitCancelled` / `EmitFailed` | A suspending send on that flow was cancelled or threw; cancellation does not increment the existing rejected counter |
+| `SubscriptionStarted` | This collection was registered, before replay and the user's `onSubscribed` callback |
+| `SubscriptionEnded` | This collection actually exited with `Completed`, `Cancelled`, or `Failed`; failures expose the exception type only |
+| `Failure` | A managed entry point identified a `ValueCast`, `SubscriberCallback`, or `SubscriptionCallback` failure without changing existing error policy |
+
+Every record's `channel` contains process-local `busId`, `storeId`, and `flowId`, plus `eventName`, `scopeName`, and `isSticky`. Subscription records also identify `subscriptionId`. Recreating a removed flow or cleared same-name scope creates a different identity; normal and sticky streams also have separate identities. IDs are not business message IDs and are not stable across processes or restarts.
+
+Keep these boundaries in mind:
+
+1. Diagnostics are disabled by default, with no history or retroactive notifications. Install the observer before obtaining the Flow and subscribing for complete subscription tracking. Enabling diagnostics does not retrofit a previously obtained ordinary Flow or an existing subscription. For a temporary investigation, inspect current state first, then let its owner safely recreate the subscriptions that need tracking.
+2. `Published.result.accepted` does not establish delivery or business success. DROP outcomes describe the configured policy, without proving that a particular value was discarded. Sends may be accepted without subscribers; sticky replay is not an acknowledgment.
+3. Business failure phases are identified only by FlowBus-managed collect entry points. Failures in direct `flow.collect` or composed operators such as `map` / `filter` can result in `SubscriptionEnded(Failed)`, without being classified as subscriber callback failures. Ordinary `onSubscribed` exceptions still terminate collection directly; cancellation is not reported as an ordinary failure.
+4. Notifications run synchronously on the thread/coroutine that triggers that stage, and different threads may invoke the observer concurrently. Return quickly. There is no global ordering guarantee: immediate resumption such as `Unconfined` may expose a callback failure before that send's `Published` record.
+5. Ordinary observer exceptions, including cancellation exceptions thrown by the observer itself, are isolated from send results and business error policy. Recovery from fatal JVM errors is not guaranteed. Synchronous business operations reentered from an observer still run, while nested diagnostic notifications on the same thread are suppressed.
+6. Records contain no payload, `Throwable`, exception message, owner, Job, or business callback. Event and scope names may still be sensitive; applications must redact them before export. The library retains no log history and starts no background export queue.
+7. Closing is idempotent and removes only that observer, without cancelling business subscriptions, closing the bus, or clearing sticky replay. It does not wait for notifications already in progress, so an observer can close itself. A cancellation request does not produce an end record until blocked or non-cancellable collection actually exits.
+
+See the [1.4.0 performance record](../benchmarks/jvm/results/1.4.0/report.md) (Chinese). Enabled diagnostics invoke synchronous callbacks and allocate records; local directed measurements show substantial cost, so prefer temporary investigation of a selected source. Disabled mode also retains some instance/container cost.
 
 <a id="eventchannel-event-extension-helpers-or-plain-eventname"></a>
 

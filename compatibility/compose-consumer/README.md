@@ -2,11 +2,11 @@
 
 [English](README_EN.md)
 
-此目录是独立消费者模板，用于评估当前 Kotlin 1.9.25 基线的 Compose 编译和 release R8 接入，现通过候选 Maven 坐标调用正式模块源码中的 [FlowBusEffect](../../library-compose/README.md)。`flowbus-compose:1.3.1` 已发布到 Maven Central；本入口默认仍验证本地源码修改生成的隔离候选，公开依赖验证见[发布说明](../../docs/release-notes-1.3.1.md)。模板的生成、构建和验证由主仓验证任务负责，本目录没有独立发布任务。
+此目录是独立消费者模板，用于评估当前 Kotlin 1.9.25 基线的 Compose 编译和 release R8 接入，现通过候选 Maven 坐标调用正式模块源码中的 [FlowBusEffect](../../library-compose/README.md)。当前源码为 **1.4.0 未发布候选**，公开 `flowbus-compose:1.3.1` 已发布到 Maven Central；本入口默认仍验证本地源码修改生成的隔离候选，公开依赖验证见[发布说明](../../docs/release-notes-1.3.1.md)。模板的生成、构建和验证由主仓验证任务负责，本目录没有独立发布任务。
 
 消费者默认使用 activity-compose `1.8.2`、Compose runtime/ui `1.5.4`、Compose compiler `1.5.15`，直接声明 Lifecycle `2.6.2`，消费当前候选 FlowBus 产物。另可选择 runtime/ui `1.7.8` 进行新版实验。全部仅作用于此消费者；基础库不传递引入 Compose，也不改变基础依赖、SDK 或 Kotlin 要求。两种组合的结果必须分开记录，声明版本不能代替实际解析或设备证据。
 
-`FlowBusEffect` 接收显式 `FlowBus`、`EventKey<T>`、调用方提供的 `LifecycleOwner`，默认从 STARTED 收集。可以由导航调用方传入 `NavBackStackEntry`，示例不依赖导航库或 LocalLifecycleOwner。事件回调和可选 `onSubscribed` 通知通过 rememberUpdatedState 更新，更新它们不重建订阅；来源、事件名称/类型、owner、最低状态、sticky 选择变化都会重建 effect。1.3.1 候选在组合时同步拒绝 INITIALIZED 和 DESTROYED 阈值；合法值为 CREATED、STARTED、RESUMED，owner 本身已销毁且阈值合法时正常不订阅。
+`FlowBusEffect` 接收显式 `FlowBus`、`EventKey<T>`、调用方提供的 `LifecycleOwner`，默认从 STARTED 收集。可以由导航调用方传入 `NavBackStackEntry`，示例不依赖导航库或 LocalLifecycleOwner。事件回调和可选 `onSubscribed` 通知通过 rememberUpdatedState 更新，更新它们不重建订阅；来源、事件名称/类型、owner、最低状态、sticky 选择变化都会重建 effect。自 1.3.1 起，组合时同步拒绝 INITIALIZED 和 DESTROYED 阈值；合法值为 CREATED、STARTED、RESUMED，owner 本身已销毁且阈值合法时正常不订阅。
 
 [实际 NavHost 验证](../navhost-consumer/README.md) 通过可选 navHost 参数加入 navigation-compose，记录标准 ComposeNavigator、默认动画阈值及 Activity 重建。转场中的新页面可能已 STARTED 而尚未 RESUMED；只有当前交互页应处理的副作用可显式选择 RESUMED。旧页面仍处于 Composition 或退出动画不代表其 owner 活跃；按实际 entry 生命周期收集，不按“是否还画在屏幕上”推断。
 
@@ -73,15 +73,15 @@ python3 -B compatibility/compose-consumer/verify-effects-device.py --adb /path/t
 | 阶段 | 覆盖行为 |
 | --- | --- |
 | `initial-replay` | 初始 sticky probe 被 effect 接收 |
-| `subscription-established` | 初次只通知一次，来源、key、owner、最低状态与本次订阅一致 |
-| `callback-updated-without-resubscribe` | 两个回调更新后不重订阅，下一条事件使用新版本；后续建立通知也使用新版本 |
-| `source-replaced` | 替换 source，旧协作回调取消、新来源 probe 进入 |
-| `key-replaced` | 替换 key，旧回调取消、新 key probe 进入 |
+| `subscription-established` | 初次只通知一次，来源、key、owner、最低状态与本次订阅一致；诊断 Started 与通知逐次对齐 |
+| `callback-updated-without-resubscribe` | 两个回调更新后不重订阅、不新增诊断 Started/Ended，下一条事件使用新版本；后续建立通知也使用新版本 |
+| `source-replaced` | 替换 source，旧协作回调取消并诊断 Ended、新来源 probe 进入，busId 可区分 |
+| `key-replaced` | 替换 key，旧回调取消并诊断 Ended、新 key probe 进入，同 bus 的 flowId 可区分 |
 | `owner-replaced` | 替换受控 owner，销毁旧 owner 后新订阅仍接收 |
 | `min-state-replaced` | STARTED 改为 RESUMED，低于阈值时不接收、恢复后接收 |
-| `composition-disposed-restored` | 移除 effect 取消旧回调，恢复组合后接收最新 sticky |
-| `lifecycle-stopped-restarted` | 生命周期停止取消旧回调，恢复后接收最新 sticky |
-| `callback-error-continued` | 普通异常交给配置的继续型 handler，随后仍接收 |
+| `composition-disposed-restored` | 移除 effect 取消旧回调并诊断真实 Ended，恢复组合后接收最新 sticky |
+| `lifecycle-stopped-restarted` | 生命周期停止取消旧回调并诊断真实 Ended，恢复后接收最新 sticky |
+| `callback-error-continued` | 普通异常交给配置的继续型 handler，Failure 关联当前 channel/subscriptionId，随后仍接收 |
 | `destroyed-source-retained` | DESTROYED 取消；source 仍可发布，并由新 owner 接收；取消不交给普通异常 handler |
 | `binary-1.3.0-composable` | 原版 1.3.0 编译的 Composable 在候选运行；验证订阅通知、回调更新不重订阅、停止/恢复及移除组合取消 |
 
@@ -92,6 +92,8 @@ python3 -B compatibility/compose-consumer/verify_effects_test.py
 ```
 
 当前 effect 与 policy 协议各有 1 个 unittest，分别对每一个阶段缺失进行拒绝验证，并覆盖本次 PASS、旧 PASS、当前 FAIL、其他前台包、缺阶段、错误检查数与安装前错误 API。mock 只验证 driver 判定，不等于真实设备通过。effect 的替换与生命周期阶段还断言通知总次数：初始一次，来源、key、owner、阈值恢复、组合恢复、生命周期恢复及销毁后新 owner 各增加一次，最终八次；回调更新和错误继续均不能增加订阅。进程死亡恢复、深链接及其他 NavHost 配置仍需独立验证；勿将此前十阶段临时 driver 作为仓库入口。
+
+1.4.0 候选在原十二/十一阶段内增加统一诊断验收，不改变 driver 阶段名和数量。观察器在 effect 取流前安装，记录元数据而非事件值，并在 finally 关闭。Started 必须与真实 `onSubscribed` 对齐，Ended 必须匹配 channel/subscriptionId 且不能重复；停止或移除组合后等待真正退出，不用 Job 已创建或已请求取消代替。诊断通知不是业务就绪屏障。
 
 ## 错误策略与非协作回调自检
 
@@ -114,6 +116,8 @@ python3 -B compatibility/compose-consumer/verify_effects_test.py
 | `blocking-worker-restart-waits-for-callback` | Dispatchers.Default 中受控阻塞工作不能被取消强制停止，释放后结束并重启订阅 |
 
 非协作阶段使用可显式释放的 Deferred/CountDownLatch；等待真实 Job 取消状态，检查订阅数量及回调不重叠，没有用固定 delay 推断。finally 总会释放屏障并销毁内部组合。取消不回滚回调已发生的副作用；不要在主线程阻塞，也不要认为任意业务回调都能被立即停止。同一 repeatOnLifecycle 的重启需要等待旧回调结束，这与重建其他来源/owner 的独立 effect 不同。
+
+诊断还核验：默认或 handler 抛错后的 Ended 为 Failed，并保留真正终止异常的类型；Ignore/custom/legacy 继续策略只产生 Failure，不提前产生 Ended。CancellationException 不产生普通 Failure。两种非协作阶段在取消已请求、旧回调仍等待屏障时断言没有 Ended 或第二次 Started；释放后先核对旧订阅 Cancelled Ended，再核对新订阅。
 
 构建与测试签名使用上文相同消费者 APK，驱动 CLI 与共用协议保持一致：
 
@@ -141,3 +145,26 @@ python3 -B compatibility/core-binary-consumer/verify_symbols.py \
   --javap /path/to/jdk17/bin/javap \
   --output build/compose-1.3.0-jvm-symbol-verification.json
 ```
+
+## 正式 1.3.1 静态符号基线
+
+[api/flowbus-compose-1.3.1.api](api/flowbus-compose-1.3.1.api) 原样取自 `v1.3.1` 的 `2dbd9581af58ae376141d8ada62d4f26e6507754`。它与 1.3.0 的公开快照相同，但原版 1.3.1 AAR 的字节不同，需核对 [baselines.json](../core-binary-consumer/baselines.json) 的 `1.3.1.composeSha256`，不能复用 1.3.0 制品或当前候选快照。
+
+候选已生成后，从项目根目录执行：
+
+```bash
+mkdir -p build/published-baseline
+curl --fail --location --silent --show-error \
+  --output build/published-baseline/flowbus-compose-1.3.1.aar \
+  https://repo.maven.apache.org/maven2/io/github/logan0817/flowbus-compose/1.3.1/flowbus-compose-1.3.1.aar
+python3 -c 'import hashlib,json,pathlib; expected=json.loads(pathlib.Path("compatibility/core-binary-consumer/baselines.json").read_text())["1.3.1"]["composeSha256"]; assert hashlib.sha256(pathlib.Path("build/published-baseline/flowbus-compose-1.3.1.aar").read_bytes()).hexdigest()==expected'
+FLOWBUS_VERSION=$(sed -n 's/^VERSION_NAME=//p' gradle.properties)
+python3 -B compatibility/core-binary-consumer/verify_symbols.py \
+  --baseline-artifact build/published-baseline/flowbus-compose-1.3.1.aar \
+  --candidate-artifact "build/candidate-maven/io/github/logan0817/flowbus-compose/$FLOWBUS_VERSION/flowbus-compose-$FLOWBUS_VERSION.aar" \
+  --baseline-api-snapshot compatibility/compose-consumer/api/flowbus-compose-1.3.1.api \
+  --javap /path/to/jdk17/bin/javap \
+  --output build/compose-1.3.1-jvm-symbol-verification.json
+```
+
+CI 保留独立的 1.3.0 与 1.3.1 符号报告。静态检查不证明 1.3.1 原版编译的 Composable 已在设备运行；当前 `legacy130` 继续针对正式 1.3.0 编译，十二阶段 effect 与十一阶段 policy 仍需当前候选自己的设备证据。

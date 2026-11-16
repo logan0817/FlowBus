@@ -114,6 +114,8 @@ jobs:
           done
           ./gradlew -p benchmarks/jvm jmh -Pbenchmark.target=candidate -Pbenchmark.smoke \
             '-Pbenchmark.filter=.*SubscriptionBenchmark.*' -Pbenchmark.report=subscription-smoke --warning-mode=all
+          ./gradlew -p benchmarks/jvm selfCheckDiagnostics jmh -Pbenchmark.target=candidate -Pbenchmark.smoke \
+            '-Pbenchmark.filter=.*DiagnosticsBenchmark.*' -Pbenchmark.report=diagnostics-smoke --warning-mode=all
       - name: Measure directed formal performance when requested by the PR
         if: github.event_name == 'pull_request' && contains(github.event.pull_request.body, '<!-- flowbus-formal-performance -->')
         run: |
@@ -218,6 +220,34 @@ jobs:
             --candidate-artifact "build/candidate-maven/io/github/logan0817/flowbus-compose/$FLOWBUS_VERSION/flowbus-compose-$FLOWBUS_VERSION.aar" \
             --baseline-api-snapshot compatibility/compose-consumer/api/flowbus-compose-1.3.0.api \
             --output build/compose-1.3.0-jvm-symbol-verification.json
+      - name: Verify unchanged 1.3.1 consumer and all published module symbols
+        run: |
+          ./gradlew verifyMavenLocalBinaryCoreConsumer \
+            "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.verification.reuseCandidate=true \
+            -Pflowbus.consumer.baselineVersion=1.3.1 \
+            "-Pflowbus.consumer.java=$JAVA_HOME_8_X64/bin/java" -Pflowbus.consumer.expectedJava=1.8 --warning-mode=all
+          python3 -B compatibility/core-binary-consumer/verify_symbols.py \
+            --runtime-report build/maven-local-binary-core-consumer-1.3.1/build/reports/binary-compatibility.json \
+            --baseline-api-snapshot compatibility/core-binary-consumer/api/flowbus-core-1.3.1.api \
+            --output build/core-1.3.1-jvm-symbol-verification.json
+          FLOWBUS_VERSION=$(sed -n 's/^VERSION_NAME=//p' gradle.properties)
+          mkdir -p build/published-baseline
+          for module in flowbus flowbus-compose; do
+            curl --fail --location --silent --show-error \
+              --output "build/published-baseline/$module-1.3.1.aar" \
+              "https://repo.maven.apache.org/maven2/io/github/logan0817/$module/1.3.1/$module-1.3.1.aar"
+          done
+          python3 -c 'import hashlib,json,pathlib; meta=json.loads(pathlib.Path("compatibility/core-binary-consumer/baselines.json").read_text())["1.3.1"]; pairs=[("flowbus","androidSha256"),("flowbus-compose","composeSha256")]; assert all(hashlib.sha256(pathlib.Path(f"build/published-baseline/{module}-1.3.1.aar").read_bytes()).hexdigest()==meta[key] for module,key in pairs)'
+          python3 -B compatibility/core-binary-consumer/verify_symbols.py \
+            --baseline-artifact build/published-baseline/flowbus-1.3.1.aar \
+            --candidate-artifact "build/candidate-maven/io/github/logan0817/flowbus/$FLOWBUS_VERSION/flowbus-$FLOWBUS_VERSION.aar" \
+            --baseline-api-snapshot compatibility/android-consumer/api/flowbus-1.3.1.api \
+            --output build/android-1.3.1-jvm-symbol-verification.json
+          python3 -B compatibility/core-binary-consumer/verify_symbols.py \
+            --baseline-artifact build/published-baseline/flowbus-compose-1.3.1.aar \
+            --candidate-artifact "build/candidate-maven/io/github/logan0817/flowbus-compose/$FLOWBUS_VERSION/flowbus-compose-$FLOWBUS_VERSION.aar" \
+            --baseline-api-snapshot compatibility/compose-consumer/api/flowbus-compose-1.3.1.api \
+            --output build/compose-1.3.1-jvm-symbol-verification.json
       - name: Verify newer optional Navigation consumer
         run: |
           ./gradlew verifyMavenLocalComposeConsumer \

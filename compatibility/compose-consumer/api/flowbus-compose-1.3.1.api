@@ -1,0 +1,4 @@
+public final class com/logan/flowbus/compose/FlowBusEffectKt {
+	public static final fun FlowBusEffect (Lcom/logan/flowbus/core/FlowBus;Lcom/logan/flowbus/core/EventKey;Landroidx/lifecycle/LifecycleOwner;Landroidx/lifecycle/Lifecycle$State;ZLkotlin/jvm/functions/Function0;Lkotlin/jvm/functions/Function2;Landroidx/compose/runtime/Composer;II)V
+}
+

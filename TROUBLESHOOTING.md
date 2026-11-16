@@ -159,3 +159,38 @@ inspect().config 显示 bus 默认值；tryPostResult/tryPostStickyResult.overfl
 owner 本身已经销毁且阈值合法时，应正常不订阅并完成 Job。不要把这种情况改成非法阈值，也不要捕获所有异常后当作订阅成功。
 
 升级测试需要重新编译消费者：inline `collectEvent` 的校验和旧 reified wrapper 的来源获取顺序可能已内嵌到调用方，单纯替换 AAR 不会更新这些字节码。使用 1.3.1 release R8 包核对实际解析版本，再按对应入口验证；公开制品与 API21/35 已验收，后续本地修改仍需单独验证。
+
+<a id="event-diagnostics-140"></a>
+
+## 1.4.0 候选：用事件记录定位收不到与订阅退出
+
+本节针对**尚未发布的 1.4.0 源码候选**；公开 Maven Central 版本仍为 `1.3.1`，不包含观察 API。候选安装使用[隔离本地流程](CONTRIBUTING.md#candidate-builds)，API 与完整契约见 [core](flowbus-core/README.md#event-diagnostics-140) 和 [Android](library-android/README.md#event-diagnostics-140)。
+
+### 同名事件发送和订阅看起来正常，仍然收不到
+
+在实际来源上安装 `observeDiagnostics`；Android 全局/owner 入口使用 `observeEventDiagnostics`，Java 使用 `FlowBusJava.observeDiagnostics`。Android owner 决定来源，不能用全局观察器诊断另一个 owner 或注入实例。便捷入口首次可创建来源，应先完成全局配置，并在主线程取得 Android 来源。
+
+然后按记录逐步核对：
+
+1. 对比 `channel.busId`、`storeId`、`flowId` 及普通/sticky 标记。名称相同不保证来源相同；scope 清理或移除事件流后的新旧 Flow 也有不同身份，旧订阅不会自动切换。
+2. 查找发送之前对应收集的 `SubscriptionStarted`，用 `subscriptionId` 区分每次生命周期活跃阶段。记录表示底层已经登记，先于 replay 和用户 `onSubscribed`；业务需要自己的就绪通知时仍使用 `onSubscribed`，诊断不是业务屏障。
+3. 查 `Published.result`。`AcceptedWithoutActiveSubscriber` 表示采样时无活跃订阅者，不是可靠投递；普通事件不会等未来订阅。DROP 类结果只说明策略，不能断言某条事件实际丢弃，`accepted=true` 也不能证明送达或处理完成。
+4. 查同一订阅的 `Failure` 和 `SubscriptionEnded`。托管 collect 可区分类型校验、事件回调或 `onSubscribed` 失败；任意 Flow 的 `map` / `filter`、直接 collect 或通用生命周期 collect 出错，只能从退出元数据判断，不能自动归为事件回调错误。普通业务异常仍由原有错误策略决定，取消不是业务错误。
+
+记录无跨线程总顺序。`Unconfined` 等立即恢复场景中，订阅者可以先执行、失败或退出，然后才出现发送方的 `Published`；不要仅按日志出现顺序推断因果或统计业务成功率。
+
+### 临时打开诊断后，只有发送记录，没有订阅开始
+
+诊断默认关闭，不保留历史，也不会改造此前已经取得的普通 Flow 或现存订阅。完整跟踪需要**先安装观察器，再取得 Flow，再收集**。可以先用 Inspector 查看当前已登记流和订阅数，再由订阅持有者安全取消并等待旧收集退出、重新取得 Flow 建立需要跟踪的订阅；不要重复注册、清理共享 scope 或给发送增加固定延时来制造“通过”。
+
+关闭观察器不会结束业务订阅。需要保留结束记录时，先等待被跟踪的收集真正退出，再调用诊断句柄的 `close()`。关闭幂等且不等待已经开始的通知，不清 sticky，也不关闭来源。
+
+### 页面已停止或取消 Job，但结束记录没有出现
+
+取消请求不等于收集已经退出。阻塞调用或 `NonCancellable` 回调会推迟实际退出与 `SubscriptionEnded`；观察器不会强制终止它们。同一次生命周期收集循环仍须等待旧回调结束后再启动下一轮。先检查业务是否遵循协作式取消，不要把未退出的收集记成已结束。
+
+### 观察器抛错、重入或导出日志
+
+通知同步运行在触发线程/协程，并可被不同线程并发调用；观察器应快速返回。它抛出的普通异常，包括自身取消异常，会被隔离，不能代替业务错误处理；JVM 致命错误不保证恢复。观察器同步重入的业务操作仍执行，同一线程嵌套诊断被抑制，因此不能靠观察器自己再次发事件来构造完整诊断链。
+
+记录不持有事件 payload、异常对象、异常消息、owner、Job 或业务回调，不提供堆栈和历史日志。`eventName`、`scopeName` 仍可能包含敏感信息，向外导出前由应用脱敏；需要异步导出时也应由应用控制队列容量和生命周期。

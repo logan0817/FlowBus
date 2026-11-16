@@ -36,13 +36,24 @@ class FlowBus(
         }
     }
 
-    private val rootStore = FlowBusStore(config)
+    private val diagnostics = FlowBusDiagnosticRuntime()
+    private val rootStore = FlowBusStore(config).withDiagnostics(diagnostics, scopeName = null)
     private val scopedStores = ConcurrentHashMap<String, ScopedStoreEntry>()
     private val openScopes = ConcurrentHashMap<String, FlowBusScope>()
     private val scopeRegistryLock = Any()
     // API 21–23 没有 ConcurrentHashMap.compute*；仅在此锁内更新 store 映射和 closing 状态。
     // 持有此锁时不获取 registry/operation 锁，避免关闭与新操作形成反向锁顺序。
     private val scopedStoreLock = Any()
+
+    /**
+     * 安装实例级排障观察器，返回可幂等关闭的句柄。
+     *
+     * 发送记录立即生效；完整订阅记录需先安装，再取得并收集 Flow。
+     * 已返回的 Flow 不补历史。通知同步执行且可能并发，不作为业务就绪/处理确认。
+     * 详见 [FlowBusDiagnosticObserver]。
+     */
+    fun observeDiagnostics(observer: FlowBusDiagnosticObserver): FlowBusDiagnosticRegistration =
+        diagnostics.observe(observer)
 
     /**
      * 在首次发送或取流前绑定根总线通道的缓冲策略，不创建 Flow。
@@ -475,7 +486,8 @@ class FlowBus(
         val entry = synchronized(scopedStoreLock) {
             val existing = scopedStores[scopeName]
             if (existing == null || existing.isClosing) {
-                ScopedStoreEntry(FlowBusStore(config)).also { scopedStores[scopeName] = it }
+                ScopedStoreEntry(FlowBusStore(config).withDiagnostics(diagnostics, scopeName))
+                    .also { scopedStores[scopeName] = it }
             } else {
                 existing
             }

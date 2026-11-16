@@ -292,6 +292,44 @@
             </LinearLayout>
 
             <LinearLayout
+                android:id="@+id/cardDiagnosticsCase"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="#FFF1E0"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/home_diagnostics_title"
+                    android:textColor="#2C1A0B"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/home_diagnostics_desc"
+                    android:textColor="#5A4638"
+                    android:textSize="14sp" />
+
+                <Button
+                    android:id="@+id/btnOpenDiagnosticsCase"
+                    style="@style/Widget.AppCompat.Button.Colored"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="@color/autumn_wave"
+                    android:text="@string/home_diagnostics_action"
+                    android:textAllCaps="false"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp" />
+            </LinearLayout>
+
+            <LinearLayout
                 android:id="@+id/cardDecisionGuide"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

@@ -4,7 +4,7 @@
 
 This directory holds source fixtures for an independent consumer of the real candidate Maven artifacts after release R8. It is not a standalone Gradle project or a published library. It does not add production dependencies, raise minSdk, or configure production signing.
 
-This entry verifies the local source version from `gradle.properties`; both sources and the stable public release use **1.3.1**. The current APK includes original-compiled 1.1.0 and 1.3.0 fixtures; candidate and public dependency verification remain separate. See the [release notes](../../docs/en/release-notes-1.3.1.md).
+This entry verifies the local source version from `gradle.properties`, currently the **unpublished 1.4.0 candidate**, while the stable public release remains **1.3.1**. The current APK includes original-compiled 1.1.0 and 1.3.0 fixtures. Android 1.0.7 / 1.2.0 / 1.3.1 use static symbol checks, without claims of executing those versions' original-compiled Android bytecode on a device. Candidate and public dependency verification remain separate; the [1.3.1 release notes](../../docs/en/release-notes-1.3.1.md) do not certify the current candidate.
 
 ## Generate and build
 
@@ -89,12 +89,13 @@ CI prepares Kotlin 1.8.22 / compileSdk 33 Android plus fixed-baseline Compose, N
 
 ## Published binary baselines
 
-Android API snapshots for 1.0.7, 1.1.0, and 1.2.0 remain in `api/`; do not replace them with development apiDump output. Fixed artifact hashes are in [baselines.json](../core-binary-consumer/baselines.json). The symbol verifier compares original AAR `classes.jar` descriptors with the candidate, using the fixed original snapshot and JDK 17 javap:
+Android API snapshots for 1.0.7, 1.1.0, 1.2.0, 1.3.0, and 1.3.1 remain in `api/`; do not replace them with development apiDump output. Fixed artifact hashes are in [baselines.json](../core-binary-consumer/baselines.json). The symbol verifier compares original AAR `classes.jar` descriptors with the candidate, using the fixed original snapshot and JDK 17 javap:
 
 ```bash
+FLOWBUS_VERSION=$(sed -n 's/^VERSION_NAME=//p' gradle.properties)
 python3 -B compatibility/core-binary-consumer/verify_symbols.py \
   --baseline-artifact build/published-baseline/flowbus-1.0.7.aar \
-  --candidate-artifact build/candidate-maven/io/github/logan0817/flowbus/1.3.1/flowbus-1.3.1.aar \
+  --candidate-artifact "build/candidate-maven/io/github/logan0817/flowbus/$FLOWBUS_VERSION/flowbus-$FLOWBUS_VERSION.aar" \
   --baseline-api-snapshot compatibility/android-consumer/api/flowbus-1.0.7.api \
   --javap /path/to/jdk17/bin/javap \
   --output build/android-jvm-symbol-verification.json
@@ -122,3 +123,26 @@ python3 -B compatibility/core-binary-consumer/verify_symbols.py \
   --javap /path/to/jdk17/bin/javap \
   --output build/android-1.3.0-jvm-symbol-verification.json
 ```
+
+## Published 1.3.1 static symbol baseline
+
+[api/flowbus-1.3.1.api](api/flowbus-1.3.1.api) is preserved byte-for-byte from `v1.3.1`, targeting `2dbd9581af58ae376141d8ada62d4f26e6507754`. Its public API matches 1.3.0, but original AAR bytes and SHA-256 differ. Use the **1.3.1** entry in [baselines.json](../core-binary-consumer/baselines.json). Keep every old snapshot and legacy fixture; do not substitute a candidate snapshot for the original.
+
+After generating the candidate, run from the repository root:
+
+```bash
+mkdir -p build/published-baseline
+curl --fail --location --silent --show-error \
+  --output build/published-baseline/flowbus-1.3.1.aar \
+  https://repo.maven.apache.org/maven2/io/github/logan0817/flowbus/1.3.1/flowbus-1.3.1.aar
+python3 -c 'import hashlib,json,pathlib; expected=json.loads(pathlib.Path("compatibility/core-binary-consumer/baselines.json").read_text())["1.3.1"]["androidSha256"]; assert hashlib.sha256(pathlib.Path("build/published-baseline/flowbus-1.3.1.aar").read_bytes()).hexdigest()==expected'
+FLOWBUS_VERSION=$(sed -n 's/^VERSION_NAME=//p' gradle.properties)
+python3 -B compatibility/core-binary-consumer/verify_symbols.py \
+  --baseline-artifact build/published-baseline/flowbus-1.3.1.aar \
+  --candidate-artifact "build/candidate-maven/io/github/logan0817/flowbus/$FLOWBUS_VERSION/flowbus-$FLOWBUS_VERSION.aar" \
+  --baseline-api-snapshot compatibility/android-consumer/api/flowbus-1.3.1.api \
+  --javap /path/to/jdk17/bin/javap \
+  --output build/android-1.3.1-jvm-symbol-verification.json
+```
+
+This checks supported symbols in AAR `classes.jar`, without certifying resources, manifests, full ABI, or device execution of original-1.3.1-compiled Android bytecode. For the original-compiled core and unchanged-bytecode Java 8 replacement run, see the [core binary consumer](../core-binary-consumer/README_EN.md#131-baseline).
