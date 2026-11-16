@@ -1,6 +1,6 @@
 # 1.4.0 pre-release checklist
 
-**1.4.0 is an unpublished candidate.** Source versions: VERSION_NAME=1.4.0, APP_VERSION_NAME=1.4.0, APP_VERSION_CODE=13; test APKs use versionCode=3. Current tasks and evidence belong in the [implementation plan (Chinese)](../implementation-plan-1.4.0.md); pre-release review is incomplete. Public installation remains 1.3.1. Historical evidence below cannot establish this version's acceptance.
+**1.4.0 is an unpublished candidate.** Source versions: VERSION_NAME=1.4.0, APP_VERSION_NAME=1.4.0, APP_VERSION_CODE=13; test APKs use versionCode=3. Current tasks and evidence belong in the [implementation plan (Chinese)](../implementation-plan-1.4.0.md); the implementation review and first complete CI passed; the plan defines final PR/main gates and candidate identity checks. Public installation remains 1.3.1. Historical evidence below cannot establish this version's acceptance.
 
 The stable version is **1.3.1, published to Maven Central**. See the [release notes](release-notes-1.3.1.md) for fixed source, final main CI and public acceptance. The reusable procedure below prepares core, Android and optional Compose artifacts; keep each version’s evidence distinct.
 

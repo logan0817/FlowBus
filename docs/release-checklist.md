@@ -1,6 +1,6 @@
 # 1.4.0 发布前清单
 
-**1.4.0 为未发布候选。** 源码版本：VERSION_NAME=1.4.0、APP_VERSION_NAME=1.4.0、APP_VERSION_CODE=13；测试 APK versionCode=3。本轮任务与证据见 [1.4.0 实施方案](implementation-plan-1.4.0.md)，发布前审查尚未完成。当前公开安装仍为 1.3.1；下文历史记录不能替代本版验收。
+**1.4.0 为未发布候选。** 源码版本：VERSION_NAME=1.4.0、APP_VERSION_NAME=1.4.0、APP_VERSION_CODE=13；测试 APK versionCode=3。本轮任务与证据见 [1.4.0 实施方案](implementation-plan-1.4.0.md)，生产实现专项审查与首轮完整 CI 已通过，最终 PR/main 门禁及候选身份按方案核验。当前公开安装仍为 1.3.1；下文历史记录不能替代本版验收。
 
 当前正式版本为 **1.3.1，已发布到 Maven Central**。固定源码、最终 main CI 和公开验收见 [1.3.1 发布说明](release-notes-1.3.1.md)。下文复用流程准备 core、Android、可选 Compose 三个坐标；各版本历史证据分别保留。
 

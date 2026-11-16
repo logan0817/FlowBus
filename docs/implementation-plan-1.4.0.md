@@ -1,6 +1,6 @@
 # FlowBus 1.4.0 实施方案：事件排障
 
-状态：实施中，尚未通过发布前审查。公开安装版本仍为 **1.3.1**。本次目标包含本地实现、兼容/性能/设备验收及发布前审查；不包含 Maven 上传、tag 或 GitHub Release。
+状态：2026-11-16 生产实现的发布前专项审查通过；最终文档提交须通过 PR 门禁，合并后独立核验 main CI。公开安装版本仍为 **1.3.1**。本次目标包含本地实现、兼容/性能/设备验收及发布前审查；不包含 Maven 上传、tag 或 GitHub Release。
 
 [文档索引](README.md) · [排障指南](../TROUBLESHOOTING.md) · [兼容性](compatibility.md) · [发布清单](release-checklist.md)
 
@@ -63,12 +63,12 @@
 | --- | --- | --- | --- |
 | W0 | 审查、官方对照、版本方案 | 缺陷和增强分开；契约可执行 | 已完成；F1 修复前 5 项测试中 4 项失败 |
 | W1 | 日志隔离与相邻开销 | throwing logger 回归；原错误/取消测试通过 | core 5 项及 Android 10 项修复后回归通过；保留原取消与错误策略 |
-| W2 | core 观察器、身份、发送/订阅/错误 | 默认关闭、异常隔离、重入、自关闭、并发、scope/旧流/取消覆盖 | 22 项诊断测试及 3 项新增身份/注册并发回归通过；最终 CI 待执行 |
-| W3 | Android/Java/Compose 接入 | lifecycle 真实起止，旧入口一致，真实 Java 编译，Compose 不因重组假重订阅 | 本地 JVM、Java 与四编译器通过；API33 8/12/11 属中间候选，最终 API21/35 待执行 |
-| W4 | 开发者示例、双语使用/排障说明 | 可操作的无人订阅、来源错配、拒绝、回调错误；有界记录、正确释放 | 实现与双语文档完成；API33 中间候选两项示例测试通过，最终设备验证待执行 |
+| W2 | core 观察器、身份、发送/订阅/错误 | 默认关闭、异常隔离、重入、自关闭、并发、scope/旧流/取消覆盖 | 22 项诊断及 3 项并发回归通过；PR 首轮 327 JVM / 九项 CI 通过 |
+| W3 | Android/Java/Compose 接入 | lifecycle 真实起止，旧入口一致，真实 Java 编译，Compose 不因重组假重订阅 | 本地及云端四编译器、Java8、当前候选 API21/35 Android/effect/policy 8/12/11 通过 |
+| W4 | 开发者示例、双语使用/排障说明 | 可操作的无人订阅、来源错配、拒绝、回调错误；有界记录、正确释放 | 双语文档及示例完成；API35 release instrumentation 22 项通过，包含新增四场景/重建两项 |
 | W5 | 候选与兼容门禁 | 三模块 API、JVM、lint、R8、Java8、四 Kotlin、新旧二进制及协议验证 | 本地 327 JVM、API、三 lint 0 issue、R8、Java8、四 Kotlin、五版 core 二进制及较新 Navigation 消费者通过 |
-| W6 | 性能与 API21/35 | 同环境 1.3.1 对照默认成本，单独衡量启用成本；设备验证本轮候选身份 | 优化后本地定向正式测量完成，注册额外分配降至 6.4%；云端对照与最终 API21/35 待执行 |
-| W7 | 发布前独立审查与收尾 | 最终输入全部门禁通过；阻塞缺陷清零；证据可追溯 | 只读交叉审查未确认新阻塞 Bug；性能、最终设备及云端 CI 未完成 |
+| W6 | 性能与 API21/35 | 同环境 1.3.1 对照默认成本，单独衡量启用成本；设备验证本轮候选身份 | 本地默认/注册/开关及云端同 runner 默认对照完成，API21/35 证据审计通过；成本与限制见第 9 节 |
+| W7 | 发布前独立审查与收尾 | 最终输入全部门禁通过；阻塞缺陷清零；证据可追溯 | 独立只读审查与首轮完整云端证据核对通过；最终 PR verify 和合并后 main CI 为收尾门禁 |
 
 具体行为测试：
 
@@ -99,22 +99,22 @@
 
 实际运行须通过环境 helper，不照抄 Java 路径。候选源码版本改为 1.4.0，公开安装示例保留 1.3.1。旧 fixtures/baseline 不替换；增加 1.3.1 历史基线时校验公开摘要。API dump 只在核对增量设计后更新，不以 dump 掩盖旧符号删除。
 
-沿用现有 API21/API35、consumer driver 与性能工作流；新增诊断阶段需同步协议及缺阶段拒绝测试。API33 真机不能替代 API21/35。远端提交、推送、PR、CI/合并须获得本版本对应授权；未授权时继续完成本地门禁，最后明确云端缺口。
+沿用现有 API21/API35、consumer driver 与性能工作流；新增诊断断言嵌入既有必经阶段，保留全部协议与缺阶段拒绝测试。API33 真机不能替代 API21/35。2026-11-16 用户授权本轮相关提交、推送 `logan0817/FlowBus` 的 `feat/event-diagnostics`、PR/现有 CI、全部门禁通过后合并并核验 main；本次止于发布前检查。
 
 ## 7. 发布前审查与后续交接
 
-- [ ] 所有 W0–W7 完成，结果对应最终源码/候选摘要。
+- [x] W0–W7 的生产实现及专项证据完成，绑定下列源码/候选摘要；最终文档 PR 与 main 检查按下列收尾规则验收。
 - [x] 现有受支持公开 API 无不兼容删除/描述符变化；新接口说明完整且 Java 可用。
-- [ ] 1.3.1 关闭态性能对照及开启态开销有实际结果，未把 JVM 结果外推 ART。
-- [ ] API21/API35 本轮设备阶段、日志、runId、同包 UI 及制品身份核对。
+- [x] 1.3.1 关闭态性能对照及开启态开销有实际结果，未把 JVM 结果外推 ART。
+- [x] API21/API35 本轮设备阶段、日志、runId、同包 UI 及制品身份核对。
 - [x] 文档清楚区分已发布 1.3.1 与候选 1.4.0，不把历史通过写成本轮通过。
-- [ ] 独立审查发现已修复并回归，或明确未通过原因。
+- [x] 独立审查未确认新增阻塞问题；已有 F1/F7 修复及回归、性能边界明确。
 
 后续实施者先核对 Git 差异与本表，再阅读 core/Android 调用链及本轮报告；不能根据聊天中的“已执行”推定通过。只有所有要求有证据才标记目标完成。正式发布是另一个授权阶段，届时固定已通过候选及源码，不重新构建替换受测字节。
 
-## 8. 本轮证据与审查记录
+## 8. 2026-11-13 本地阶段记录
 
-2026-11-13 本地阶段，证据位于 `build/verification-1.4.0/`。这些文件是本机验收材料，不能假定会随 Git 保留。当前工作区未提交，`HEAD=1a18d376` 仅代表基线，实际输入还须结合源码文件摘要和最终差异。
+2026-11-13 本地阶段，证据位于 `build/verification-1.4.0/`。这些文件是本机验收材料，不能假定会随 Git 保留。当时工作区未提交，`HEAD=1a18d376` 仅代表基线，须结合当时源码摘要和差异。该实现已于 2026-11-16 提交为 `4d3891aa5d9568e20bd99d5d607792ddff111ce4`；新的云端证据见第 9 节。
 
 当前候选：core `7e7cd4aa404acbb5c5c6b69a9c81a5b9666d57a70aa4f8682029e05c84036eca`、Android `7ad28eabe3ad74e8fe9819d4a350c0becf52abbdd9c162ddc861d1ad54021633`、Compose `a6a6f2a38aec6c8cee1bcbfdc935f50b74f5add57cc302e0b912fc4f60a91ef3`。封存清单摘要 `bafb082c76c2ae32b6b1a2c9d8b5403f0453572a16e7edf1f6a787d99acc743c`，保存在 `final-candidate/candidate-manifest.json`。
 
@@ -134,10 +134,31 @@
 | 文档与结构 | 双语 core 排障示例从 README 原样提取编译；29 份 Markdown 相对目标、7 份 XML、3 份 JSON 解析与 `git diff --check` 通过 | `readme-examples-compile.log`、`static-structure-audit.json`；没有项目 Markdown formatter，仅沿用现有风格；不冒充全部渲染/锚点验证 |
 | 协议测试 | 六组共 48 项 Python 测试通过 | `python-drivers.log`；包括缺阶段拒绝、符号验证器与基准报告身份拒绝 |
 | 性能优化依据 | 中间候选注册 1264 B/op，正式基线约 1000 B/op，增加 26.4%；停止剩余开启态测量，保留结果后减少未启用对象 | `performance/`、`pre-optimization-decision.json`；该目录不是最终性能验收 |
-| 优化后性能 | 5 组定向正式测量 28 行与 5 组 smoke 74 行均完成，报告及输入身份通过；默认三场景吞吐比约 0.959/0.997/0.956；注册分配 1000→1064 B/op | `performance-final/analysis.json`；正式归档见 [性能记录](../benchmarks/jvm/results/1.4.0/report.md)。开启态三场景吞吐约为关闭态 33%/55%/51%，适合临时排障；云端对照仍待执行 |
+| 优化后性能 | 5 组定向正式测量 28 行与 5 组 smoke 74 行均完成，报告及输入身份通过；默认三场景吞吐比约 0.959/0.997/0.956；注册分配 1000→1064 B/op | `performance-final/analysis.json`；正式归档见 [性能记录](../benchmarks/jvm/results/1.4.0/report.md)。开启态三场景吞吐约为关闭态 33%/55%/51%，适合临时排障；当时云端对照尚未执行，现见第 9 节 |
 
 本机性能不推导 ART；开启诊断的显著成本已明确记录，不宣称持续监控成本可忽略。
 
-只读交叉审查未确认当前 core、Android、Java、示例及 Compose 消费者的新增阻塞 Bug。已核对锁外通知、身份安全发布、最后观察器关闭/重开、真正取消、40 条示例记录边界及非协作取消的真实退出断言。Android 首次 lifecycle stop 的单次 yield 检查仍作为调度稳健性观察项保留，没有当前失败证据，不据此判断生产缺陷。API21/35 与最终云端 CI 仍是必要缺口。
+只读交叉审查未确认当前 core、Android、Java、示例及 Compose 消费者的新增阻塞 Bug。已核对锁外通知、身份安全发布、最后观察器关闭/重开、真正取消、40 条示例记录边界及非协作取消的真实退出断言。Android 首次 lifecycle stop 的单次 yield 检查仍作为调度稳健性观察项保留，没有当前失败证据，不据此判断生产缺陷。当时 API21/35 与云端 CI 尚未执行，现已补齐首轮证据，见第 9 节。
 
 交叉审查已落实的修正：保留默认完整 JMH 筛选，候选诊断用独立 filter；修正诊断 active1 的背压配置；当前候选发布清单改为 1.4.0，回退要求移除新增 API 后重编译。未完成事项仍以 W 表和发布前勾选为准，不能把本节局部成功理解为审查通过。
+
+## 9. 2026-11-16 云端验收与收尾规则
+
+[PR #18](https://github.com/logan0817/FlowBus/pull/18) 的生产实现提交为 `4d3891aa5d9568e20bd99d5d607792ddff111ce4`，首轮 [CI 43782753659](https://github.com/logan0817/FlowBus/actions/runs/43782753659) attempt 1 九项成功，无失败后重试。PR 合成受测提交为 `95b534f87fcb5133f060d856e7bdedc2ad92fdb9`，不是分支 head；候选清单 SHA-256 为 `80cdc066769269445566625f0a5407727ef160bc203e07809e35badcdbc8aa02`。18 个 Maven 文件与 9 份清单副本一致，全部 artifact ZIP 摘要核对通过。
+
+| 门禁 | 当前证据 |
+| --- | --- |
+| API / JVM / lint | 三模块 API、231 core + 94 Android + 2 app = 327 JVM，0 failed/error/skipped；三份 release lint 0 issue；原始日志确认本轮执行测试 |
+| 消费者与兼容 | metadata、Java8、四 Kotlin、release R8、五版 core 不变字节码、15 份二进制报告；12 份符号报告无受支持公开符号缺失；较新 Navigation 构建通过 |
+| API21 | 库 instrumentation 3 项；Android/effect/policy 8/12/11，Navigation 7、NavHost 8；全部 result、当前 runId、日志、同包 UI 与阶段匹配 |
+| API35 | 库 instrumentation 3 项、示例 release instrumentation 22 项（含排障示例两项）；Android/effect/policy 8/12/11，全部原始证据匹配 |
+| 性能 | 同一 consumers runner 的正式 1.3.1/候选三场景对照与全部 smoke 完成；本地开关/注册测量的生产和基准输入摘要与提交一致；详见[性能记录](../benchmarks/jvm/results/1.4.0/report.md) |
+| 审查 | core、Android/Java、Compose/示例及 CI/文档独立只读复核无新增阻塞；单次 yield 的观察项未在本轮 API21/35 复现失败，未通过放宽断言取得成功 |
+
+首轮云端主制品 SHA-256：core `88b49e096bd27acd2e6fe7446b34781d091ebbdc59061ef8d8d2623daa58c0c4`；Android `90f958f9cc1b155ec8bd900db48d3b59a4e37f34573929af826014ac239dbd6f`；Compose `a6a6f2a38aec6c8cee1bcbfdc935f50b74f5add57cc302e0b912fc4f60a91ef3`。云端 core 与本地受测 core 的全部 JAR 成员字节一致；Android 新鲜构建中一处旧 inline/default 方法比本地多两条对 Class 常量的 `checkcast java/lang/Class`，其余成员相同。没有把本地 Android 字节称作云端字节；以本轮云端包完成全部消费者和设备检查。
+
+性能结论有明确限制：吞吐比约 0.940/0.967/0.973，误差区间重叠；SampleTime 无订阅/sticky 整批均值增加约 8.4%/5.3%，误差区间不重叠，属于观察到的关闭态成本。active1 吞吐分配增加约 4.6%，sticky 的 SampleTime 分配增加约 16.6%；不混用模式或将较好的读数当成零成本。开启态吞吐约为关闭态 33%/55%/51%，仅建议按来源临时启用。以上不推导 ART、单事件延迟或持续监控能力。
+
+本次后续提交仅整理文档和性能归档，不改变生产/基准源码、构建脚本或测量参数，因而移除 PR 的可选正式性能 marker，复用已验证且绑定输入摘要的正式结果。其余九项 CI 与全部 smoke 继续执行；若任何测量输入改变则必须重新测量，不能复用本节结果。**最终文档提交必须通过 PR 的 `verify` 才能合并；合并后独立检查 main 的九项 CI 并下载该次候选与证据，核对其生产内容与受测实现一致。** 完成状态以 PR/main 实际检查和本机 `completion-audit.json` 为准，不能只凭本节提前视作 main 已通过。
+
+本地保留 `build/verification-1.4.0/pr18-initial/` 的原始 ZIP、manifest、JVM/lint、二进制、设备和 JMH 报告，以及 `evidence-audit.json`。正式性能的裁剪归档及原始报告摘要已纳入 Git；其他本地材料不会自动随 Git 保留，Actions 保留期为 14 天。未来正式发布时须固定已通过的 main 候选与提交，另行获得 Maven 上传、tag 和 GitHub Release 授权。
