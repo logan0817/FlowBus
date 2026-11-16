@@ -9,12 +9,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import com.logan.flowbus.core.FlowBus
 import com.logan.flowbus.core.EventKey
 import com.logan.flowbus.core.FlowBusConfig
+import com.logan.flowbus.core.FlowBusDiagnosticEndReason
+import com.logan.flowbus.core.FlowBusDiagnosticEvent
+import com.logan.flowbus.core.FlowBusDiagnosticFailurePhase
 import com.logan.flowbus.core.FlowBusErrorHandler
 import com.logan.flowbus.core.eventKey
 import kotlinx.coroutines.CancellationException
@@ -46,7 +50,8 @@ private class EffectSubscription(
     val key: EventKey<EffectProbe>,
     val owner: VerificationOwner,
     val minState: Lifecycle.State,
-    val callbackRevision: Int
+    val callbackRevision: Int,
+    val diagnostic: FlowBusDiagnosticEvent.SubscriptionStarted
 )
 
 /** 仅消费者自检：通过真实组合重建与回调屏障验证，不用固定延时推断订阅就绪。 */
@@ -63,6 +68,7 @@ internal fun ComposeEffectVerification(runId: String) {
         }
     }
     val keys = remember { List(2) { eventKey<EffectProbe>("consumer.effect.$it") } }
+    val diagnostics = remember { sources.map(::ConsumerDiagnostics) }
     val initialReplay = remember {
         EffectProbe().also { check(sources[0].postSticky(keys[0], it)) }
     }
@@ -112,8 +118,10 @@ internal fun ComposeEffectVerification(runId: String) {
     val minStateAtComposition = minState
     if (visible) {
         FlowBusEffect(source, key, owner, minState, isSticky = true, onSubscribed = {
+            val diagnostic = diagnostics[sources.indexOf(sourceAtComposition)].started().last()
+            check(diagnostic.channel.eventName == keyAtComposition.name && diagnostic.channel.isSticky)
             val subscription = EffectSubscription(
-                sourceAtComposition, keyAtComposition, ownerAtComposition, minStateAtComposition, callbackTag
+                sourceAtComposition, keyAtComposition, ownerAtComposition, minStateAtComposition, callbackTag, diagnostic
             )
             subscriptionHistory.add(subscription)
             check(subscriptions.trySend(subscription).isSuccess)
@@ -155,6 +163,21 @@ internal fun ComposeEffectVerification(runId: String) {
                 "Expected $expected subscriptions, got ${subscriptionHistory.size}"
             }
             check(subscriptions.tryReceive().isFailure) { "Unexpected extra subscription notification" }
+            check(diagnostics.sumOf { it.started().size } == expected) {
+                "Diagnostic start count disagrees with actual subscription notifications"
+            }
+        }
+
+        suspend fun expectEnded(expected: Int) {
+            while (diagnostics.sumOf { it.ended().size } < expected) withFrameNanos { }
+            val ended = diagnostics.flatMap { it.ended() }
+            check(ended.size == expected)
+            check(ended.all { it.reason == FlowBusDiagnosticEndReason.Cancelled && it.failureType == null })
+            check(ended.map { it.channel.busId to it.subscriptionId }.toSet().size == expected)
+            val previous = subscriptionHistory.take(expected).map { it.diagnostic }
+            check(previous.all { started ->
+                ended.any { it.channel == started.channel && it.subscriptionId == started.subscriptionId }
+            })
         }
 
         suspend fun expectSubscription(expected: Int) {
@@ -165,6 +188,7 @@ internal fun ComposeEffectVerification(runId: String) {
             check(subscription.minState == minState)
             check(subscription.callbackRevision == callbackRevision)
             assertSubscriptionCount(expected)
+            expectEnded(expected - 1)
         }
 
         try {
@@ -179,6 +203,7 @@ internal fun ComposeEffectVerification(runId: String) {
                 callbackUpdated.await()
                 receive()
                 assertSubscriptionCount(1)
+                check(diagnostics.all { it.ended().isEmpty() })
                 passed("callback-updated-without-resubscribe")
 
                 var pending = receive(hold = true)
@@ -189,6 +214,7 @@ internal fun ComposeEffectVerification(runId: String) {
                 expectSubscription(2)
                 nextSource.entered.await()
                 check(nextSource.callbackRevision == 2 && nextSource.deliveryCount == 1)
+                check(subscriptionHistory[0].diagnostic.channel.busId != subscriptionHistory[1].diagnostic.channel.busId)
                 passed("source-replaced")
 
                 pending = receive(hold = true)
@@ -198,6 +224,9 @@ internal fun ComposeEffectVerification(runId: String) {
                 pending.cancelled.await()
                 expectSubscription(3)
                 nextKey.entered.await()
+                val sourceDiagnostic = subscriptionHistory[1].diagnostic.channel
+                val keyDiagnostic = subscriptionHistory[2].diagnostic.channel
+                check(sourceDiagnostic.busId == keyDiagnostic.busId && sourceDiagnostic.flowId != keyDiagnostic.flowId)
                 passed("key-replaced")
 
                 pending = receive(hold = true)
@@ -216,6 +245,7 @@ internal fun ComposeEffectVerification(runId: String) {
                 minState = Lifecycle.State.RESUMED
                 pending.cancelled.await()
                 assertSubscriptionCount(4)
+                expectEnded(4)
                 val resumeProbe = EffectProbe()
                 check(source.postSticky(key, resumeProbe))
                 check(!resumeProbe.entered.isCompleted)
@@ -228,6 +258,7 @@ internal fun ComposeEffectVerification(runId: String) {
                 visible = false
                 pending.cancelled.await()
                 assertSubscriptionCount(5)
+                expectEnded(5)
                 val restored = EffectProbe()
                 check(source.postSticky(key, restored))
                 check(!restored.entered.isCompleted)
@@ -240,6 +271,7 @@ internal fun ComposeEffectVerification(runId: String) {
                 owner.registry.currentState = Lifecycle.State.CREATED
                 pending.cancelled.await()
                 assertSubscriptionCount(6)
+                expectEnded(6)
                 val restarted = EffectProbe()
                 check(source.postSticky(key, restarted))
                 check(!restarted.entered.isCompleted)
@@ -251,6 +283,11 @@ internal fun ComposeEffectVerification(runId: String) {
                 receive(fail = true)
                 errorHandled.await()
                 check(errors.size == 1 && errors.single() is IllegalStateException)
+                val failure = diagnostics.flatMap { it.failures() }.single()
+                val active = subscriptionHistory.last().diagnostic
+                check(failure.channel == active.channel && failure.subscriptionId == active.subscriptionId)
+                check(failure.phase == FlowBusDiagnosticFailurePhase.SubscriberCallback)
+                check(failure.exceptionType == IllegalStateException::class.java.name)
                 receive()
                 assertSubscriptionCount(7)
                 passed("callback-error-continued")
@@ -259,6 +296,7 @@ internal fun ComposeEffectVerification(runId: String) {
                 owner.registry.currentState = Lifecycle.State.DESTROYED
                 pending.cancelled.await()
                 assertSubscriptionCount(7)
+                expectEnded(7)
                 val afterDestroy = EffectProbe()
                 check(source.postSticky(key, afterDestroy))
                 check(!afterDestroy.entered.isCompleted)
@@ -266,7 +304,10 @@ internal fun ComposeEffectVerification(runId: String) {
                 expectSubscription(8)
                 afterDestroy.entered.await()
                 check(errors.size == 1) // 协作式取消不能交给普通异常策略。
+                check(diagnostics.sumOf { it.failures().size } == 1)
                 passed("destroyed-source-retained")
+                visible = false
+                expectEnded(8)
 
                 legacySubscriptions.receive()
                 val legacyFirst = EffectProbe()
@@ -313,6 +354,7 @@ internal fun ComposeEffectVerification(runId: String) {
             legacySubscriptions.close()
             owners.forEach { it.registry.currentState = Lifecycle.State.DESTROYED }
             subscriptions.close()
+            diagnostics.forEach { it.close() }
         }
     }
 

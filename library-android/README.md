@@ -21,6 +21,7 @@ implementation("io.github.logan0817:flowbus:1.3.1")
 - [快速开始](#3-分钟上手) · [API 选择](#api-选择矩阵)
 - [owner 配置](#android-owner-configuration) · [挂起回调与实例接入](#suspend-callbacks)
 - [1.3.0：Java、订阅建立与诊断](#development-130)
+- [1.4.0 候选：事件排障观察](#event-diagnostics-140)
 - [sticky](#sticky-与-replay) · [全局默认配置](#可选配置)
 - [兼容性](../docs/compatibility.md) · [排障](../TROUBLESHOOTING.md)
 
@@ -302,6 +303,8 @@ viewLifecycleOwner.onEvent<UploadFinishedEvent>(from = requireActivity()) { even
 | `tryPostEventResult(...)` | 否 | 否 | `FlowBusPostResult` | 日志、测试断言、排查订阅数和溢出策略 | 不代表订阅回调已执行成功 |
 | `emitEvent(...)` | 是 | 是 | 无 | 活跃广播需要按配置等待缓冲可用 | 协程调用；无人订阅普通事件不保存，丢弃策略仍生效 |
 | `postStickyEvent(...)` / `emitStickyEvent(...)` | 取决于具体 API | 是 | 取决于具体 API | 后订阅者需要收到最近值 | 不适合替代长期状态管理 |
+
+1.4.0 候选隔离 Android 发送 warning 中 logger 自身的普通异常（含其抛出的 CancellationException），不改变拒绝结果或真正的协程取消；JVM 致命错误不作恢复保证。
 
 常见全局发送：
 
@@ -699,6 +702,37 @@ if (snapshot != null) {
 快照包含当前通道有效的普通/sticky 容量、replay、溢出策略和各自活跃订阅数，不暴露 payload。未知通道返回 null，不绑定类型、配置或创建 Flow；已绑定同名通道的类型冲突仍明确失败。`FlowBusJava.inspectChannel*` 首次获取 Android 来源时可能创建其 `FlowEventBus`，因此需要先完成 `FlowBusAndroid.configure`。持有 `FlowEventBus` 时可直接调用 `inspectChannel(key)`；显式 core 来源使用自身同名方法。
 
 快照用于排障，不是就绪屏障或跨线程一致性事务。旧 `inspect().config` 继续表示 bus 默认值；不要把 accepted/rejected 或快照订阅数换算为送达率。
+
+<a id="event-diagnostics-140"></a>
+
+## 1.4.0 候选：Android 事件排障
+
+以下 API 属于**尚未发布的 1.4.0 源码候选**，上方 `flowbus:1.3.1` 坐标不包含它们。使用[本地候选流程](../CONTRIBUTING.md#candidate-builds)验证，不要直接把安装版本改为未发布坐标。
+
+先安装观察器，再获取 Flow 或注册需要跟踪的订阅。例如在 Fragment 主线程观察 Activity 来源：
+
+```kotlin
+import com.logan.flowbus.observeEventDiagnostics
+import com.logan.flowbus.core.FlowBusDiagnosticEvent
+import com.logan.flowbus.core.FlowBusDiagnosticObserver
+
+val observer = FlowBusDiagnosticObserver { record ->
+    if (record is FlowBusDiagnosticEvent.Published) {
+        println("bus=${record.channel.busId}, flow=${record.channel.flowId}, result=${record.result.outcome}")
+    }
+}
+val diagnostics = observeEventDiagnostics(observer, owner = requireActivity())
+```
+
+后续发送和订阅也应选择同一个 Activity 来源。省略 `owner` 时观察 Android 全局来源；它与 core 的 `DefaultFlowBus` 不是同一入口。已经持有 `FlowEventBus` 时调用 `source.observeDiagnostics(observer)`；注入 core 实例时直接调用该 `bus.observeDiagnostics(observer)`，便捷全局入口不会自动观察注入实例。
+
+Java 使用 `FlowBusJava.observeDiagnostics(observer)` 观察全局来源，或 `FlowBusJava.observeDiagnostics(sourceOwner, observer)` 观察明确 owner；返回值为 core `FlowBusDiagnosticRegistration`。Android 全局/owner 便捷入口须在主线程调用，首次取得来源可以初始化总线，须先完成 `FlowBusAndroid.configure(...)`。这里的 owner 选择来源，不是观察器的生命周期接收方；持有返回句柄并在排障结束时调用 `diagnostics.close()`。
+
+记录包含来源 `busId`、store/flow 身份、事件名、普通/sticky 标记；订阅记录具有独立 `subscriptionId`。生命周期每次重新活跃产生新的实际订阅；离开活跃状态只是请求取消，真正退出时才记录 `SubscriptionEnded`，阻塞或 `NonCancellable` 工作不会提前被标记为结束。Compose 的明确来源也使用同一 core 观察入口，无须安装第二套观察器。
+
+观察器默认关闭，无历史补发。要完整跟踪订阅，须在取得 Flow 之前安装；此前已取得的普通 Flow 和现存订阅不会被改造。临时排查先用 Inspector 看状态，再由订阅持有者安全重建。`collectEventFrom` / `onEvent` 等总线托管回调能识别业务错误阶段；任意组合 Flow 的 `map`、`filter` 或通用 `collectEvent` 失败只可能呈现收集退出原因，不能自动归类为业务回调错误。
+
+通知同步执行且允许并发，普通观察器异常被隔离，同一线程嵌套诊断被抑制；JVM 致命错误不保证恢复。关闭幂等，允许在途通知完成，不取消业务订阅、不清 sticky。`Published` 复用既有 `PostResult`，不能证明送达、业务成功或某条值实际被丢弃；立即恢复的回调错误甚至可能先于发布完成记录。记录不含 payload、异常对象或消息；事件名与 scope 名仍需应用脱敏。完整字段、错误阶段和线程边界见 [core 诊断说明](../flowbus-core/README.md#event-diagnostics-140)。
 
 ## 可选配置
 

@@ -2,11 +2,11 @@
 
 [中文](README.md)
 
-This directory is an isolated consumer template for evaluating Compose compilation and release R8 on the existing Kotlin 1.9.25 baseline. It now resolves candidate Maven artifacts and calls [FlowBusEffect](../../library-compose/README_EN.md) from the production module source. `flowbus-compose:1.3.1` is published to Maven Central. This entry still verifies isolated local source candidates by default; see the [release notes](../../docs/en/release-notes-1.3.1.md) for public dependency verification. Repository verification tasks generate and build the consumer; this template has no publication task.
+This directory is an isolated consumer template for evaluating Compose compilation and release R8 on the existing Kotlin 1.9.25 baseline. It now resolves candidate Maven artifacts and calls [FlowBusEffect](../../library-compose/README_EN.md) from the production module source. Current sources are the **unpublished 1.4.0 candidate**, while `flowbus-compose:1.3.1` is published to Maven Central. This entry still verifies isolated local source candidates by default; see the [release notes](../../docs/en/release-notes-1.3.1.md) for public dependency verification. Repository verification tasks generate and build the consumer; this template has no publication task.
 
 The default consumer uses activity-compose `1.8.2`, Compose runtime/ui `1.5.4`, compiler `1.5.15`, and a direct Lifecycle `2.6.2` declaration with the current candidate FlowBus artifact. Runtime/ui `1.7.8` is a separate optional experiment. These dependencies apply only to the consumer; the base library does not add Compose or change its dependency, SDK, or Kotlin requirements. Keep evidence for the two combinations separate: declared versions do not establish resolved dependencies or device compatibility.
 
-`FlowBusEffect` accepts an explicit `FlowBus`, `EventKey<T>`, and caller-provided `LifecycleOwner`, collecting from STARTED by default. Navigation callers can provide their `NavBackStackEntry`; the template adds no navigation dependency and does not use LocalLifecycleOwner. The event callback and optional `onSubscribed` notification use rememberUpdatedState, so updating either does not resubscribe. Changes to source, event name/type, owner, minimum lifecycle state, or sticky selection restart the effect. The 1.3.1 candidate rejects INITIALIZED and DESTROYED thresholds synchronously during composition. Supported values are CREATED, STARTED, and RESUMED; an already destroyed owner with a valid threshold completes without subscribing.
+`FlowBusEffect` accepts an explicit `FlowBus`, `EventKey<T>`, and caller-provided `LifecycleOwner`, collecting from STARTED by default. Navigation callers can provide their `NavBackStackEntry`; the template adds no navigation dependency and does not use LocalLifecycleOwner. The event callback and optional `onSubscribed` notification use rememberUpdatedState, so updating either does not resubscribe. Changes to source, event name/type, owner, minimum lifecycle state, or sticky selection restart the effect. Since 1.3.1, INITIALIZED and DESTROYED thresholds are rejected synchronously during composition. Supported values are CREATED, STARTED, and RESUMED; an already destroyed owner with a valid threshold completes without subscribing.
 
 [Actual NavHost verification](../navhost-consumer/README_EN.md) optionally adds navigation-compose with the navHost property and records standard ComposeNavigator behavior, default animation thresholds, and Activity recreation. An incoming page may be STARTED before RESUMED; select RESUMED explicitly for side effects restricted to the interactive page. An outgoing page remaining composed or animated does not imply an active owner. Collect according to the actual entry lifecycle rather than visual presence.
 
@@ -71,15 +71,15 @@ The driver checks actual API and boot_completed, installs the APK, force-stops i
 | Stage | Verified behavior |
 | --- | --- |
 | `initial-replay` | The effect receives the initial sticky probe |
-| `subscription-established` | Exactly one initial notification identifies the source, key, owner, and minimum state of this subscription |
-| `callback-updated-without-resubscribe` | Updating both callbacks does not resubscribe; the next event and subsequent establishment notification use the latest revision |
-| `source-replaced` | Changing source cancels the old cooperative callback and enters the new-source probe |
-| `key-replaced` | Changing key cancels the old callback and enters the new-key probe |
+| `subscription-established` | Exactly one initial notification identifies the source, key, owner, and minimum state; diagnostic Started matches each real notification |
+| `callback-updated-without-resubscribe` | Updating both callbacks does not resubscribe or add diagnostic Started/Ended; the next event and subsequent establishment notification use the latest revision |
+| `source-replaced` | Changing source cancels the old cooperative callback and records Ended, enters the new-source probe, and changes busId |
+| `key-replaced` | Changing key cancels the old callback and records Ended; the new key has a different flowId within the same bus |
 | `owner-replaced` | Changing controlled owner preserves new collection after destroying the old owner |
 | `min-state-replaced` | Changing STARTED to RESUMED prevents receipt below the threshold and resumes receipt afterward |
-| `composition-disposed-restored` | Effect removal cancels the callback; restored composition receives latest sticky |
-| `lifecycle-stopped-restarted` | Inactivity cancels the callback; lifecycle restart receives latest sticky |
-| `callback-error-continued` | A normal exception reaches the configured continuing handler; later callbacks still execute |
+| `composition-disposed-restored` | Effect removal cancels the callback and records actual Ended; restored composition receives latest sticky |
+| `lifecycle-stopped-restarted` | Inactivity cancels the callback and records actual Ended; lifecycle restart receives latest sticky |
+| `callback-error-continued` | A normal exception reaches the continuing handler, Failure identifies the current channel/subscriptionId, and later callbacks still execute |
 | `destroyed-source-retained` | DESTROYED cancels; the source still accepts posts and a new owner receives them; cancellation does not reach the normal-exception handler |
 | `binary-1.3.0-composable` | An original-1.3.0-compiled Composable runs against the candidate, checking notifications, callback updates without resubscription, lifecycle restart and disposal cancellation |
 
@@ -90,6 +90,8 @@ python3 -B compatibility/compose-consumer/verify_effects_test.py
 ```
 
 Current effects and policy protocols each have one unittest, rejecting the absence of every individual phase and covering current PASS, stale PASS, current FAIL, another foreground package, missing stages, incorrect check counts, and wrong API before installation. Mocks only verify driver decisions, not device execution. Effect replacement/lifecycle phases also assert notification totals: one initially and one each for source, key, owner, threshold restoration, composition restoration, lifecycle restart, and a new owner after destruction, for eight total. Callback updates and continuing after errors must not add subscriptions. Process-death recovery, deep links, and other NavHost configurations require separate verification. The earlier temporary ten-stage driver is not the repository entry point.
+
+The 1.4.0 candidate adds diagnostic assertions within the existing twelve/eleven stages, preserving driver phase names and counts. Observers are installed before effects obtain flows, retain metadata only, and close in finally. Started must match actual onSubscribed notifications; Ended must match channel/subscriptionId without duplicates. Stopping or removing an effect waits for actual collection exit rather than inferring it from Job creation or a cancellation request. Diagnostic notifications are not business readiness barriers.
 
 An optional [real Navigation consumer](../navigation-consumer/README_EN.md) now selects navigation-runtime only with -Pflowbus.consumer.navigationVersion=2.4.1. Default Compose source/manifest/dependencies remain free of navigation. The fixture binds actual NavHostController entries to the Activity and passed compilation, release R8, and seven push/pop/back-dispatcher lifecycle stages on API 24 in two independent combinations: Navigation 2.4.1 / Compose 1.5.4 / Lifecycle 2.6.2 and Navigation 2.8.3 / Compose 1.7.8 / Lifecycle 2.8.3. Evidence is build/navigation-verification.json; it does not cover navigation-compose NavHost animations, saved-state/process restoration, or deep links. Returning to the default configuration also passed compilation/R8 and verified no navigation source/manifest/dependency residue, with Lifecycle still at 2.6.2. Android, Compose-effect, and Navigation thin drivers share compatibility/device_verification.py without CLI/timeout changes. Existing five/six mocked scenarios and three Navigation subtests passed; mocks do not establish device success.
 
@@ -117,6 +119,8 @@ The test recomposer isolates expected failures from the result screen. It does n
 
 Non-cooperative checks use explicitly releasable Deferred/CountDownLatch barriers, actual Job cancellation, subscription counts, and overlap assertions without fixed delays. Finally releases gates and disposes internal compositions. Cancellation does not roll back side effects; do not block Main or assume arbitrary callbacks stop immediately. Restart within the same repeatOnLifecycle waits for the previous callback, unlike rebuilding independent source/owner effects.
 
+Diagnostic assertions also require Failed Ended to identify the actual terminal exception type after default rethrow or handler failure. Continuing Ignore/custom/legacy policies emit Failure without prematurely ending the subscription. CancellationException does not emit a normal Failure. Both non-cooperative stages require no Ended or second Started while cancellation is requested and the old callback still awaits its gate; after release, they match the old Cancelled Ended and the new subscription.
+
 Build and test-sign the same consumer APK described above. The driver uses the shared CLI/protocol:
 
 ```bash
@@ -143,3 +147,26 @@ python3 -B compatibility/core-binary-consumer/verify_symbols.py \
   --javap /path/to/jdk17/bin/javap \
   --output build/compose-1.3.0-jvm-symbol-verification.json
 ```
+
+## Published 1.3.1 static symbol baseline
+
+[api/flowbus-compose-1.3.1.api](api/flowbus-compose-1.3.1.api) is preserved byte-for-byte from `v1.3.1`, targeting `2dbd9581af58ae376141d8ada62d4f26e6507754`. Its public snapshot matches 1.3.0, but original 1.3.1 AAR bytes differ. Verify `1.3.1.composeSha256` in [baselines.json](../core-binary-consumer/baselines.json), rather than reusing a 1.3.0 artifact or candidate snapshot.
+
+After generating the candidate, run from the repository root:
+
+```bash
+mkdir -p build/published-baseline
+curl --fail --location --silent --show-error \
+  --output build/published-baseline/flowbus-compose-1.3.1.aar \
+  https://repo.maven.apache.org/maven2/io/github/logan0817/flowbus-compose/1.3.1/flowbus-compose-1.3.1.aar
+python3 -c 'import hashlib,json,pathlib; expected=json.loads(pathlib.Path("compatibility/core-binary-consumer/baselines.json").read_text())["1.3.1"]["composeSha256"]; assert hashlib.sha256(pathlib.Path("build/published-baseline/flowbus-compose-1.3.1.aar").read_bytes()).hexdigest()==expected'
+FLOWBUS_VERSION=$(sed -n 's/^VERSION_NAME=//p' gradle.properties)
+python3 -B compatibility/core-binary-consumer/verify_symbols.py \
+  --baseline-artifact build/published-baseline/flowbus-compose-1.3.1.aar \
+  --candidate-artifact "build/candidate-maven/io/github/logan0817/flowbus-compose/$FLOWBUS_VERSION/flowbus-compose-$FLOWBUS_VERSION.aar" \
+  --baseline-api-snapshot compatibility/compose-consumer/api/flowbus-compose-1.3.1.api \
+  --javap /path/to/jdk17/bin/javap \
+  --output build/compose-1.3.1-jvm-symbol-verification.json
+```
+
+CI keeps independent 1.3.0 and 1.3.1 symbol reports. Static checks do not prove device execution of original-1.3.1-compiled Composables. `legacy130` remains compiled against published 1.3.0; twelve effect and eleven policy stages still require the current candidate's own device evidence.

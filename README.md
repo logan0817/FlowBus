@@ -181,6 +181,8 @@ viewLifecycleOwner.collectEvent(eventFlow<RefreshHomeEvent>()) { event ->
 - Compose 按需添加 `implementation("io.github.logan0817:flowbus-compose:1.3.1")`，基础两个坐标不传递 Compose。
 - [1.3.1 修复、升级、验证证据与回退](docs/release-notes-1.3.1.md)；[1.3.0 功能说明](docs/release-notes-1.3.0.md)；[1.2.0 历史说明](docs/release-notes-1.2.0.md)。
 
+1.4.0 事件排障正在源码开发，尚未发布；见[实施方案](docs/implementation-plan-1.4.0.md)和[候选用法](flowbus-core/README.md#event-diagnostics-140)，上方正式安装仍使用 1.3.1。
+
 ## 兼容与发布状态
 
 Android 支持 API 21+，发布字节码目标为 Java 8。库使用 Kotlin 1.9.25、Coroutines 1.8.1、Lifecycle 2.6.2、AGP 8.6.1、Gradle 8.7、JDK 17 和 compileSdk/targetSdk 35 构建。消费者的工具链要求与已测组合见[兼容性说明](docs/compatibility.md)。

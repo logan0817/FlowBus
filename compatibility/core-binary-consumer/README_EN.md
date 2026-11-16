@@ -1,8 +1,8 @@
-# Core 1.0.7 / 1.1.0 / 1.2.0 / 1.3.0 binary consumer regression
+# Core 1.0.7 / 1.1.0 / 1.2.0 / 1.3.0 / 1.3.1 binary consumer regression
 
 [中文](README.md)
 
-The fixture compiles Kotlin and Java consumers against a selected original Maven Central core JAR, then runs the same compiled classes against original and candidate JARs. Baselines are 1.0.7 (default), 1.1.0, 1.2.0 and 1.3.0. This complements recompilation against the candidate by exercising existing inline, default-argument, and direct Java JVM references. Current sources and the public release both use **1.3.1**. This entry verifies isolated local candidates by default and does not replace public dependency verification.
+The fixture compiles Kotlin and Java consumers against a selected original Maven Central core JAR, then runs the same compiled classes against original and candidate JARs. Baselines are 1.0.7 (default), 1.1.0, 1.2.0, 1.3.0, and 1.3.1. This complements recompilation against the candidate by exercising existing inline, default-argument, and direct Java JVM references. Current sources are the **unpublished 1.4.0 candidate**; the stable public release remains **1.3.1**. This entry verifies isolated local candidates by default and does not replace public dependency verification.
 
 ## Run
 
@@ -22,7 +22,7 @@ python3 -B compatibility/core-binary-consumer/verify_symbols.py \
 python3 -B -m unittest discover -s compatibility/core-binary-consumer -p '*_test.py' -v
 ```
 
-By default the task publishes the current 1.3.1 candidate to the selected local repository, without remote publication. `-Pflowbus.verification.reuseCandidate=true` instead checks/reuses a sealed candidate. The selected original version resolves non-transitively from Central, defaulting to io.github.logan0817:flowbus-core:1.0.7. Candidate execution uses an absolute JAR path; local artifacts must never be used as the published baseline.
+By default the task publishes the current source candidate to the selected local repository, without remote publication. `-Pflowbus.verification.reuseCandidate=true` instead checks/reuses a sealed candidate. The selected original version resolves non-transitively from Central, defaulting to io.github.logan0817:flowbus-core:1.0.7. Candidate execution uses an absolute JAR path; local artifacts must never be used as the published baseline.
 
 The generated build/maven-local-binary-core-consumer compiles only against the original core, baseline stdlib, and Coroutines. Candidate execution removes the original core from its classpath. Both executions verify the actual FlowBus codeSource. JAR hashes must differ, and consumer class hashes must remain unchanged across execution. A failed runtime verification does not retain an earlier successful runtime report.
 
@@ -68,4 +68,26 @@ The original fixed API snapshot is first verified against the original JAR, then
 
 Use `-Pflowbus.consumer.baselineVersion=1.3.0` for the pinned published artifact and `src-1.3.0/`. Additional calls cover normal/sticky subscription notifications, default arguments and inspectChannel/copy on root/shared/owned sources, plus Java key factories and notification overloads. DefaultFlowBus accesses complete APIs through its existing `raw()` method.
 
-Compile once against the original, then run identical classes on Java 8 against the original and 1.3.1 candidate. The report is `build/maven-local-binary-core-consumer-1.3.0/build/reports/binary-compatibility.json`. Pass `--baseline-api-snapshot compatibility/core-binary-consumer/api/flowbus-core-1.3.0.api` for symbol checks; this snapshot comes from the release commit and must not be replaced by candidate apiDump. Keep 1.0.7/1.1.0/1.2.0 checks independent.
+Compile once against the original, then run identical classes on Java 8 against the original and current candidate. The report is `build/maven-local-binary-core-consumer-1.3.0/build/reports/binary-compatibility.json`. Pass `--baseline-api-snapshot compatibility/core-binary-consumer/api/flowbus-core-1.3.0.api` for symbol checks; this snapshot comes from the release commit and must not be replaced by candidate apiDump. Keep 1.0.7/1.1.0/1.2.0 checks independent.
+
+## 1.3.1 baseline
+
+The published `v1.3.1` tag targets `2dbd9581af58ae376141d8ada62d4f26e6507754`. Its [core](api/flowbus-core-1.3.1.api), [Android](../android-consumer/api/flowbus-1.3.1.api), and [Compose](../compose-consumer/api/flowbus-compose-1.3.1.api) snapshots are preserved byte-for-byte from that tag. Their public APIs match 1.3.0; the artifact bytes do not. [baselines.json](baselines.json) pins all three original SHA-256 values. Never rebuild the release from current sources or replace its snapshots with candidate apiDump.
+
+`-Pflowbus.consumer.baselineVersion=1.3.1` reuses the `src-1.3.0/` call sources while compiling against the actual published **1.3.1 core JAR**, whose SHA-256 is `c28674aac6e420fc31ee04c6baddccd9371c12087fe421ac686a9f86791d0df4`. Identical Kotlin/Java classes run against original and candidate JARs, removing the original from candidate execution. The generated directory, runtime report, and symbol report have an independent 1.3.1 suffix; all older baselines remain:
+
+```bash
+./gradlew verifyMavenLocalBinaryCoreConsumer \
+  "-Dmaven.repo.local=$PWD/build/candidate-maven" \
+  -Pflowbus.consumer.baselineVersion=1.3.1 \
+  -Pflowbus.consumer.java=/path/to/jdk8/bin/java \
+  -Pflowbus.consumer.expectedJava=1.8
+
+python3 -B compatibility/core-binary-consumer/verify_symbols.py \
+  --runtime-report build/maven-local-binary-core-consumer-1.3.1/build/reports/binary-compatibility.json \
+  --baseline-api-snapshot compatibility/core-binary-consumer/api/flowbus-core-1.3.1.api \
+  --javap /path/to/jdk17/bin/javap \
+  --output build/core-1.3.1-jvm-symbol-verification.json
+```
+
+CI separately downloads original 1.3.1 Android/Compose AARs from `repo.maven.apache.org`, validates their pinned hashes, and checks candidate symbols against their respective snapshots. Reports are `build/android-1.3.1-jvm-symbol-verification.json` and `build/compose-1.3.1-jvm-symbol-verification.json`. Static checks do not establish that an APK executed original-1.3.1-compiled Android/Composable bytecode; device fixtures still preserve their original 1.1.0 / 1.3.0 compilation sources.

@@ -4,6 +4,8 @@ import androidx.annotation.MainThread
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModelStoreOwner
 import com.logan.flowbus.core.FlowBusChannelSnapshot
+import com.logan.flowbus.core.FlowBusDiagnosticObserver
+import com.logan.flowbus.core.FlowBusDiagnosticRegistration
 import com.logan.flowbus.core.FlowBusPostResult
 import kotlinx.coroutines.Job
 
@@ -91,6 +93,20 @@ object FlowBusJava {
     fun <T : Any> inspectChannelFrom(owner: ViewModelStoreOwner, channel: EventChannel<T>): FlowBusChannelSnapshot? {
         return flowEventBusFor(owner).inspectChannel(channel.asEventKey())
     }
+
+    /** 观察全局来源；首次获取可创建来源，关闭返回句柄不影响业务订阅。 */
+    @MainThread
+    @JvmStatic
+    fun observeDiagnostics(observer: FlowBusDiagnosticObserver): FlowBusDiagnosticRegistration =
+        observeEventDiagnostics(observer)
+
+    /** 观察明确 owner 来源；完整订阅记录仅覆盖安装后新取得的 Flow，不补历史。 */
+    @MainThread
+    @JvmStatic
+    fun observeDiagnostics(
+        owner: ViewModelStoreOwner,
+        observer: FlowBusDiagnosticObserver
+    ): FlowBusDiagnosticRegistration = observeEventDiagnostics(observer, owner)
 
     @MainThread
     @JvmStatic

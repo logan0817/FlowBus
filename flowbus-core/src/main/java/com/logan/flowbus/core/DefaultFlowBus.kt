@@ -49,6 +49,10 @@ object DefaultFlowBus {
      */
     fun raw(): FlowBus = getOrCreateBus()
 
+    /** 安装默认实例的排障观察器；与 [raw] 一样会初始化默认总线。 */
+    fun observeDiagnostics(observer: FlowBusDiagnosticObserver): FlowBusDiagnosticRegistration =
+        raw().observeDiagnostics(observer)
+
     /**
      * 返回默认总线的只读诊断入口。
      *

@@ -5,6 +5,12 @@ public final class com/logan/flowbus/CollectEventExtensionKt {
 	public static synthetic fun collectEventSuspending$default (Landroidx/lifecycle/LifecycleOwner;Lkotlinx/coroutines/flow/Flow;Lkotlinx/coroutines/CoroutineDispatcher;Landroidx/lifecycle/Lifecycle$State;Lkotlin/jvm/functions/Function2;ILjava/lang/Object;)Lkotlinx/coroutines/Job;
 }
 
+public final class com/logan/flowbus/DiagnosticsExtensionKt {
+	public static final fun observeEventDiagnostics (Lcom/logan/flowbus/core/FlowBusDiagnosticObserver;)Lcom/logan/flowbus/core/FlowBusDiagnosticRegistration;
+	public static final fun observeEventDiagnostics (Lcom/logan/flowbus/core/FlowBusDiagnosticObserver;Landroidx/lifecycle/ViewModelStoreOwner;)Lcom/logan/flowbus/core/FlowBusDiagnosticRegistration;
+	public static synthetic fun observeEventDiagnostics$default (Lcom/logan/flowbus/core/FlowBusDiagnosticObserver;Landroidx/lifecycle/ViewModelStoreOwner;ILjava/lang/Object;)Lcom/logan/flowbus/core/FlowBusDiagnosticRegistration;
+}
+
 public final class com/logan/flowbus/EventChannelExtensionKt {
 	public static final fun clearSticky (Lcom/logan/flowbus/core/EventChannel;)V
 	public static final fun clearStickyFrom (Lcom/logan/flowbus/core/EventChannel;Landroidx/lifecycle/ViewModelStoreOwner;)V
@@ -62,6 +68,8 @@ public final class com/logan/flowbus/FlowBusJava {
 	public static final fun channel (Ljava/lang/String;Ljava/lang/Class;)Lcom/logan/flowbus/core/EventChannel;
 	public static final fun inspectChannel (Lcom/logan/flowbus/core/EventChannel;)Lcom/logan/flowbus/core/FlowBusChannelSnapshot;
 	public static final fun inspectChannelFrom (Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;)Lcom/logan/flowbus/core/FlowBusChannelSnapshot;
+	public static final fun observeDiagnostics (Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/FlowBusDiagnosticObserver;)Lcom/logan/flowbus/core/FlowBusDiagnosticRegistration;
+	public static final fun observeDiagnostics (Lcom/logan/flowbus/core/FlowBusDiagnosticObserver;)Lcom/logan/flowbus/core/FlowBusDiagnosticRegistration;
 	public static final fun post (Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;)Z
 	public static final fun postResult (Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;)Lcom/logan/flowbus/core/FlowBusPostResult;
 	public static final fun postResultTo (Landroidx/lifecycle/ViewModelStoreOwner;Lcom/logan/flowbus/core/EventChannel;Ljava/lang/Object;)Lcom/logan/flowbus/core/FlowBusPostResult;
@@ -100,6 +108,7 @@ public final class com/logan/flowbus/FlowEventBus : androidx/lifecycle/ViewModel
 	public final fun eventFlow (Ljava/lang/String;Lkotlin/reflect/KClass;Z)Lkotlinx/coroutines/flow/Flow;
 	public static synthetic fun eventFlow$default (Lcom/logan/flowbus/FlowEventBus;Ljava/lang/String;Lkotlin/reflect/KClass;ZILjava/lang/Object;)Lkotlinx/coroutines/flow/Flow;
 	public final fun inspectChannel (Lcom/logan/flowbus/core/EventKey;)Lcom/logan/flowbus/core/FlowBusChannelSnapshot;
+	public final fun observeDiagnostics (Lcom/logan/flowbus/core/FlowBusDiagnosticObserver;)Lcom/logan/flowbus/core/FlowBusDiagnosticRegistration;
 	public final fun post (Ljava/lang/String;Ljava/lang/Object;Lkotlin/reflect/KClass;ZJ)Z
 	public static synthetic fun post$default (Lcom/logan/flowbus/FlowEventBus;Ljava/lang/String;Ljava/lang/Object;Lkotlin/reflect/KClass;ZJILjava/lang/Object;)Z
 	public final fun postResult (Ljava/lang/String;Ljava/lang/Object;Lkotlin/reflect/KClass;Z)Lcom/logan/flowbus/core/FlowBusPostResult;

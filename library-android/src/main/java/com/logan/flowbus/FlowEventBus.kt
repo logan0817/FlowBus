@@ -11,6 +11,8 @@ import com.logan.flowbus.core.EventKey
 import com.logan.flowbus.core.FlowBus
 import com.logan.flowbus.core.FlowBusChannelConfig
 import com.logan.flowbus.core.FlowBusChannelSnapshot
+import com.logan.flowbus.core.FlowBusDiagnosticObserver
+import com.logan.flowbus.core.FlowBusDiagnosticRegistration
 import com.logan.flowbus.core.FlowBusPostResult
 import com.logan.flowbus.core.collectFlowBusSequentially
 import com.logan.flowbus.core.collectFlowBusSuspendingSequentially
@@ -36,6 +38,14 @@ import kotlin.reflect.KClass
  */
 class FlowEventBus : ViewModel() {
     private val bus = FlowBusAndroid.createFlowBus()
+
+    /**
+     * 观察当前来源的排障元数据，可在来源创建后安装；关闭句柄不取消业务订阅。
+     * 完整订阅记录仅覆盖安装后新取得的 Flow，不补发旧 Flow 或已发事件的历史。
+     * 观察器须快速返回且可被并发调用，数据与异常隔离契约见 [FlowBusDiagnosticObserver]。
+     */
+    fun observeDiagnostics(observer: FlowBusDiagnosticObserver): FlowBusDiagnosticRegistration =
+        bus.observeDiagnostics(observer)
 
     /** 在当前来源首次使用通道前绑定缓冲策略；重复相同有效配置为幂等。 */
     fun <T : Any> configureChannel(key: EventKey<T>, config: FlowBusChannelConfig) {
@@ -256,8 +266,7 @@ class FlowEventBus : ViewModel() {
                 } catch (e: CancellationException) {
                     throw e
                 } catch (e: Exception) {
-                    bus.config.logger.warn(
-                        tag = "FlowBus",
+                    warnSafely(
                         message = "Delayed event '${eventKey.name}' failed before it could be posted.",
                         throwable = e
                     )
@@ -340,6 +349,14 @@ class FlowEventBus : ViewModel() {
         require(delayMillis >= 0) { "delayMillis must be >= 0." }
     }
 
+    private fun warnSafely(message: String, throwable: Throwable? = null) {
+        try {
+            bus.config.logger.warn(tag = "FlowBus", message = message, throwable = throwable)
+        } catch (_: Exception) {
+            // 日志是辅助路径，不得覆盖拒绝结果或使延迟发送因日志失败而终止。
+        }
+    }
+
     private fun <T : Any> postOrWarn(eventKey: EventKey<T>, value: T, isSticky: Boolean): Boolean {
         val accepted = if (isSticky) {
             bus.postSticky(eventKey, value)
@@ -348,8 +365,7 @@ class FlowEventBus : ViewModel() {
         }
 
         if (!accepted) {
-            bus.config.logger.warn(
-                tag = "FlowBus",
+            warnSafely(
                 message = "Dropped event '${eventKey.name}' because the buffer is full. Use emitEvent(...) with SUSPEND for backpressure; delivery is not guaranteed."
             )
         }
@@ -358,8 +374,7 @@ class FlowEventBus : ViewModel() {
 
     private fun warnIfRejected(result: FlowBusPostResult) {
         if (!result.accepted) {
-            bus.config.logger.warn(
-                tag = "FlowBus",
+            warnSafely(
                 message = "Dropped event '${result.eventName}' because the buffer is full. Use emitEvent(...) with SUSPEND for backpressure; delivery is not guaranteed."
             )
         }

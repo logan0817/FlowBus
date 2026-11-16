@@ -1,12 +1,12 @@
-# 1.3.1 pre-release checklist
+# 1.4.0 pre-release checklist
 
-**1.3.1 is published to Maven Central.** Source/release version: VERSION_NAME=1.3.1, APP_VERSION_NAME=1.3.1, APP_VERSION_CODE=12; test APKs use versionCode=3. Final main CI and public files/consumers passed; see [1.3.1 release notes](release-notes-1.3.1.md). Android/effect/policy require 8/12/11 stages. Prior 1.3.0 evidence below remains historical.
+**1.4.0 is an unpublished candidate.** Source versions: VERSION_NAME=1.4.0, APP_VERSION_NAME=1.4.0, APP_VERSION_CODE=13; test APKs use versionCode=3. Current tasks and evidence belong in the [implementation plan (Chinese)](../implementation-plan-1.4.0.md); the implementation review and first complete CI passed; the plan defines final PR/main gates and candidate identity checks. Public installation remains 1.3.1. Historical evidence below cannot establish this version's acceptance.
 
 The stable version is **1.3.1, published to Maven Central**. See the [release notes](release-notes-1.3.1.md) for fixed source, final main CI and public acceptance. The reusable procedure below prepares core, Android and optional Compose artifacts; keep each version’s evidence distinct.
 
 [中文](../release-checklist.md)
 
-This checklist defines the current candidate procedure; tested commits and reports belong in the [1.3.1 release notes](release-notes-1.3.1.md). Historical evidence remains in the [1.3.0](release-notes-1.3.0.md), [1.2.0](release-notes-1.2.0.md) and [1.1.0](release-notes-1.1.0.md) notes.
+This checklist defines the current candidate procedure. Tested commits, reports, and outstanding gates belong in the [1.4.0 implementation plan (Chinese)](../implementation-plan-1.4.0.md) and [candidate notes](release-notes-1.4.0.md). Historical release evidence remains in the [1.3.1](release-notes-1.3.1.md), [1.3.0](release-notes-1.3.0.md), [1.2.0](release-notes-1.2.0.md), and [1.1.0](release-notes-1.1.0.md) notes.
 
 ## Release sequence
 
@@ -19,7 +19,7 @@ Record fixed tested snapshots in release notes and use the candidate PR's Checks
 
 ## CI jobs and candidate identity
 
-The former single serial `verify` job is now `prepare` → parallel `consumers`, four `kotlin` matrix workspaces, `api21`, and `api35` → final `verify`. Preparation checks APIs, fresh JVM unit tests, release lint and publishes one isolated Maven candidate. Consumers retain Java 8, default Kotlin Android R8, 1.0.7/1.1.0/1.2.0/1.3.0 core unchanged-bytecode and corresponding core/Android/Compose public-symbol baselines, newer Compose/Navigation, all three default JMH smoke targets, separate candidate subscription smoke and release dry-run. API 21 retains Kotlin 1.8.22 / compileSdk 33 Android, baseline Compose, Navigation 2.4.1 and NavHost. API 35 runs library debug/sample release instrumentation followed serially by Android eight-stage, Compose twelve-effect/eleven-policy checks using separate APK/report paths. No toolchain or SDK baseline changes.
+The former single serial `verify` job is now `prepare` → parallel `consumers`, four `kotlin` matrix workspaces, `api21`, and `api35` → final `verify`. Preparation checks APIs, fresh JVM unit tests, release lint and publishes one isolated Maven candidate. Consumers retain Java 8, default Kotlin Android R8, 1.0.7/1.1.0/1.2.0/1.3.0/1.3.1 core unchanged-bytecode and corresponding core/Android/Compose public-symbol baselines, newer Compose/Navigation, all three default JMH smoke targets, separate candidate subscription/diagnostics smoke and release dry-run. Diagnostics use candidate-only `selfCheckDiagnostics` and an explicit `DiagnosticsBenchmark` filter, without running new APIs against an original release JAR. API 21 retains Kotlin 1.8.22 / compileSdk 33 Android, baseline Compose, Navigation 2.4.1 and NavHost. API 35 runs library debug/sample release instrumentation followed serially by Android eight-stage, Compose twelve-effect/eleven-policy checks using separate APK/report paths. No toolchain or SDK baseline changes.
 
 `flowbus-candidate-<workflow SHA>-<attempt>` contains `candidate-maven/` and `candidate-manifest.json`, preserving Maven paths and metadata. The manifest binds the checkout SHA, exact file set and SHA-256 of every file. Preparation also exports the manifest digest through an independent job output. Downstream jobs download into `build/`, explicitly reject a mismatch against that digest and check file identity before and after verification, and pass `-Pflowbus.verification.reuseCandidate=true` so verification never republishes the candidate. Missing or altered candidates fail. Rerun the entire workflow rather than mixing jobs from different attempts. Local entry points without this property retain automatic publication. A dirty local checkout also needs its patch to identify tested sources.
 
@@ -41,9 +41,10 @@ Use the existing JDK 17, Android SDK, and wrapper from the repository root. Root
 ./gradlew apiCheck :flowbus-core:test :library-android:testDebugUnitTest :app:testDebugUnitTest :library-android:lintRelease :library-compose:lintRelease :app:lintRelease :app:assembleDebug :app:assembleRelease --warning-mode=all
 ./gradlew verifyMavenLocalArtifacts verifyMavenLocalCoreConsumer verifyMavenLocalBinaryCoreConsumer verifyMavenLocalConsumer verifyMavenLocalComposeConsumer "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8 --warning-mode=all
 ./gradlew verifyMavenLocalBinaryCoreConsumer -Pflowbus.consumer.baselineVersion=1.1.0 "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8
+./gradlew verifyMavenLocalBinaryCoreConsumer -Pflowbus.consumer.baselineVersion=1.3.1 "-Dmaven.repo.local=$PWD/build/candidate-maven" -Pflowbus.consumer.java=/path/to/jdk8/bin/java -Pflowbus.consumer.expectedJava=1.8
 ./gradlew verifyCentralDeploymentName --warning-mode=all
 ./gradlew releaseToMavenCentral --dry-run --warning-mode=all -PmavenCentralUsername=dry-run-unused -PmavenCentralPassword=dry-run-unused
-git diff --check HEAD -- . ':(exclude)flowbus-core/api/*.api' ':(exclude)library-android/api/*.api' ':(exclude)library-compose/api/*.api' ':(exclude)compatibility/android-consumer/api/*.api' ':(exclude)compatibility/core-binary-consumer/api/*.api'
+git diff --check HEAD -- . ':(exclude)flowbus-core/api/*.api' ':(exclude)library-android/api/*.api' ':(exclude)library-compose/api/*.api' ':(exclude)compatibility/android-consumer/api/*.api' ':(exclude)compatibility/core-binary-consumer/api/*.api' ':(exclude)compatibility/compose-consumer/api/*.api'
 ```
 
 The Java parameter selects only the consumer runtime; Gradle still uses JDK 17. Use an existing JDK 8. Review apiDump changes for intentional public API changes; do not bypass apiCheck. Generated API snapshot trailing lines are excluded from ordinary whitespace checks.
@@ -51,11 +52,11 @@ The Java parameter selects only the consumer runtime; Gradle still uses JDK 17. 
 Repository documentation and release configuration are explicit JVM test inputs. Changes to those files must rerun the gates rather than reuse earlier passing results.
 
 - Core/Android/app JVM tests and release lint pass; sample release uses R8/minify.
-- flowbus-core-1.3.1.jar, flowbus-1.3.1.aar, flowbus-compose-1.3.1.aar, and sources/javadoc, POM, and module metadata for all three coordinates exist.
+- flowbus-core-1.4.0.jar, flowbus-1.4.0.aar, flowbus-compose-1.4.0.aar, and sources/javadoc, POM, and module metadata for all three candidate coordinates exist.
 - Check dependency scopes, license, developer, SCM, and versions: core exposes Coroutines; Android exposes matching core and Lifecycle runtime/viewmodel; optional Compose exposes matching core, Lifecycle runtime and Compose runtime 1.5.4.
 - AARs include classes.jar and proguard.txt; all three coordinates use Java 8 bytecode without fixtures, Navigation, or local configuration. Core/Android remain free of Compose; only the optional Compose coordinate adds that dependency.
-- Run the Maven core consumer on JDK 8. Compile binary consumers separately against pinned Central 1.0.7, 1.1.0, 1.2.0 and 1.3.0 and run identical bytecode against original and candidate. Android/Compose consumers pass release R8; Android/Compose 1.3.0 Java/Kotlin/Composable fixtures compile only against the original release; freeze their class/JAR identities and verify candidate runtime dependencies plus real device execution.
-- Verify published 1.0.7, 1.1.0 and 1.2.0 core/Android JVM symbols using consumer READMEs. Add core/Android/Compose 1.3.0 public-symbol gates. The 1.2.0 core supported-symbol gate uses its original API snapshot and preserves raw internal differences; static symbols are neither full ABI certification nor old Android bytecode device evidence.
+- Run the Maven core consumer on JDK 8. Compile binary consumers separately against pinned Central 1.0.7, 1.1.0, 1.2.0, 1.3.0, and 1.3.1 and run identical bytecode against original and candidate. Android/Compose consumers pass release R8; Android/Compose 1.3.0 Java/Kotlin/Composable fixtures compile only against the original release; freeze their class/JAR identities and verify candidate runtime dependencies plus real device execution.
+- Verify published 1.0.7, 1.1.0, and 1.2.0 core/Android JVM symbols using consumer READMEs; retain core/Android/Compose 1.3.0 and 1.3.1 public-symbol gates. The 1.3.1 core baseline reuses 1.3.0 call sources but compiles against the actual pinned 1.3.1 JAR; all three 1.3.1 snapshots come from its release tag. Core supported-symbol gates since 1.2.0 use each original API snapshot and preserve raw internal differences. Static symbols are neither full ABI certification nor old Android/Composable bytecode device evidence.
 - Remote dry-run verifies the unified graph and cleanup order; it executes neither clean nor upload/signature verification. Gradle still checks credential presence during dry-run configuration, so the command supplies invalid placeholders. Ordinary verification needs no real Central token.
 
 ## Device and minimum API gates
@@ -101,7 +102,7 @@ Keep Kotlin 1.9.25, Coroutines 1.8.1, Lifecycle 2.6.2, AGP 8.6.1, Gradle 8.7, bu
 
 After public resolution succeeds, update stable coordinates in root/module READMEs, candidate status in the documentation indexes, candidate-build instructions, and the changelog release date. Retain historical version notes and baseline fixtures.
 
-Check bilingual root/module READMEs, CHANGELOG, 1.3.1 release notes, API comments, versions, and CI paths while preserving actual historical evidence. Delivery, sticky replay, closure, subscription notifications, error policy, and cooperative cancellation documentation must match implementation.
+Check bilingual root/module READMEs, CHANGELOG, 1.4.0 candidate notes, API comments, versions, and CI paths while preserving historical 1.3.1 and earlier release evidence. Delivery, sticky replay, closure, subscription notifications, diagnostics observation, error policy, and cooperative cancellation documentation must match implementation.
 
 Inspect git status and working/staged diffs. Exclude generated artifacts, signing material, secrets, logs, local configuration, temporary conversation records, and unrelated changes. Retain useful fixtures, API baselines, and tests. All three publication modules belong to the main repository without nested Git/submodule or independent publication configuration.
 
@@ -141,7 +142,7 @@ By default, GPG / `gpg-agent` manages private-key unlocking. Manual and automate
 
 ### Upload, verification, and rollback
 
-Upload batches use `GROUP-root project name-VERSION_NAME`; the target 1.3.1 batch is `io.github.logan0817-FlowBus-1.3.1`. Its actual publication state is recorded in the version notes; a batch name alone proves neither upload nor public availability. Regenerate and verify the candidate, including dry-run, after changing versions. Target coordinates are `io.github.logan0817:flowbus-core:1.3.1`, `io.github.logan0817:flowbus:1.3.1` and `io.github.logan0817:flowbus-compose:1.3.1`. Names identify batches to humans; queries, release and drop use the upload's unique deployment ID after checking its contents.
+Upload batches use `GROUP-root project name-VERSION_NAME`. After separate publication authorization and all current gates pass, the 1.4.0 target batch is `io.github.logan0817-FlowBus-1.4.0`, with coordinates `io.github.logan0817:flowbus-core:1.4.0`, `io.github.logan0817:flowbus:1.4.0`, and `io.github.logan0817:flowbus-compose:1.4.0`. This candidate remains unpublished; never reuse or overwrite the published 1.3.1 coordinates. A batch name alone proves neither upload nor public availability. Regenerate and verify the candidate, including dry-run, after changing versions. Names identify batches to humans; queries, release and drop use the upload's unique deployment ID after checking its contents.
 
 Publication plugin 0.33.0 has no public deployment-name setting. The root publication script sets only the staging artifact identity of all three `createStagingRepository` tasks to the root project name, allowing the plugin to derive a name from one shared staging identity. It does not change `MavenPublication` or publication file paths. Single-module uploads use the same project name; actual coordinates distinguish module contents. `verifyCentralDeploymentName` checks all three staging identities and actual publication coordinates locally and in CI, before staging tasks. It performs no signing or network upload. After upgrading the plugin, review its naming algorithm/task properties, then repeat this check and remote dry-run.
 
@@ -151,7 +152,7 @@ Publication is in gradle/release-publishing.gradle.kts and validation in gradle/
 
 After authorized publication and Central availability, resolve the final version remotely in independent consumers and run core/Android normal/sticky, Java interoperability and optional Compose effect smoke checks. Verify all three resolved versions so local candidates or old caches cannot stand in for published artifacts.
 
-Rollback consumers to published 1.3.0, recompile and verify affected calls. No public API was added in 1.3.1, so Java, subscription notifications, diagnostics and optional Compose calls remain available. Rolling back restores the sticky reentrancy, failed scope registration and DESTROYED-threshold defects. Drop unpublished deployments only within authorization; never overwrite a released version.
+Roll consumers back to published **1.3.1**. Version 1.4.0 adds diagnostics observer APIs: remove the new calls and type references, recompile, and verify before rollback. Replacing only the JAR/AAR cannot keep links to 1.4.0 `observeDiagnostics` / `observeEventDiagnostics` or diagnostic record types. Existing Java, subscription notification, Inspector, and optional Compose APIs remain available in 1.3.1, together with its sticky reentrancy, failed scope registration, and lifecycle threshold fixes. Drop unpublished deployments only within authorization; never overwrite a released version.
 
 ## Retained 1.3.0 gates
 

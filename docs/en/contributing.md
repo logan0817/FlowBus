@@ -66,6 +66,6 @@ repositories {
 }
 ```
 
-For centralized repository management, put this in `dependencyResolutionManagement.repositories` in the consumer's `settings.gradle.kts`. For the local candidate, use `implementation("io.github.logan0817:flowbus:1.3.1")` on Android, or `implementation("io.github.logan0817:flowbus-core:1.3.1")` on JVM. Local consumption does not establish publication or complete device acceptance.
+For centralized repository management, put this in `dependencyResolutionManagement.repositories` in the consumer's `settings.gradle.kts`. For the local candidate, use `implementation("io.github.logan0817:flowbus:1.4.0")` on Android, or `implementation("io.github.logan0817:flowbus-core:1.4.0")` on JVM. Local consumption does not establish publication or complete device acceptance.
 
-Current sources and the public release both use version 1.3.1. Compose candidate consumers optionally add `io.github.logan0817:flowbus-compose:1.3.1`. Building a local candidate does not publish local modifications; never overwrite a released version.
+Current sources use unpublished version 1.4.0; the public release remains 1.3.1. Compose candidate consumers optionally add `io.github.logan0817:flowbus-compose:1.4.0`. See the [implementation plan (Chinese)](../implementation-plan-1.4.0.md) for diagnostics and current gates. Never overwrite a released version.

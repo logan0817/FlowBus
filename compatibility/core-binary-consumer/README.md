@@ -1,8 +1,8 @@
-# 1.0.7 / 1.1.0 / 1.2.0 / 1.3.0 core 二进制消费者回归
+# 1.0.7 / 1.1.0 / 1.2.0 / 1.3.0 / 1.3.1 core 二进制消费者回归
 
 [English](README_EN.md)
 
-此 fixture 按所选基线调用已发布 1.0.7、1.1.0、1.2.0 或 1.3.0 的入口，默认基线为 1.0.7。它先用 Maven Central 的原始 core JAR 编译 Kotlin 与 Java 消费者，再将同一批消费者 class 文件分别放到原版和候选 JAR 上运行。它补充“针对候选重新编译”的消费者验证，检查旧 inline、默认参数和直接 Java JVM 调用的链接路径。当前源码与公开正式安装版本均为 **1.3.1**；此入口默认验证本地隔离候选，不能用其替代公开依赖验收。
+此 fixture 按所选基线调用已发布 1.0.7、1.1.0、1.2.0、1.3.0 或 1.3.1 的入口，默认基线为 1.0.7。它先用 Maven Central 的原始 core JAR 编译 Kotlin 与 Java 消费者，再将同一批消费者 class 文件分别放到原版和候选 JAR 上运行。它补充“针对候选重新编译”的消费者验证，检查旧 inline、默认参数和直接 Java JVM 调用的链接路径。当前源码为 **1.4.0 未发布候选**，公开正式安装版本仍为 **1.3.1**；此入口默认验证本地隔离候选，不能用其替代公开依赖验收。
 
 ## 运行
 
@@ -22,7 +22,7 @@ python3 -B compatibility/core-binary-consumer/verify_symbols.py \
 python3 -B -m unittest discover -s compatibility/core-binary-consumer -p '*_test.py' -v
 ```
 
-Gradle 任务默认将当前 1.3.1 候选发布到指定本地目录，不做远端发布；传入 `-Pflowbus.verification.reuseCandidate=true` 时只校验并复用封存候选。原版按所选版本从 Maven Central 非传递解析，默认坐标为 io.github.logan0817:flowbus-core:1.0.7；候选 JAR 按绝对路径加入第二次运行。不能把本地产物当作原版基准。
+Gradle 任务默认将当前源码候选发布到指定本地目录，不做远端发布；传入 `-Pflowbus.verification.reuseCandidate=true` 时只校验并复用封存候选。原版按所选版本从 Maven Central 非传递解析，默认坐标为 io.github.logan0817:flowbus-core:1.0.7；候选 JAR 按绝对路径加入第二次运行。不能把本地产物当作原版基准。
 
 生成工程为 build/maven-local-binary-core-consumer。消费者编译 classpath 只含原版 core、基线 stdlib 和 Coroutines；运行候选时移除原版 core。两次运行都检查 FlowBus 的实际 codeSource，检查产物摘要不同，并核对消费者 class 摘要在切换前后不变。任务失败时不保留旧的成功 runtime report。
 
@@ -70,4 +70,26 @@ python3 -B compatibility/core-binary-consumer/verify_symbols.py \
 
 `-Pflowbus.consumer.baselineVersion=1.3.0` 使用正式原版摘要和 `src-1.3.0/`，额外调用 root/shared/owned 的普通及 sticky 订阅通知、默认参数、inspectChannel/copy，以及真实 Java key 工厂和通知重载。DefaultFlowBus 通过原有 `raw()` 取得完整 API，不假设单例存在额外重载。
 
-原版编译一次后，在原版和 1.3.1 候选上用 Java 8 运行同一 class。报告为 `build/maven-local-binary-core-consumer-1.3.0/build/reports/binary-compatibility.json`；静态核对使用 `--baseline-api-snapshot compatibility/core-binary-consumer/api/flowbus-core-1.3.0.api`。API 快照取自 1.3.0 发布提交，不能用候选 apiDump 替换。历史 1.0.7/1.1.0/1.2.0 基线继续独立执行。
+原版编译一次后，在原版和当前候选上用 Java 8 运行同一 class。报告为 `build/maven-local-binary-core-consumer-1.3.0/build/reports/binary-compatibility.json`；静态核对使用 `--baseline-api-snapshot compatibility/core-binary-consumer/api/flowbus-core-1.3.0.api`。API 快照取自 1.3.0 发布提交，不能用候选 apiDump 替换。历史 1.0.7/1.1.0/1.2.0 基线继续独立执行。
+
+## 1.3.1 基线
+
+正式 `v1.3.1` 指向 `2dbd9581af58ae376141d8ada62d4f26e6507754`。本基线的 [core 快照](api/flowbus-core-1.3.1.api)、[Android 快照](../android-consumer/api/flowbus-1.3.1.api)和 [Compose 快照](../compose-consumer/api/flowbus-compose-1.3.1.api)按该 tag 原样保存，均与 1.3.0 公开 API 相同；这不表示两版制品字节相同。三份原始制品 SHA-256 固定在 [baselines.json](baselines.json)，不能用当前源码重建或用候选 apiDump 替换。
+
+使用 `-Pflowbus.consumer.baselineVersion=1.3.1` 时复用 `src-1.3.0/` 调用源码，但实际编译输入为正式 **1.3.1 core JAR**，其 SHA-256 为 `c28674aac6e420fc31ee04c6baddccd9371c12087fe421ac686a9f86791d0df4`。同一批 Kotlin/Java class 分别在原版与当前候选上执行；候选运行图移除原版。生成目录、runtime report 和符号报告使用独立 1.3.1 后缀，保留所有旧基线：
+
+```bash
+./gradlew verifyMavenLocalBinaryCoreConsumer \
+  "-Dmaven.repo.local=$PWD/build/candidate-maven" \
+  -Pflowbus.consumer.baselineVersion=1.3.1 \
+  -Pflowbus.consumer.java=/path/to/jdk8/bin/java \
+  -Pflowbus.consumer.expectedJava=1.8
+
+python3 -B compatibility/core-binary-consumer/verify_symbols.py \
+  --runtime-report build/maven-local-binary-core-consumer-1.3.1/build/reports/binary-compatibility.json \
+  --baseline-api-snapshot compatibility/core-binary-consumer/api/flowbus-core-1.3.1.api \
+  --javap /path/to/jdk17/bin/javap \
+  --output build/core-1.3.1-jvm-symbol-verification.json
+```
+
+CI 另从 `repo.maven.apache.org` 下载原版 1.3.1 Android/Compose AAR，先核对固定摘要，再用各自快照检查候选符号；报告保存在 `build/android-1.3.1-jvm-symbol-verification.json` 和 `build/compose-1.3.1-jvm-symbol-verification.json`。这是静态检查，不表示 APK 已执行 1.3.1 原版编译的 Android/Composable 字节码；现有设备 fixture 仍保留 1.1.0 / 1.3.0 编译来源。

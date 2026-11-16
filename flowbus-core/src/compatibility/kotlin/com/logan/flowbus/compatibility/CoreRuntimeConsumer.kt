@@ -2,6 +2,12 @@ package com.logan.flowbus.compatibility
 
 import com.logan.flowbus.core.FlowBus
 import com.logan.flowbus.core.FlowBusChannelConfig
+import com.logan.flowbus.core.FlowBusConfig
+import com.logan.flowbus.core.FlowBusDiagnosticEndReason
+import com.logan.flowbus.core.FlowBusDiagnosticEvent
+import com.logan.flowbus.core.FlowBusDiagnosticFailurePhase
+import com.logan.flowbus.core.FlowBusDiagnosticPublishMode
+import com.logan.flowbus.core.FlowBusErrorHandler
 import kotlinx.coroutines.channels.BufferOverflow
 import com.logan.flowbus.core.collectSuspendingOn
 import com.logan.flowbus.core.collectStickySuspending
@@ -42,9 +48,55 @@ object CoreRuntimeConsumer {
                 verifyScopedOwnership()
                 verifyCollectorsAndChannel()
                 verifyChannelConfig()
+                verifyDiagnostics()
             }
         }
         println("Core consumer passed on Java $runtimeVersion")
+    }
+
+    private suspend fun verifyDiagnostics() = coroutineScope {
+        val bus = FlowBus(FlowBusConfig(errorHandler = FlowBusErrorHandler.Ignore))
+        val key = eventKey<Int>("consumer.diagnostics")
+        val records = mutableListOf<FlowBusDiagnosticEvent>()
+        val registration = bus.observeDiagnostics { records += it }
+        val received = CompletableDeferred<Int>()
+        val collecting = launch(start = CoroutineStart.UNDISPATCHED) {
+            bus.collectSuspending(key) {
+                if (it == 1) throw IllegalStateException("Expected consumer callback failure")
+                yield()
+                received.complete(it)
+            }
+        }
+        try {
+            val started = records.filterIsInstance<FlowBusDiagnosticEvent.SubscriptionStarted>().single()
+            check(started.channel.eventName == key.name && !started.channel.isSticky)
+            bus.emit(key, 1)
+            bus.emit(key, 2)
+            check(received.await() == 2)
+            val failure = records.filterIsInstance<FlowBusDiagnosticEvent.Failure>().single()
+            check(failure.subscriptionId == started.subscriptionId && failure.channel == started.channel)
+            check(failure.phase == FlowBusDiagnosticFailurePhase.SubscriberCallback)
+            check(failure.exceptionType == IllegalStateException::class.java.name)
+            val publications = records.filterIsInstance<FlowBusDiagnosticEvent.Published>()
+            check(publications.size == 2)
+            check(publications.all {
+                it.channel == started.channel && it.mode == FlowBusDiagnosticPublishMode.Emit && it.result.accepted
+            })
+            check(records.filterIsInstance<FlowBusDiagnosticEvent.SubscriptionEnded>().isEmpty())
+            collecting.cancelAndJoin()
+            val ended = records.filterIsInstance<FlowBusDiagnosticEvent.SubscriptionEnded>().single()
+            check(ended.channel == started.channel && ended.subscriptionId == started.subscriptionId)
+            check(ended.reason == FlowBusDiagnosticEndReason.Cancelled && ended.failureType == null)
+            registration.close()
+            registration.close()
+            val recordCount = records.size
+            bus.emitSticky(key, 3)
+            check(bus.stickyFlow(key).first() == 3)
+            check(records.size == recordCount)
+        } finally {
+            collecting.cancelAndJoin()
+            registration.close()
+        }
     }
 
     private suspend fun verifyChannelConfig() = coroutineScope {

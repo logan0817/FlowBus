@@ -50,6 +50,9 @@ class MainActivity : AppCompatActivity() {
         binding.btnOpenNonUiCase.setOnClickListener {
             startActivity(Intent(this, NonUiCaseActivity::class.java))
         }
+        binding.btnOpenDiagnosticsCase.setOnClickListener {
+            startActivity(Intent(this, DiagnosticsCaseActivity::class.java))
+        }
         binding.btnOpenDecisionGuide.setOnClickListener {
             startActivity(Intent(this, DecisionGuideActivity::class.java))
         }

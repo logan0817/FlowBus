@@ -21,6 +21,7 @@ If you are integrating FlowBus into an Android app, this is usually the place to
 - [Quick start](#3-minute-quick-start) · [API selection](#api-selection-matrix)
 - [Owner configuration](#android-owner-configuration) · [Suspend callbacks and explicit instances](#suspend-callbacks)
 - [Since 1.3.0: Java, subscription notification, diagnostics](#development-130)
+- [1.4.0 candidate: event diagnostics](#event-diagnostics-140)
 - [Sticky](#sticky-events) · [Global defaults](#optional-configuration)
 - [Compatibility](../docs/en/compatibility.md) · [Troubleshooting](../TROUBLESHOOTING.md) (Chinese)
 
@@ -279,6 +280,8 @@ viewLifecycleOwner.onEvent<UploadFinishedEvent>(from = requireActivity()) { even
 | `tryPostEventResult(...)` | No | No | `FlowBusPostResult` | logs, test assertions, subscription count and overflow-policy investigation | does not mean subscriber callbacks already completed |
 | `emitEvent(...)` | Yes | Yes | none | active broadcasts that should wait for buffer space under the configured policy | coroutine call; normal events without subscribers are not retained, and dropping policies still apply |
 | `postStickyEvent(...)` / `emitStickyEvent(...)` | depends on API | Yes | depends on API | late subscribers need the latest value | not a replacement for long-lived state management |
+
+The 1.4.0 candidate isolates ordinary exceptions from Android send-warning loggers, including their own CancellationException, without changing rejection results or actual coroutine cancellation; recovery from fatal JVM errors is not guaranteed.
 
 Common global send:
 
@@ -635,6 +638,37 @@ if (snapshot != null) {
 The snapshot exposes effective normal/sticky capacities, replay, overflow policies, and separate active subscriber counts, without payloads. Unknown channels return null without binding types/configuration or creating Flow; conflicting types on existing names fail explicitly. Initial `FlowBusJava.inspectChannel*` source acquisition can create its Android `FlowEventBus`, so configure `FlowBusAndroid` first. An existing `FlowEventBus` exposes `inspectChannel(key)` directly; explicit core sources have the same query.
 
 Snapshots are diagnostic views, not readiness barriers or cross-thread transactions. Existing `inspect().config` still describes bus defaults. Accepted/rejected counters and subscriber counts do not establish delivery rates.
+
+<a id="event-diagnostics-140"></a>
+
+## 1.4.0 candidate: Android event diagnostics
+
+These APIs belong to the **unpublished 1.4.0 source candidate**. The `flowbus:1.3.1` coordinates above do not include them. Verify through the [local candidate workflow](../CONTRIBUTING.md#candidate-builds), rather than replacing the installation version with an unpublished coordinate.
+
+Install an observer before obtaining the Flow or registering subscriptions to track. For example, observe the Activity source on a Fragment's main thread:
+
+```kotlin
+import com.logan.flowbus.observeEventDiagnostics
+import com.logan.flowbus.core.FlowBusDiagnosticEvent
+import com.logan.flowbus.core.FlowBusDiagnosticObserver
+
+val observer = FlowBusDiagnosticObserver { record ->
+    if (record is FlowBusDiagnosticEvent.Published) {
+        println("bus=${record.channel.busId}, flow=${record.channel.flowId}, result=${record.result.outcome}")
+    }
+}
+val diagnostics = observeEventDiagnostics(observer, owner = requireActivity())
+```
+
+Subsequent sends and subscriptions must select that same Activity source. Omitting `owner` observes the Android global source; this is a different entry point from core's `DefaultFlowBus`. On an existing `FlowEventBus`, call `source.observeDiagnostics(observer)`. For an injected core instance, call that `bus.observeDiagnostics(observer)` directly; the global convenience API does not observe injected instances automatically.
+
+Java uses `FlowBusJava.observeDiagnostics(observer)` for the global source or `FlowBusJava.observeDiagnostics(sourceOwner, observer)` for an explicit owner. Both return core `FlowBusDiagnosticRegistration`. Android global/owner convenience APIs must run on the main thread. Initial source acquisition can initialize the bus, so finish `FlowBusAndroid.configure(...)` first. Here the owner selects the source; it is not a lifecycle receiver for the observer. Keep the returned handle and call `diagnostics.close()` when investigation ends.
+
+Records include source `busId`, store/flow identities, event name, and normal/sticky selection. Subscription records have their own `subscriptionId`. Each active lifecycle entry creates a new actual subscription. Leaving the active state only requests cancellation; `SubscriptionEnded` appears when collection really exits, without prematurely marking blocking or `NonCancellable` work as finished. Compose's explicit sources use the same core observer entry point and need no second observer layer.
+
+Diagnostics are disabled by default and replay no history. Install before obtaining the Flow for complete subscription tracking; a previously obtained ordinary Flow or existing subscription is not retrofitted. For temporary investigations, inspect current state first, then let the subscription owner safely recreate it. Bus-managed callbacks such as `collectEventFrom` / `onEvent` identify business failure phases. Failures in arbitrary composed Flows, `map` / `filter`, or generic `collectEvent` can expose collection exit reasons without being classified as business callback failures.
+
+Notifications are synchronous and may be concurrent. Ordinary observer exceptions are isolated and nested diagnostics on the same thread are suppressed; recovery from fatal JVM errors is not guaranteed. Closing is idempotent, permits in-flight notifications to finish, and does not cancel business subscriptions or clear sticky replay. `Published` reuses `PostResult`, without proving delivery, business success, or an actual discarded value. An immediately resumed callback can fail before publication completion is reported. Records contain no payload, exception object, or message; applications must still redact event/scope names. See the [core diagnostics contract](../flowbus-core/README_EN.md#event-diagnostics-140) for fields, failure phases, and threading boundaries.
 
 ## Optional configuration
 

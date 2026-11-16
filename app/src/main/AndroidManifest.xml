@@ -25,6 +25,7 @@
         <activity android:name="com.logan.flowbusapp.StickyCaseActivity" />
         <activity android:name="com.logan.flowbusapp.ScopeCaseActivity" />
         <activity android:name="com.logan.flowbusapp.ChannelCaseActivity" />
+        <activity android:name="com.logan.flowbusapp.DiagnosticsCaseActivity" />
         <activity android:name="com.logan.flowbusapp.NonUiCaseActivity" />
         <activity android:name="com.logan.flowbusapp.login.LoginActivity" />
     </application>

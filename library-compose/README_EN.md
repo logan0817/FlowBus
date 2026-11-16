@@ -69,6 +69,8 @@ A one-shot `CompletableDeferred` may coordinate initial subscription only; it ca
 
 Select `isSticky = true` explicitly for sticky collection. Ordinary and sticky streams are separate, and lifecycle restarts can replay again. Use `StateFlow`, business state, or persistence for restorable UI state and business results that must not be missed.
 
+The 1.4.0 source candidate adds optional [core event diagnostics](../flowbus-core/README_EN.md#event-diagnostics-140), which are not included in the published `1.3.1` coordinates. Install on the injected source before the effect obtains its Flow to track actual subscription start/end. Callback-only updates still do not resubscribe; lifecycle stop requests cancellation, and the end record waits for actual exit. The installer owns the diagnostic handle, without changing effect or source ownership.
+
 ## Build combination and verification
 
 The module uses Kotlin 1.9.25, Compose compiler 1.5.15, runtime 1.5.4, Lifecycle 2.6.2, Coroutines 1.8.1, minSdk 21, and Java 8 bytecode. Consumers may select newer independently verified runtime versions. Direct declarations do not establish resolved versions or compatibility with arbitrary toolchain combinations.

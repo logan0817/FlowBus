@@ -4,7 +4,17 @@
 
 Published 1.3.1 provides Kotlin/JVM core, Android adapter and optional Compose coordinates. Android and Compose coordinates depend transitively on the matching core version. There are no Kotlin Multiplatform, cross-process, or Navigation artifacts.
 
-## 1.3.1 release verification
+## 1.4.0 candidate verification status
+
+Current sources are the **unpublished 1.4.0 candidate**; public installation remains **1.3.1**. The optimized candidate passed 327 local JVM tests, three-module `apiCheck`, three release lint reports with 0 issues, sample and independent Maven consumer release R8 builds, Java 8, four Kotlin versions, five historical core bytecode baselines, and 1.3.1 public symbols across all modules. The first nine-job cloud CI, directed performance comparison and current-candidate API21/35 evidence passed review on 2026-11-16; see section 9 of the implementation plan. Final documentation PR and post-merge main checks must still run the required CI. Intermediate API33 and historical results are not evidence for this candidate.
+
+Version 1.4.0 adds opt-in diagnostics observer APIs without appending fields to the existing `FlowBusConfig` primary constructor. Existing delivery, error, and cancellation contracts remain. The published 1.3.1 core compilation/runtime and three fixed public-symbol baselines are added while retaining every older baseline. Rolling back to 1.3.1 requires removing new diagnostics calls/type references and recompiling, rather than replacing runtime artifacts alone.
+
+Current scope, actual evidence, and outstanding gates belong in the [1.4.0 implementation plan (Chinese)](../implementation-plan-1.4.0.md) and [candidate notes](release-notes-1.4.0.md). Subsequent source or documentation input changes require affected checks to run again. Local builds establish neither Maven publication nor API21/35 acceptance.
+
+<a id="131-release-verification"></a>
+
+## Historical 1.3.1 release verification
 
 Published 1.3.1 retains production dependencies, minimum SDK, bytecode and build baselines. All nine final main CI checks passed: 284 JVM tests, API/lint, four Kotlin versions, Java 8, historical core bytecode, published 1.3.0 Android/Compose frozen consumers and release R8. API21/35 passed Android/effect/policy 8/12/11 stages. Public Maven files/signatures and exclusive-Central consumers passed, including Java 8 and API33 8/12/11 stages. Fixed commit/run/attempt, artifact hashes and limits are in the [1.3.1 release notes](release-notes-1.3.1.md).
 
@@ -22,7 +32,7 @@ Android minSdk is 21. All three coordinates target Java 8 bytecode; the reposito
 
 Base settings remain Kotlin 1.9.25, Coroutines 1.8.1, Lifecycle 2.6.2, AGP 8.6.1, Gradle 8.7, build JDK 17, Java 8 bytecode, and minSdk 21 / compileSdk 35 / targetSdk 35. Library build settings do not establish minimum requirements for every consumer.
 
-The table below records historical 1.1.0 checks. It does not certify arbitrary version combinations or the current 1.2.0 working tree. Evidence for 1.2.0 is listed separately below.
+The table below records historical 1.1.0 checks. It does not certify arbitrary version combinations or the current 1.4.0 candidate. Historical evidence for 1.2.0 is listed separately below.
 
 | Tested combination | Evidence and limits |
 | --- | --- |
@@ -60,6 +70,6 @@ Binary descriptors and selected consumer runs are not complete ABI certification
 
 - [Release checklist](release-checklist.md): API, lint, R8, metadata, API 21/API 35, publication task graph.
 - [Core binary consumer](../../compatibility/core-binary-consumer/README_EN.md): pinned original compilation and runtime replacement.
-- [Android consumer](../../compatibility/android-consumer/README.md) (Chinese): test signing, six device groups, original AAR symbols.
+- [Android consumer](../../compatibility/android-consumer/README_EN.md): test signing, staged device verification, original AAR symbols.
 - [Compose](../../compatibility/compose-consumer/README_EN.md), [Navigation](../../compatibility/navigation-consumer/README_EN.md), [NavHost](../../compatibility/navhost-consumer/README_EN.md): independent consumers and commands.
-- [JVM performance](../../benchmarks/jvm/results/current/analysis.md) (Chinese): measured overhead and limits; no Android ART or cross-framework ranking.
+- [Historical JVM performance](../../benchmarks/jvm/results/current/analysis.md) (Chinese): measured overhead and limits for the earlier report, without certifying 1.4.0, Android ART, or cross-framework rankings.

@@ -3,7 +3,6 @@ package com.logan.flowbus.core
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.withContext
 
 private const val FLOWBUS_TAG = "FlowBus"
@@ -37,8 +36,8 @@ suspend fun <T : Any> collectFlowBusSequentially(
     errorHandler: FlowBusErrorHandler = FlowBusErrorHandler.Rethrow,
     onReceived: (T) -> Unit
 ) {
-    flow.collect { value ->
-        handleReceivedFlowBusEventSequentially(
+    flow.collectWithFlowBusDiagnostics { value, session ->
+        handleReceivedFlowBusSuspendingEventSequentially<T>(
             value = value,
             eventKey = eventKey,
             scopeName = scopeName,
@@ -46,7 +45,8 @@ suspend fun <T : Any> collectFlowBusSequentially(
             dispatcher = dispatcher,
             logger = logger,
             errorHandler = errorHandler,
-            onReceived = onReceived
+            diagnosticSession = session,
+            onReceived = { onReceived(it) }
         )
     }
 }
@@ -68,7 +68,7 @@ suspend fun <T : Any> collectFlowBusSuspendingSequentially(
     errorHandler: FlowBusErrorHandler = FlowBusErrorHandler.Rethrow,
     onReceived: suspend (T) -> Unit
 ) {
-    flow.collect { value ->
+    flow.collectWithFlowBusDiagnostics { value, session ->
         handleReceivedFlowBusSuspendingEventSequentially(
             value = value,
             eventKey = eventKey,
@@ -77,6 +77,7 @@ suspend fun <T : Any> collectFlowBusSuspendingSequentially(
             dispatcher = dispatcher,
             logger = logger,
             errorHandler = errorHandler,
+            diagnosticSession = session,
             onReceived = onReceived
         )
     }
@@ -114,16 +115,17 @@ private suspend fun <T : Any> handleReceivedFlowBusSuspendingEventSequentially(
     dispatcher: CoroutineDispatcher?,
     logger: FlowBusLogger,
     errorHandler: FlowBusErrorHandler,
+    diagnosticSession: FlowBusDiagnosticSession? = null,
     onReceived: suspend (T) -> Unit
 ) {
-    val dispatcherName = dispatcher?.toString()
     val expectedType = eventKey?.valueType
 
     if (expectedType != null && !expectedType.isInstance(value)) {
         val exception = ClassCastException(
             "Expected ${expectedType.qualifiedName} for event '${eventKey.name}', but received ${value::class.qualifiedName}."
         )
-        logger.warn(FLOWBUS_TAG, "Subscriber received an event with an unexpected type.", exception)
+        diagnosticSession?.failure(FlowBusDiagnosticFailurePhase.ValueCast, exception)
+        logger.warnSafely("Subscriber received an event with an unexpected type.", exception)
         errorHandler.handle(
             context = FlowBusErrorContext(
                 eventName = eventKey.name,
@@ -132,7 +134,7 @@ private suspend fun <T : Any> handleReceivedFlowBusSuspendingEventSequentially(
                 isSticky = isSticky,
                 scopeName = scopeName,
                 phase = FlowBusErrorPhase.ValueCast,
-                dispatcher = dispatcherName
+                dispatcher = dispatcher?.toString()
             ),
             throwable = exception
         )
@@ -142,7 +144,8 @@ private suspend fun <T : Any> handleReceivedFlowBusSuspendingEventSequentially(
     val typedValue = try {
         value as T
     } catch (e: ClassCastException) {
-        logger.warn(FLOWBUS_TAG, "Subscriber received an event with an unexpected type.", e)
+        diagnosticSession?.failure(FlowBusDiagnosticFailurePhase.ValueCast, e)
+        logger.warnSafely("Subscriber received an event with an unexpected type.", e)
         errorHandler.handle(
             context = FlowBusErrorContext(
                 eventName = eventKey?.name,
@@ -151,7 +154,7 @@ private suspend fun <T : Any> handleReceivedFlowBusSuspendingEventSequentially(
                 isSticky = isSticky,
                 scopeName = scopeName,
                 phase = FlowBusErrorPhase.ValueCast,
-                dispatcher = dispatcherName
+                dispatcher = dispatcher?.toString()
             ),
             throwable = e
         )
@@ -169,7 +172,8 @@ private suspend fun <T : Any> handleReceivedFlowBusSuspendingEventSequentially(
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
-        logger.warn(FLOWBUS_TAG, "Subscriber callback failed.", e)
+        diagnosticSession?.failure(FlowBusDiagnosticFailurePhase.SubscriberCallback, e)
+        logger.warnSafely("Subscriber callback failed.", e)
         errorHandler.handle(
             context = FlowBusErrorContext(
                 eventName = eventKey?.name,
@@ -178,9 +182,17 @@ private suspend fun <T : Any> handleReceivedFlowBusSuspendingEventSequentially(
                 isSticky = isSticky,
                 scopeName = scopeName,
                 phase = FlowBusErrorPhase.SubscriberCallback,
-                dispatcher = dispatcherName
+                dispatcher = dispatcher?.toString()
             ),
             throwable = e
         )
+    }
+}
+
+private fun FlowBusLogger.warnSafely(message: String, error: Throwable) {
+    try {
+        warn(FLOWBUS_TAG, message, error)
+    } catch (_: Exception) {
+        // 日志是辅助路径；其普通异常不能阻止原异常进入既定 errorHandler。
     }
 }

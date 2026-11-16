@@ -842,13 +842,14 @@ val prepareMavenLocalBinaryCoreConsumer = tasks.register("prepareMavenLocalBinar
             """.trimIndent()
         )
         templateDir.resolve("src").copyRecursively(root.resolve("src"), overwrite = true)
-        if (binaryConsumerBaselineVersion in setOf("1.1.0", "1.2.0", "1.3.0")) {
+        if (binaryConsumerBaselineVersion in setOf("1.1.0", "1.2.0", "1.3.0", "1.3.1")) {
             templateDir.resolve("src-1.1.0").copyRecursively(root.resolve("src"), overwrite = true)
         }
-        if (binaryConsumerBaselineVersion in setOf("1.2.0", "1.3.0")) {
+        if (binaryConsumerBaselineVersion in setOf("1.2.0", "1.3.0", "1.3.1")) {
             templateDir.resolve("src-1.2.0").copyRecursively(root.resolve("src"), overwrite = true)
         }
-        if (binaryConsumerBaselineVersion == "1.3.0") {
+        // 1.3.1 没有新增公开 API，复用调用源码；编译输入与报告仍按所选原版独立。
+        if (binaryConsumerBaselineVersion in setOf("1.3.0", "1.3.1")) {
             templateDir.resolve("src-1.3.0").copyRecursively(root.resolve("src"), overwrite = true)
         }
         val consumerSource = root.resolve("src/main/kotlin/com/logan/flowbus/binaryconsumer/BinaryCoreConsumer.kt")
@@ -857,7 +858,7 @@ val prepareMavenLocalBinaryCoreConsumer = tasks.register("prepareMavenLocalBinar
             when (binaryConsumerBaselineVersion) {
                 "1.1.0" -> "BinaryCoreConsumer110.verify()"
                 "1.2.0" -> "BinaryCoreConsumer110.verify(); BinaryCoreConsumer120.verify()"
-                "1.3.0" -> "BinaryCoreConsumer110.verify(); BinaryCoreConsumer120.verify(); BinaryCoreConsumer130.verify()"
+                "1.3.0", "1.3.1" -> "BinaryCoreConsumer110.verify(); BinaryCoreConsumer120.verify(); BinaryCoreConsumer130.verify()"
                 else -> ""
             }
         ))

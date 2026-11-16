@@ -4,6 +4,7 @@
  * FlowBus 的最小日志接口。
  *
  * 它只负责记录告警，不参与异常分流；真正决定异常是否继续抛出的是 [FlowBusErrorHandler]。
+ * 托管 collector 隔离 logger 自身的普通异常，JVM 致命错误不作恢复保证。
  */
 interface FlowBusLogger {
     /**

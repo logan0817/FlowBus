@@ -12,8 +12,8 @@ val candidateVersion = Properties().apply {
 val candidateJar = rootDir.resolve("../../build/candidate-maven/io/github/logan0817/flowbus-core/$candidateVersion/flowbus-core-$candidateVersion.jar")
 val target = providers.gradleProperty("benchmark.target").orElse("candidate").get()
 require(target in setOf("baseline", "candidate", "shared"))
-val baselineVersion = "1.3.0"
-val baselineSha256 = "3e15654a40e3a071d2ca2df51efa1288587d96f407de690c30369092ad2149b4"
+val baselineVersion = "1.3.1"
+val baselineSha256 = "c28674aac6e420fc31ee04c6baddccd9371c12087fe421ac686a9f86791d0df4"
 val baseline by configurations.creating
 configurations.runtimeClasspath { exclude(group = "io.github.logan0817", module = "flowbus-core") }
 dependencies {
@@ -64,6 +64,11 @@ tasks.register<JavaExec>("selfCheck") {
     benchmarkClasspath()
     mainClass.set("com.logan.flowbus.benchmark.Workload")
     args(target)
+}
+tasks.register<JavaExec>("selfCheckDiagnostics") {
+    benchmarkClasspath()
+    mainClass.set("com.logan.flowbus.benchmark.DiagnosticsWorkload")
+    doFirst { check(target == "candidate") { "Diagnostics are available only on the candidate." } }
 }
 tasks.register<JavaExec>("jmh") {
     benchmarkClasspath()

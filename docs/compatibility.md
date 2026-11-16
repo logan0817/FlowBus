@@ -4,7 +4,17 @@
 
 正式 1.3.1 发布 Kotlin/JVM core、Android 适配和可选 Compose 三个坐标。Android 和 Compose 坐标传递依赖同版本 core，不提供 Kotlin Multiplatform、跨进程或 Navigation 制品。
 
-## 1.3.1 发布验收
+## 1.4.0 候选验证状态
+
+当前源码为 **1.4.0 未发布候选**，公开安装仍使用 **1.3.1**。优化后候选在本地已通过 327 项 JVM 测试、三模块 `apiCheck`、三份 release lint（0 issue）、示例与独立 Maven 消费者 release R8、Java 8、四个 Kotlin 版本、五版 core 原字节码及 1.3.1 三模块公开符号检查。2026-11-16 首轮九项云端 CI、定向性能、当前候选 API21/35 设备证据已通过核验，详见实施方案第 9 节；最终文档 PR 和合并后 main 仍须执行同样的必要 CI。API33 的中间候选及以下旧版结果不作为本轮证据。
+
+1.4.0 的诊断观察属于新增 API，默认关闭，不向现有 `FlowBusConfig` 主构造追加字段；投递、错误与取消的原有契约保留。新增 1.3.1 原版 core 编译运行及三个模块的固定公开符号基线，保留所有旧基线。回退到 1.3.1 需移除新诊断调用及类型引用并重新编译，不应只替换运行时制品。
+
+当前范围、实际证据和未完成门禁见 [1.4.0 实施方案](implementation-plan-1.4.0.md)及[候选说明](release-notes-1.4.0.md)。后续源码或文档输入变化后，仍须重跑受影响验证；本地构建不代表 Maven 发布或 API21/35 已通过。
+
+<a id="131-发布验收"></a>
+
+## 1.3.1 历史正式发布验收
 
 正式 1.3.1 保持生产依赖、最低 SDK、Java 字节码与构建基线。最终 main 九项 CI 检查通过：284 项 JVM 测试、API/lint、四个 Kotlin 版本、Java8、历史 core 字节码、1.3.0 Android/Compose 冻结消费者与 release R8；API21/35 的 Android/effect/policy 为 8/12/11 阶段。公开 Maven 文件、签名与仅解析 Central 的消费者通过，包含 Java8 和 API33 8/12/11 阶段。固定 commit/run/attempt、制品摘要及限制见 [1.3.1 发布说明](release-notes-1.3.1.md)。
 
@@ -22,7 +32,7 @@ Android minSdk 为 21，三个坐标均输出 Java 8 字节码。构建本仓库
 
 基础库保持 Kotlin 1.9.25、Coroutines 1.8.1、Lifecycle 2.6.2、AGP 8.6.1、Gradle 8.7、构建 JDK 17、Java 8 字节码及 minSdk 21 / compileSdk 35 / targetSdk 35。消费者可以使用自己的兼容工具链；库的构建配置不等于全部消费者的最低要求。
 
-下表记录 1.1.0 的历史验证，不推导为任意组合均受支持，也不代表当前 1.2.0 工作区已验收。1.2.0 的验证证据单独列于下节。
+下表记录 1.1.0 的历史验证，不推导为任意组合均受支持，也不代表当前 1.4.0 候选已验收。1.2.0 的历史验证证据单独列于下节。
 
 | 已测组合 | 结果与边界 |
 | --- | --- |
@@ -60,6 +70,6 @@ Android minSdk 为 21，三个坐标均输出 Java 8 字节码。构建本仓库
 
 - [发布清单](release-checklist.md)：API、lint、R8、元数据、API 21/API 35 与发布任务图。
 - [core 二进制消费者](../compatibility/core-binary-consumer/README.md)：固定原版编译和候选替换运行。
-- [Android 消费者](../compatibility/android-consumer/README.md)：测试签名、设备六组验收、原版 AAR 符号。
+- [Android 消费者](../compatibility/android-consumer/README.md)：测试签名、逐阶段设备验收、原版 AAR 符号。
 - [Compose](../compatibility/compose-consumer/README.md)、[Navigation](../compatibility/navigation-consumer/README.md)、[NavHost](../compatibility/navhost-consumer/README.md)：独立消费者与命令。
-- [JVM 性能分析](../benchmarks/jvm/results/current/analysis.md)：实测成本与边界，不包含 Android ART 或跨框架排名。
+- [历史 JVM 性能分析](../benchmarks/jvm/results/current/analysis.md)：对应旧版报告的实测成本与边界，不作为 1.4.0 验收，也不包含 Android ART 或跨框架排名。

@@ -21,7 +21,7 @@ release 使用 R8，未配置签名。预期输出为：
 - APK：`build/maven-local-consumer/app/build/outputs/apk/release/app-release-unsigned.apk`
 - mapping：`build/maven-local-consumer/app/build/outputs/mapping/release/mapping.txt`
 
-此目录验证 `gradle.properties` 指定的本地源码候选，当前源码和公开正式版本均为 **1.3.1**。当前 APK 同时包含原版 1.1.0 和 1.3.0 编译 fixture；1.0.7 / 1.2.0 Android 仍以静态符号检查为主，不混称本 APK 已执行这些旧版 Android 字节码。隔离候选、原版编译与公开依赖验证分别记录，当前状态见[发布说明](../../docs/release-notes-1.3.1.md)。
+此目录验证 `gradle.properties` 指定的本地源码候选，当前为 **1.4.0 未发布候选**，公开正式版本仍为 **1.3.1**。当前 APK 同时包含原版 1.1.0 和 1.3.0 编译 fixture；1.0.7 / 1.2.0 / 1.3.1 Android 以静态符号检查为主，不混称本 APK 已执行这些旧版 Android 字节码。隔离候选、原版编译与公开依赖验证分别记录；正式 1.3.1 证据见[发布说明](../../docs/release-notes-1.3.1.md)，不能作为当前候选通过的证据。
 
 ## 本地测试签名
 
@@ -112,9 +112,10 @@ actual = hashlib.sha256(Path("build/published-baseline/flowbus-1.0.7.aar").read_
 assert actual == "84380a3e456285a77133a4535dd4ff69b2eeb85ee516e3a24326411503ff5592", actual
 PY
 
+FLOWBUS_VERSION=$(sed -n 's/^VERSION_NAME=//p' gradle.properties)
 python3 -B compatibility/core-binary-consumer/verify_symbols.py \
   --baseline-artifact build/published-baseline/flowbus-1.0.7.aar \
-  --candidate-artifact build/candidate-maven/io/github/logan0817/flowbus/1.3.1/flowbus-1.3.1.aar \
+  --candidate-artifact "build/candidate-maven/io/github/logan0817/flowbus/$FLOWBUS_VERSION/flowbus-$FLOWBUS_VERSION.aar" \
   --baseline-api-snapshot compatibility/android-consumer/api/flowbus-1.0.7.api \
   --javap /path/to/jdk17/bin/javap \
   --output build/android-jvm-symbol-verification.json
@@ -152,3 +153,26 @@ python3 -B compatibility/core-binary-consumer/verify_symbols.py \
   --javap /path/to/jdk17/bin/javap \
   --output build/android-1.3.0-jvm-symbol-verification.json
 ```
+
+## 正式 1.3.1 静态符号基线
+
+[api/flowbus-1.3.1.api](api/flowbus-1.3.1.api) 原样取自 `v1.3.1` 的 `2dbd9581af58ae376141d8ada62d4f26e6507754`，与 1.3.0 公开 API 相同；原版 AAR 字节及 SHA-256 不同，必须使用 [baselines.json](../core-binary-consumer/baselines.json) 的 **1.3.1** 条目。保留所有旧快照及 legacy fixture，不使用候选快照替代原版。
+
+候选已生成后，从项目根目录执行：
+
+```bash
+mkdir -p build/published-baseline
+curl --fail --location --silent --show-error \
+  --output build/published-baseline/flowbus-1.3.1.aar \
+  https://repo.maven.apache.org/maven2/io/github/logan0817/flowbus/1.3.1/flowbus-1.3.1.aar
+python3 -c 'import hashlib,json,pathlib; expected=json.loads(pathlib.Path("compatibility/core-binary-consumer/baselines.json").read_text())["1.3.1"]["androidSha256"]; assert hashlib.sha256(pathlib.Path("build/published-baseline/flowbus-1.3.1.aar").read_bytes()).hexdigest()==expected'
+FLOWBUS_VERSION=$(sed -n 's/^VERSION_NAME=//p' gradle.properties)
+python3 -B compatibility/core-binary-consumer/verify_symbols.py \
+  --baseline-artifact build/published-baseline/flowbus-1.3.1.aar \
+  --candidate-artifact "build/candidate-maven/io/github/logan0817/flowbus/$FLOWBUS_VERSION/flowbus-$FLOWBUS_VERSION.aar" \
+  --baseline-api-snapshot compatibility/android-consumer/api/flowbus-1.3.1.api \
+  --javap /path/to/jdk17/bin/javap \
+  --output build/android-1.3.1-jvm-symbol-verification.json
+```
+
+此入口只核对 AAR `classes.jar` 的受支持符号，不证明资源、manifest、完整 ABI 或 1.3.1 原版编译 Android 字节码的设备运行。1.3.1 core 的原版编译与同字节码 Java 8 替换运行见 [core 二进制消费者](../core-binary-consumer/README.md#131-基线)。
