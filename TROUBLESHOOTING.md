@@ -138,7 +138,7 @@ inspect().config 显示 bus 默认值；tryPostResult/tryPostStickyResult.overfl
 
 ## 1.3.1 的边界修复与升级排查
 
-当前公开版本为 **1.3.1**，已发布到 Maven Central。以下区分 1.3.0 已复现问题与 1.3.1 修复；最终 CI、公开制品和消费者验收见 [1.3.1 发布说明](docs/release-notes-1.3.1.md)。
+当前公开版本为 **1.4.0**，已发布到 Maven Central。以下保留 1.3.0 已复现问题与 1.3.1 修复记录；当前排障 API 与正式验收见 [1.4.0 发布说明](docs/release-notes-1.4.0.md)。
 
 ### sticky 回调再次发送后，最近值反而变旧
 
@@ -162,9 +162,9 @@ owner 本身已经销毁且阈值合法时，应正常不订阅并完成 Job。�
 
 <a id="event-diagnostics-140"></a>
 
-## 1.4.0 候选：用事件记录定位收不到与订阅退出
+## 1.4.0：用事件记录定位收不到与订阅退出
 
-本节针对**尚未发布的 1.4.0 源码候选**；公开 Maven Central 版本仍为 `1.3.1`，不包含观察 API。候选安装使用[隔离本地流程](CONTRIBUTING.md#candidate-builds)，API 与完整契约见 [core](flowbus-core/README.md#event-diagnostics-140) 和 [Android](library-android/README.md#event-diagnostics-140)。
+本节针对已发布的 **1.4.0**，可直接解析 Maven Central 正式坐标。验证本地修改时使用[隔离本地流程](CONTRIBUTING.md#candidate-builds)；API 与完整契约见 [core](flowbus-core/README.md#event-diagnostics-140) 和 [Android](library-android/README.md#event-diagnostics-140)。
 
 ### 同名事件发送和订阅看起来正常，仍然收不到
 

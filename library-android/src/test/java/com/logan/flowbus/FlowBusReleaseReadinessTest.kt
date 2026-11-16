@@ -163,7 +163,7 @@ class FlowBusReleaseReadinessTest {
 
     @Test
     fun `published versions and installation examples remain consistent`() {
-        val releaseVersion = "1.3.1"
+        val releaseVersion = "1.4.0"
         val sourceVersion = "1.4.0"
         val versionNotes = File("../docs/release-notes-1.4.0.md").readText()
         val englishVersionNotes = File("../docs/en/release-notes-1.4.0.md").readText()

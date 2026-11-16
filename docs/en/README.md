@@ -2,7 +2,7 @@
 
 [中文](../README.md) · [Project home](../../README_EN.md)
 
-The latest stable version is **1.3.1**, published to Maven Central on 2026-11-11 with core, Android and optional Compose coordinates. Public artifacts, signatures and independent consumers are verified in the [release notes](release-notes-1.3.1.md).
+The latest stable version is **1.4.0**, published to Maven Central on 2026-11-16, with core, Android and optional Compose coordinates. Public artifact, signature and independent consumer acceptance is recorded in the [release notes](release-notes-1.4.0.md).
 
 The **1.4.0 source candidate is unpublished**. Its optional event diagnostics are described in the [core contract](../../flowbus-core/README_EN.md#event-diagnostics-140) and [Android integration](../../library-android/README_EN.md#event-diagnostics-140). Stable `1.3.1` coordinates do not include those APIs; use the isolated [candidate workflow](../../CONTRIBUTING.md#candidate-builds) for local verification.
 
@@ -23,6 +23,7 @@ The sample app is in [app](../../app). [flowbus-compose](../../library-compose/R
 
 | Version | Status | Changes |
 | --- | --- | --- |
+| [1.4.0](release-notes-1.4.0.md) | Published | Optional event diagnostics and logger isolation |
 | [1.3.1](release-notes-1.3.1.md) | Published | Sticky ordering, scope creation failure and lifecycle threshold fixes |
 | [1.3.0](release-notes-1.3.0.md) | Published | Subscription notification, Java, optional Compose, channel diagnostics |
 | [1.2.0](release-notes-1.2.0.md) | Published | Channel configuration, delivery contracts, performance baseline |
@@ -34,7 +35,7 @@ See the [changelog](../../CHANGELOG.md) for a summary. Historical notes describe
 
 ## Contributing and maintenance
 
-- [1.4.0 implementation plan](../implementation-plan-1.4.0.md) (Chinese): source diagnostics, subscription identities, failure boundaries, compatibility, overhead measurements, and pre-release acceptance; publication requires separate authorization and gates.
+- [1.4.0 implementation plan (Chinese)](../implementation-plan-1.4.0.md): implementation, compatibility, performance, pre-release review and formal publication completed.
 - [1.3.1 detailed implementation plan](../implementation-plan-1.3.1.md) (Chinese): reproduced defects, W0–W8 tasks, regression matrices, verification commands, release gates and AI handoff templates; W0–W8 implementation, pre-release validation and public artifact acceptance completed.
 - [Contributing](contributing.md): environment, verification, naming, and documentation.
 - [Support](support.md), [security policy](security.md), and [code of conduct](code-of-conduct.md).

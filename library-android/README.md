@@ -9,19 +9,19 @@ Gradle 模块目录名是 `library-android`，对外发布的依赖坐标是：
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.3.1")
+implementation("io.github.logan0817:flowbus:1.4.0")
 ```
 
 如果你是 Android 项目接入 FlowBus，通常就从这个模块开始，不需要先研究 `flowbus-core`。
 
-**1.3.1 已发布到 Maven Central。** sticky 重入、scope 创建和生命周期阈值修复已通过最终 main CI、公开制品与独立消费者验收；升级和验证见 [1.3.1 发布说明](../docs/release-notes-1.3.1.md)。
+**1.4.0 已发布到 Maven Central。** 增加可选事件排障并隔离 logger 异常，保留既有契约。公开验收、成本与回退见 [1.4.0 发布说明](../docs/release-notes-1.4.0.md)。
 
 ## 阅读导航
 
 - [快速开始](#3-分钟上手) · [API 选择](#api-选择矩阵)
 - [owner 配置](#android-owner-configuration) · [挂起回调与实例接入](#suspend-callbacks)
 - [1.3.0：Java、订阅建立与诊断](#development-130)
-- [1.4.0 候选：事件排障观察](#event-diagnostics-140)
+- [1.4.0：事件排障观察](#event-diagnostics-140)
 - [sticky](#sticky-与-replay) · [全局默认配置](#可选配置)
 - [兼容性](../docs/compatibility.md) · [排障](../TROUBLESHOOTING.md)
 
@@ -44,7 +44,7 @@ FlowBus 适合“某个地方发出通知，多个地方可能关心”的异步
 [![Maven Central](https://img.shields.io/maven-central/v/io.github.logan0817/flowbus.svg?label=Latest%20Release)](https://central.sonatype.com/artifact/io.github.logan0817/flowbus)
 
 ```gradle
-implementation("io.github.logan0817:flowbus:1.3.1")
+implementation("io.github.logan0817:flowbus:1.4.0")
 ```
 
 ### 2. 定义一个事件类型
@@ -304,7 +304,7 @@ viewLifecycleOwner.onEvent<UploadFinishedEvent>(from = requireActivity()) { even
 | `emitEvent(...)` | 是 | 是 | 无 | 活跃广播需要按配置等待缓冲可用 | 协程调用；无人订阅普通事件不保存，丢弃策略仍生效 |
 | `postStickyEvent(...)` / `emitStickyEvent(...)` | 取决于具体 API | 是 | 取决于具体 API | 后订阅者需要收到最近值 | 不适合替代长期状态管理 |
 
-1.4.0 候选隔离 Android 发送 warning 中 logger 自身的普通异常（含其抛出的 CancellationException），不改变拒绝结果或真正的协程取消；JVM 致命错误不作恢复保证。
+1.4.0 隔离 Android 发送 warning 中 logger 自身的普通异常（含其抛出的 CancellationException），不改变拒绝结果或真正的协程取消；JVM 致命错误不作恢复保证。
 
 常见全局发送：
 
@@ -506,7 +506,7 @@ viewLifecycleOwner.onEvent<MainUiEvent> { event ->
 
 ## 按通道配置
 
-从已发布的 1.2.0 起提供，1.1.0 不包含这些 API。通过 Maven Central 使用 `io.github.logan0817:flowbus-core:1.3.1` 或 `io.github.logan0817:flowbus:1.3.1`；变化与验收记录见[发布说明](../docs/release-notes-1.2.0.md)。
+从已发布的 1.2.0 起提供，1.1.0 不包含这些 API。通过 Maven Central 使用 `io.github.logan0817:flowbus-core:1.4.0` 或 `io.github.logan0817:flowbus:1.4.0`；变化与验收记录见[发布说明](../docs/release-notes-1.2.0.md)。
 
 <a id="android-owner-configuration"></a>
 
@@ -705,9 +705,9 @@ if (snapshot != null) {
 
 <a id="event-diagnostics-140"></a>
 
-## 1.4.0 候选：Android 事件排障
+## 1.4.0：Android 事件排障
 
-以下 API 属于**尚未发布的 1.4.0 源码候选**，上方 `flowbus:1.3.1` 坐标不包含它们。使用[本地候选流程](../CONTRIBUTING.md#candidate-builds)验证，不要直接把安装版本改为未发布坐标。
+以下 API 已包含在正式 `flowbus:1.4.0` 坐标中。验证源码修改时再使用[本地候选流程](../CONTRIBUTING.md#candidate-builds)。
 
 先安装观察器，再获取 Flow 或注册需要跟踪的订阅。例如在 Fragment 主线程观察 Activity 来源：
 

@@ -2,7 +2,7 @@
 
 [English](README_EN.md)
 
-此目录是独立消费者模板，用于评估当前 Kotlin 1.9.25 基线的 Compose 编译和 release R8 接入，现通过候选 Maven 坐标调用正式模块源码中的 [FlowBusEffect](../../library-compose/README.md)。当前源码为 **1.4.0 未发布候选**，公开 `flowbus-compose:1.3.1` 已发布到 Maven Central；本入口默认仍验证本地源码修改生成的隔离候选，公开依赖验证见[发布说明](../../docs/release-notes-1.3.1.md)。模板的生成、构建和验证由主仓验证任务负责，本目录没有独立发布任务。
+此目录是独立消费者模板，用于评估当前 Kotlin 1.9.25 基线的 Compose 编译和 release R8 接入，现通过候选 Maven 坐标调用正式模块源码中的 [FlowBusEffect](../../library-compose/README.md)。当前源码为 **1.4.0**，公开 `flowbus-compose:1.4.0` 已发布到 Maven Central；本入口默认仍验证本地源码修改生成的隔离候选，公开依赖验证见[发布说明](../../docs/release-notes-1.4.0.md)。模板的生成、构建和验证由主仓验证任务负责，本目录没有独立发布任务。
 
 消费者默认使用 activity-compose `1.8.2`、Compose runtime/ui `1.5.4`、Compose compiler `1.5.15`，直接声明 Lifecycle `2.6.2`，消费当前候选 FlowBus 产物。另可选择 runtime/ui `1.7.8` 进行新版实验。全部仅作用于此消费者；基础库不传递引入 Compose，也不改变基础依赖、SDK 或 Kotlin 要求。两种组合的结果必须分开记录，声明版本不能代替实际解析或设备证据。
 
@@ -93,7 +93,7 @@ python3 -B compatibility/compose-consumer/verify_effects_test.py
 
 当前 effect 与 policy 协议各有 1 个 unittest，分别对每一个阶段缺失进行拒绝验证，并覆盖本次 PASS、旧 PASS、当前 FAIL、其他前台包、缺阶段、错误检查数与安装前错误 API。mock 只验证 driver 判定，不等于真实设备通过。effect 的替换与生命周期阶段还断言通知总次数：初始一次，来源、key、owner、阈值恢复、组合恢复、生命周期恢复及销毁后新 owner 各增加一次，最终八次；回调更新和错误继续均不能增加订阅。进程死亡恢复、深链接及其他 NavHost 配置仍需独立验证；勿将此前十阶段临时 driver 作为仓库入口。
 
-1.4.0 候选在原十二/十一阶段内增加统一诊断验收，不改变 driver 阶段名和数量。观察器在 effect 取流前安装，记录元数据而非事件值，并在 finally 关闭。Started 必须与真实 `onSubscribed` 对齐，Ended 必须匹配 channel/subscriptionId 且不能重复；停止或移除组合后等待真正退出，不用 Job 已创建或已请求取消代替。诊断通知不是业务就绪屏障。
+1.4.0 在原十二/十一阶段内增加统一诊断验收，不改变 driver 阶段名和数量。观察器在 effect 取流前安装，记录元数据而非事件值，并在 finally 关闭。Started 必须与真实 `onSubscribed` 对齐，Ended 必须匹配 channel/subscriptionId 且不能重复；停止或移除组合后等待真正退出，不用 Job 已创建或已请求取消代替。诊断通知不是业务就绪屏障。
 
 ## 错误策略与非协作回调自检
 
